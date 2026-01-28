@@ -4,11 +4,13 @@ local coords = {
 	Vector3.new(200, -3, 0),
 	Vector3.new(284, -3, 0),
 	Vector3.new(396, -3, 0),
+	Vector3.new(541, -3, 0),
+	Vector3.new(756, -3, 0),
 }
 
-local index = 1
+local currentIndex = 0
 local moving = false
-local root
+local needReset = false
 
 local gui = player.PlayerGui:FindFirstChild("TeleportGUI")
 if not gui then
@@ -17,12 +19,11 @@ if not gui then
 	gui.ResetOnSpawn = false
 end
 
--- القائمة السوداء طويلة جدًا
 local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 250, 0, 400)
+	frame.Size = UDim2.new(0, 250, 0, 500)
 	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
@@ -30,7 +31,6 @@ if not frame then
 	frame.Parent = gui
 end
 
--- الزر الأول (Forward)
 local forwardBox = frame:FindFirstChild("ForwardBox")
 if not forwardBox then
 	forwardBox = Instance.new("Frame")
@@ -56,7 +56,6 @@ if not forwardBtn then
 	forwardBtn.Parent = forwardBox
 end
 
--- الزر الثاني (Back)
 local backBox = frame:FindFirstChild("BackBox")
 if not backBox then
 	backBox = Instance.new("Frame")
@@ -87,27 +86,44 @@ local function getRoot()
 	return char and char:FindFirstChild("HumanoidRootPart")
 end
 
-player.CharacterAdded:Connect(function()
-	root = nil
+player.CharacterAdded:Connect(function(char)
 	moving = false
+	if needReset then
+		local r = char:WaitForChild("HumanoidRootPart")
+		if r then
+			r.CFrame = CFrame.new(coords[1])
+			currentIndex = 1
+		end
+		needReset = false
+	end
 end)
+
+local function initiateReset()
+	moving = false
+	currentIndex = 1
+	local r = getRoot()
+	if r then
+		pcall(function() r.CFrame = CFrame.new(coords[1]) end)
+	else
+		needReset = true
+	end
+end
 
 local function tpStep(target)
 	moving = true
-	root = getRoot()
+	local root = getRoot()
 	if not root then
-		moving = false
+		initiateReset()
 		return
 	end
 
-	-- رفع 10 وحدات أول ضغطة
-	root.CFrame += Vector3.new(0,10,0)
+	root.CFrame = root.CFrame + Vector3.new(0,10,0)
 	task.wait(0.01)
 
 	while true do
 		root = getRoot()
 		if not root or not root.Parent then
-			moving = false
+			initiateReset()
 			return
 		end
 
@@ -119,13 +135,13 @@ local function tpStep(target)
 		task.wait(0.01)
 	end
 
+	root = getRoot()
 	if root and root.Parent then
 		root.CFrame = CFrame.new(target)
 	end
 	moving = false
 end
 
--- تأثير الضغط على الأزرار
 forwardBtn.MouseButton1Down:Connect(function()
 	forwardBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
 end)
@@ -140,22 +156,25 @@ backBtn.MouseButton1Up:Connect(function()
 	backBtn.BackgroundColor3 = Color3.fromRGB(160,160,160)
 end)
 
--- الضغط على الزر الأول (Forward)
 forwardBtn.MouseButton1Click:Connect(function()
 	if moving then return end
-	if index > #coords then return end -- آخر إحداثية ما يتحرك
-	tpStep(coords[index])
-	index += 1
+	local targetIndex = currentIndex + 1
+	if targetIndex > #coords then return end
+	tpStep(coords[targetIndex])
+	currentIndex = targetIndex
 end)
 
--- الضغط على الزر الثاني (Back)
 backBtn.MouseButton1Click:Connect(function()
 	if moving then return end
-	if index <= 1 then return end -- أول إحداثية ما يتحرك
-	-- إذا المؤشر بعد آخر إحداثية نصححه مباشرة
-	if index > #coords then
-		index = #coords
+	if currentIndex == 0 then
+		-- لم تتم أي عملية للأمام بعد، ما في شي للوراء
+		return
 	end
-	index -= 1
-	tpStep(coords[index])
+	if currentIndex > #coords then
+		currentIndex = #coords
+	end
+	local targetIndex = currentIndex - 1
+	if targetIndex < 1 then return end
+	tpStep(coords[targetIndex])
+	currentIndex = targetIndex
 end)
