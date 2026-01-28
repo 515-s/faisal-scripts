@@ -100,6 +100,7 @@ local function tpStep(target)
 		return
 	end
 
+	-- رفع 10 وحدات أول ضغطة
 	root.CFrame += Vector3.new(0,10,0)
 	task.wait(0.01)
 
@@ -151,6 +152,10 @@ end)
 backBtn.MouseButton1Click:Connect(function()
 	if moving then return end
 	if index <= 1 then return end -- أول إحداثية ما يتحرك
+	-- إذا المؤشر بعد آخر إحداثية نصححه مباشرة
+	if index > #coords then
+		index = #coords
+	end
 	index -= 1
 	tpStep(coords[index])
 end)
