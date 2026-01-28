@@ -1,24 +1,16 @@
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
+-- الإحداثيات، خليتهم اثنين فقط
 local coords = {
-	Vector3.new(199, -3, 23),
-	Vector3.new(285, -3, 35),
-	Vector3.new(404, -3, 0),
-	Vector3.new(545, -3, 8),
-	Vector3.new(756, -3, 6),
-	Vector3.new(1079, -3, 5),
-	Vector3.new(1321, 3, 13),
-	Vector3.new(1569, -6, -28),
-	Vector3.new(1731, 3, -6),
-	Vector3.new(1949, 3, 16),
-	Vector3.new(2250, -3, -20),
-	Vector3.new(2609, -3, 7),
+	Vector3.new(200, -3, 0),
+	Vector3.new(284, -3, 0),
 }
 
 local index = 1
 local root
 
+-- إنشاء GUI إذا ما موجود
 local gui = player:WaitForChild("PlayerGui"):FindFirstChild("TeleportGUI")
 if not gui then
 	gui = Instance.new("ScreenGui")
@@ -43,10 +35,7 @@ if not btn then
 	btn.Parent = gui
 end
 
-local hue = 0
-RunService.RenderStepped:Connect(function()
-end)
-
+-- دالة لتحديث root
 local function refreshRoot()
 	local char = player.Character or player.CharacterAdded:Wait()
 	root = char:WaitForChild("HumanoidRootPart")
@@ -58,17 +47,34 @@ player.CharacterAdded:Connect(function()
 	index = 1
 end)
 
-local function tp(pos)
+-- دالة النقل خطوة بخطوة
+local function tpStep(targetPos)
 	if not root then refreshRoot() end
-	for i = 1, 5 do
+	local stepSize = 10 -- وحدة كل خطوة
+	local waitTime = 0.05 -- كل كم ثانية
+	local currentPos = root.Position
+	local direction = (targetPos - currentPos).Unit
+	local distance = (targetPos - currentPos).Magnitude
+
+	while distance > 4 do
 		if root and root.Parent then
-			root.CFrame = CFrame.new(pos)
-			task.wait(0.1)
-			if (root.Position - pos).Magnitude < 2 then break end
+			local move = math.min(stepSize, distance)
+			root.CFrame = CFrame.new(root.Position + direction * move)
+			task.wait(waitTime)
+			currentPos = root.Position
+			distance = (targetPos - currentPos).Magnitude
+		else
+			break
 		end
+	end
+
+	-- النقل الأخير 4 وحدات للوصول للهدف بدقة
+	if root and root.Parent then
+		root.CFrame = CFrame.new(targetPos)
 	end
 end
 
+-- كول داون الزر
 local cooldown = false
 local function startCooldown()
 	cooldown = true
@@ -80,29 +86,14 @@ local function startCooldown()
 	cooldown = false
 end
 
+-- حدث الضغط على الزر
 btn.MouseButton1Click:Connect(function()
 	if cooldown then return end
 
-	if index == 7 then
-		tp(coords[7])
-		task.wait(0.2)
-		tp(coords[8])
-		index = 9
-
-	elseif index == 9 then
-		tp(coords[9])
-		task.wait(0.2)
-		tp(coords[10])
-		task.wait(0.2)
-		tp(coords[11])
-		index = 12
-
-	else
-		tp(coords[index])
-		index = index + 1
-		if index > #coords then
-			index = 1
-		end
+	tpStep(coords[index])
+	index = index + 1
+	if index > #coords then
+		index = 1
 	end
 
 	startCooldown()
