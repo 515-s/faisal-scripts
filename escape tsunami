@@ -17,12 +17,12 @@ if not gui then
 	gui.ResetOnSpawn = false
 end
 
--- القائمة السوداء (أطول للأسفل)
+-- القائمة السوداء طويلة جدًا
 local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 250, 0, 200) -- أطول تحت
+	frame.Size = UDim2.new(0, 250, 0, 400) -- طويل جدًا
 	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
@@ -30,18 +30,17 @@ if not frame then
 	frame.Parent = gui
 end
 
--- الخانة الرمادية للزر الأول
+-- زر النقل الأول داخل خانة رمادية قصيرة
 local grayBox = frame:FindFirstChild("GrayBox")
 if not grayBox then
 	grayBox = Instance.new("Frame")
 	grayBox.Name = "GrayBox"
 	grayBox.Size = UDim2.new(1, -20, 0, 30)
-	grayBox.Position = UDim2.new(0, 10, 0, 60)
-	grayBox.BackgroundColor3 = Color3.fromRGB(80,80,80)
+	grayBox.Position = UDim2.new(0, 10, 0, 20) -- أعلى القائمة مع مساحة صغيرة فوق
+	grayBox.BackgroundColor3 = Color3.fromRGB(160,160,160) -- رمادي فاتح
 	grayBox.Parent = frame
 end
 
--- زر النقل الأول
 local btn = grayBox:FindFirstChild("TeleportButton")
 if not btn then
 	btn = Instance.new("TextButton")
@@ -52,7 +51,8 @@ if not btn then
 	btn.TextScaled = true
 	btn.TextColor3 = Color3.fromRGB(0,255,0)
 	btn.Font = Enum.Font.GothamMedium
-	btn.BackgroundTransparency = 1
+	btn.BackgroundTransparency = 0
+	btn.BackgroundColor3 = Color3.fromRGB(160,160,160) -- رمادي فاتح دائمًا
 	btn.Parent = grayBox
 end
 
@@ -62,8 +62,8 @@ if not blankBtn then
 	blankBtn = Instance.new("TextButton")
 	blankBtn.Name = "BlankButton"
 	blankBtn.Size = UDim2.new(1, -20, 0, 30)
-	blankBtn.Position = UDim2.new(0, 10, 0, 100) -- أسفل الزر الأول
-	blankBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
+	blankBtn.Position = UDim2.new(0, 10, 0, 60) -- تحت الزر الأول مباشرة
+	blankBtn.BackgroundColor3 = Color3.fromRGB(160,160,160) -- رمادي فاتح
 	blankBtn.Text = ""
 	blankBtn.Parent = frame
 end
@@ -80,7 +80,7 @@ end)
 
 local function resetToFirst()
 	root = getRoot()
-	if root and index ~= #coords then -- لو وصلت للثالثة ما نرجعك
+	if root and index ~= #coords then
 		root.CFrame = CFrame.new(coords[1])
 		index = 1
 	end
@@ -120,12 +120,12 @@ local function tpStep(target)
 	moving = false
 end
 
--- إضافة تأثير الضغط على الزر (يصير رمادي غامق)
+-- تأثير الضغط على الزر الأول
 btn.MouseButton1Down:Connect(function()
-	btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+	btn.BackgroundColor3 = Color3.fromRGB(100,100,100) -- غامق عند الضغط
 end)
 btn.MouseButton1Up:Connect(function()
-	btn.BackgroundColor3 = Color3.fromRGB(80,80,80)
+	btn.BackgroundColor3 = Color3.fromRGB(160,160,160) -- يرجع فاتح
 end)
 
 btn.MouseButton1Click:Connect(function()
@@ -133,6 +133,6 @@ btn.MouseButton1Click:Connect(function()
 	tpStep(coords[index])
 	index += 1
 	if index > #coords then
-		index = #coords -- لو وصلنا آخر إحداثية، ما نرجع
+		index = #coords -- آخر إحداثية ما يرجع
 	end
 end)
