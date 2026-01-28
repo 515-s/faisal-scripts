@@ -30,33 +30,33 @@ if not frame then
 	frame.Parent = gui
 end
 
--- الخانة الرمادية للزر الأول (Teleport)
-local grayBox = frame:FindFirstChild("GrayBox")
-if not grayBox then
-	grayBox = Instance.new("Frame")
-	grayBox.Name = "GrayBox"
-	grayBox.Size = UDim2.new(1, -20, 0, 30)
-	grayBox.Position = UDim2.new(0, 10, 0, 20)
-	grayBox.BackgroundColor3 = Color3.fromRGB(160,160,160)
-	grayBox.Parent = frame
+-- الزر الأول (Forward)
+local forwardBox = frame:FindFirstChild("ForwardBox")
+if not forwardBox then
+	forwardBox = Instance.new("Frame")
+	forwardBox.Name = "ForwardBox"
+	forwardBox.Size = UDim2.new(1, -20, 0, 30)
+	forwardBox.Position = UDim2.new(0, 10, 0, 20)
+	forwardBox.BackgroundColor3 = Color3.fromRGB(160,160,160)
+	forwardBox.Parent = frame
 end
 
-local btn = grayBox:FindFirstChild("TeleportButton")
-if not btn then
-	btn = Instance.new("TextButton")
-	btn.Name = "TeleportButton"
-	btn.Size = UDim2.new(1, 0, 1, 0)
-	btn.Position = UDim2.new(0,0,0,0)
-	btn.Text = "Teleport"
-	btn.TextScaled = true
-	btn.TextColor3 = Color3.fromRGB(0,255,0)
-	btn.Font = Enum.Font.GothamMedium
-	btn.BackgroundTransparency = 0
-	btn.BackgroundColor3 = Color3.fromRGB(160,160,160)
-	btn.Parent = grayBox
+local forwardBtn = forwardBox:FindFirstChild("Forward")
+if not forwardBtn then
+	forwardBtn = Instance.new("TextButton")
+	forwardBtn.Name = "Forward"
+	forwardBtn.Size = UDim2.new(1, 0, 1, 0)
+	forwardBtn.Position = UDim2.new(0,0,0,0)
+	forwardBtn.Text = "Forward"
+	forwardBtn.TextScaled = true
+	forwardBtn.TextColor3 = Color3.fromRGB(0,255,0)
+	forwardBtn.Font = Enum.Font.GothamBold
+	forwardBtn.BackgroundTransparency = 0
+	forwardBtn.BackgroundColor3 = Color3.fromRGB(160,160,160)
+	forwardBtn.Parent = forwardBox
 end
 
--- الزر الثاني للرجوع
+-- الزر الثاني (Back)
 local backBox = frame:FindFirstChild("BackBox")
 if not backBox then
 	backBox = Instance.new("Frame")
@@ -67,13 +67,13 @@ if not backBox then
 	backBox.Parent = frame
 end
 
-local backBtn = backBox:FindFirstChild("BackTeleport")
+local backBtn = backBox:FindFirstChild("Back")
 if not backBtn then
 	backBtn = Instance.new("TextButton")
-	backBtn.Name = "BackTeleport"
+	backBtn.Name = "Back"
 	backBtn.Size = UDim2.new(1,0,1,0)
 	backBtn.Position = UDim2.new(0,0,0,0)
-	backBtn.Text = "BACK TELEPORT"
+	backBtn.Text = "Back"
 	backBtn.TextScaled = true
 	backBtn.TextColor3 = Color3.fromRGB(0,255,0)
 	backBtn.Font = Enum.Font.GothamBold
@@ -124,15 +124,14 @@ local function tpStep(target)
 	moving = false
 end
 
--- تأثير الضغط للزر الأول
-btn.MouseButton1Down:Connect(function()
-	btn.BackgroundColor3 = Color3.fromRGB(100,100,100)
+-- تأثير الضغط على الأزرار
+forwardBtn.MouseButton1Down:Connect(function()
+	forwardBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
 end)
-btn.MouseButton1Up:Connect(function()
-	btn.BackgroundColor3 = Color3.fromRGB(160,160,160)
+forwardBtn.MouseButton1Up:Connect(function()
+	forwardBtn.BackgroundColor3 = Color3.fromRGB(160,160,160)
 end)
 
--- تأثير الضغط للزر الثاني
 backBtn.MouseButton1Down:Connect(function()
 	backBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
 end)
@@ -140,18 +139,18 @@ backBtn.MouseButton1Up:Connect(function()
 	backBtn.BackgroundColor3 = Color3.fromRGB(160,160,160)
 end)
 
--- زر النقل للأمام
-btn.MouseButton1Click:Connect(function()
+-- الضغط على الزر الأول (Forward)
+forwardBtn.MouseButton1Click:Connect(function()
 	if moving then return end
-	if index > #coords then return end -- لو وصلنا آخر إحداثية ما يتحرك
+	if index > #coords then return end -- آخر إحداثية ما يتحرك
 	tpStep(coords[index])
 	index += 1
 end)
 
--- زر الرجوع
+-- الضغط على الزر الثاني (Back)
 backBtn.MouseButton1Click:Connect(function()
 	if moving then return end
-	if index <= 1 then return end -- لو في البداية ما يتحرك
+	if index <= 1 then return end -- أول إحداثية ما يتحرك
 	index -= 1
 	tpStep(coords[index])
 end)
