@@ -1,7 +1,7 @@
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
--- الإحداثيات، خليتهم اثنين فقط
+-- الإحداثيات
 local coords = {
 	Vector3.new(200, -3, 0),
 	Vector3.new(284, -3, 0),
@@ -37,64 +37,69 @@ end
 
 -- دالة لتحديث root
 local function refreshRoot()
-	local char = player.Character or player.CharacterAdded:Wait()
-	root = char:WaitForChild("HumanoidRootPart")
+	local char = player.Character
+	if char then
+		root = char:FindFirstChild("HumanoidRootPart")
+	else
+		root = nil
+	end
 end
 refreshRoot()
 
+-- عند تغيير الشخصية نخلي root يكون nil
 player.CharacterAdded:Connect(function()
-	refreshRoot()
-	index = 1
+	root = nil
 end)
 
--- دالة النقل خطوة بخطوة
+-- دالة النقل خطوة خطوة دقيقة مع إعادة البدء إذا مات اللاعب
 local function tpStep(targetPos)
-	if not root then refreshRoot() end
-	local stepSize = 10 -- وحدة كل خطوة
-	local waitTime = 0.05 -- كل كم ثانية
-	local currentPos = root.Position
-	local direction = (targetPos - currentPos).Unit
-	local distance = (targetPos - currentPos).Magnitude
+	refreshRoot()
+	if not root then return end
 
-	while distance > 4 do
-		if root and root.Parent then
-			local move = math.min(stepSize, distance)
-			root.CFrame = CFrame.new(root.Position + direction * move)
-			task.wait(waitTime)
-			currentPos = root.Position
-			distance = (targetPos - currentPos).Magnitude
-		else
-			break
+	-- رفع اللاعب 10 وحدات أول شي
+	root.CFrame = root.CFrame + Vector3.new(0,10,0)
+	task.wait(0.01)
+
+	local stepSize = 10
+	local waitTime = 0.01
+
+	while true do
+		refreshRoot()
+		if not root or not root.Parent then
+			-- لو مات اللاعب، يرجعك للإحداثية الأولى ويعيد العملية
+			root = nil
+			waitTime = 0.01
+			task.wait(0.1)
+			refreshRoot()
+			if root then
+				root.CFrame = CFrame.new(coords[1])
+				index = 1
+			end
+			return
 		end
+
+		local currentPos = root.Position
+		local direction = (targetPos - currentPos).Unit
+		local distance = (targetPos - currentPos).Magnitude
+
+		if distance <= 0.1 then break end -- وصل الهدف
+
+		local move = math.min(stepSize, distance)
+		root.CFrame = CFrame.new(root.Position + direction * move)
+		task.wait(waitTime)
 	end
 
-	-- النقل الأخير 4 وحدات للوصول للهدف بدقة
+	-- النقل الأخير للوصول بدقة
 	if root and root.Parent then
 		root.CFrame = CFrame.new(targetPos)
 	end
 end
 
--- كول داون الزر
-local cooldown = false
-local function startCooldown()
-	cooldown = true
-	for t = 10, 1, -1 do
-		btn.Text = string.format("%.1f", t/10)
-		task.wait(0.1)
-	end
-	btn.Text = "Teleport"
-	cooldown = false
-end
-
 -- حدث الضغط على الزر
 btn.MouseButton1Click:Connect(function()
-	if cooldown then return end
-
 	tpStep(coords[index])
 	index = index + 1
 	if index > #coords then
 		index = 1
 	end
-
-	startCooldown()
 end)
