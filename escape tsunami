@@ -1,5 +1,6 @@
 local player = game.Players.LocalPlayer
 
+-- الإحداثيات الجديدة حرفيًا
 local coords = {
 	Vector3.new(200, -3, 0),
 	Vector3.new(283, -3, -1),
@@ -14,8 +15,8 @@ local coords = {
 
 local currentIndex = 0
 local moving = false
-local needReset = false
 
+-- GUI
 local gui = player.PlayerGui:FindFirstChild("TeleportGUI")
 if not gui then
 	gui = Instance.new("ScreenGui", player.PlayerGui)
@@ -85,39 +86,29 @@ if not backBtn then
 	backBtn.Parent = backBox
 end
 
+-- دالة الحصول على HumanoidRootPart
 local function getRoot()
 	local char = player.Character
 	return char and char:FindFirstChild("HumanoidRootPart")
 end
 
+-- إعادة اللاعب للإحداثية 1 عند الموت
 player.CharacterAdded:Connect(function(char)
 	moving = false
-	if needReset then
-		local r = char:WaitForChild("HumanoidRootPart")
-		if r then
-			r.CFrame = CFrame.new(coords[1])
-			currentIndex = 1
-		end
-		needReset = false
+	currentIndex = 1
+
+	local root = char:WaitForChild("HumanoidRootPart", 5)
+	if root then
+		root.CFrame = CFrame.new(coords[1])
 	end
 end)
 
-local function initiateReset()
-	moving = false
-	currentIndex = 1
-	local r = getRoot()
-	if r then
-		pcall(function() r.CFrame = CFrame.new(coords[1]) end)
-	else
-		needReset = true
-	end
-end
-
-local function tpStep(target)
+-- دالة النقل خطوة خطوة
+local function tpStep(target, targetIndex)
 	moving = true
 	local root = getRoot()
 	if not root then
-		initiateReset()
+		moving = false
 		return
 	end
 
@@ -127,7 +118,7 @@ local function tpStep(target)
 	while true do
 		root = getRoot()
 		if not root or not root.Parent then
-			initiateReset()
+			moving = false
 			return
 		end
 
@@ -142,10 +133,13 @@ local function tpStep(target)
 	root = getRoot()
 	if root and root.Parent then
 		root.CFrame = CFrame.new(target)
+		currentIndex = targetIndex -- تحديث المؤشر فقط بعد الوصول
 	end
+
 	moving = false
 end
 
+-- أزرار تغيير اللون عند الضغط
 forwardBtn.MouseButton1Down:Connect(function()
 	forwardBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
 end)
@@ -160,22 +154,20 @@ backBtn.MouseButton1Up:Connect(function()
 	backBtn.BackgroundColor3 = Color3.fromRGB(160,160,160)
 end)
 
+-- Forward
 forwardBtn.MouseButton1Click:Connect(function()
 	if moving then return end
-	local targetIndex = currentIndex + 1
-	if targetIndex > #coords then return end
-	tpStep(coords[targetIndex])
-	currentIndex = targetIndex
+	if currentIndex >= #coords then return end
+
+	local nextIndex = currentIndex + 1
+	tpStep(coords[nextIndex], nextIndex)
 end)
 
+-- Back
 backBtn.MouseButton1Click:Connect(function()
 	if moving then return end
-	if currentIndex == 0 then return end
-	if currentIndex > #coords then
-		currentIndex = #coords
-	end
-	local targetIndex = currentIndex - 1
-	if targetIndex < 1 then return end
-	tpStep(coords[targetIndex])
-	currentIndex = targetIndex
+	if currentIndex <= 1 then return end
+
+	local prevIndex = currentIndex - 1
+	tpStep(coords[prevIndex], prevIndex)
 end)
