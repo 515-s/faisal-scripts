@@ -10,16 +10,19 @@ local index = 1
 local moving = false
 local root
 
-local gui = player.PlayerGui:FindFirstChild("TeleportGUI") or Instance.new("ScreenGui", player.PlayerGui)
-gui.Name = "TeleportGUI"
-gui.ResetOnSpawn = false
+local gui = player.PlayerGui:FindFirstChild("TeleportGUI")
+if not gui then
+	gui = Instance.new("ScreenGui", player.PlayerGui)
+	gui.Name = "TeleportGUI"
+	gui.ResetOnSpawn = false
+end
 
--- القائمة السوداء (أصغر، عريض وطويل)
+-- القائمة السوداء (أطول للأسفل)
 local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 250, 0, 150) -- عريض وطويل
+	frame.Size = UDim2.new(0, 250, 0, 200) -- أطول تحت
 	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
@@ -27,18 +30,18 @@ if not frame then
 	frame.Parent = gui
 end
 
--- الخانة الرمادية (قصيرة جدًا، ممتدة من اليمين لليسار مع حافة بسيطة)
+-- الخانة الرمادية للزر الأول
 local grayBox = frame:FindFirstChild("GrayBox")
 if not grayBox then
 	grayBox = Instance.new("Frame")
 	grayBox.Name = "GrayBox"
-	grayBox.Size = UDim2.new(1, -20, 0, 30) -- ممتدة عرضيًا، قصيرة ارتفاع
-	grayBox.Position = UDim2.new(0, 10, 0, 60) -- حافة بسيطة من الجوانب
+	grayBox.Size = UDim2.new(1, -20, 0, 30)
+	grayBox.Position = UDim2.new(0, 10, 0, 60)
 	grayBox.BackgroundColor3 = Color3.fromRGB(80,80,80)
 	grayBox.Parent = frame
 end
 
--- زر النقل داخل الخانة الرمادية
+-- زر النقل الأول
 local btn = grayBox:FindFirstChild("TeleportButton")
 if not btn then
 	btn = Instance.new("TextButton")
@@ -53,6 +56,18 @@ if not btn then
 	btn.Parent = grayBox
 end
 
+-- زر فارغ تحت الزر الأول
+local blankBtn = frame:FindFirstChild("BlankButton")
+if not blankBtn then
+	blankBtn = Instance.new("TextButton")
+	blankBtn.Name = "BlankButton"
+	blankBtn.Size = UDim2.new(1, -20, 0, 30)
+	blankBtn.Position = UDim2.new(0, 10, 0, 100) -- أسفل الزر الأول
+	blankBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
+	blankBtn.Text = ""
+	blankBtn.Parent = frame
+end
+
 local function getRoot()
 	local char = player.Character
 	return char and char:FindFirstChild("HumanoidRootPart")
@@ -65,10 +80,10 @@ end)
 
 local function resetToFirst()
 	root = getRoot()
-	if root then
+	if root and index ~= #coords then -- لو وصلت للثالثة ما نرجعك
 		root.CFrame = CFrame.new(coords[1])
+		index = 1
 	end
-	index = 1
 	moving = false
 end
 
@@ -105,11 +120,19 @@ local function tpStep(target)
 	moving = false
 end
 
+-- إضافة تأثير الضغط على الزر (يصير رمادي غامق)
+btn.MouseButton1Down:Connect(function()
+	btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+end)
+btn.MouseButton1Up:Connect(function()
+	btn.BackgroundColor3 = Color3.fromRGB(80,80,80)
+end)
+
 btn.MouseButton1Click:Connect(function()
 	if moving then return end
 	tpStep(coords[index])
 	index += 1
 	if index > #coords then
-		index = 1
+		index = #coords -- لو وصلنا آخر إحداثية، ما نرجع
 	end
 end)
