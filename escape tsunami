@@ -10,32 +10,30 @@ local index = 1
 local moving = false
 local root
 
-local gui = player.PlayerGui:FindFirstChild("TeleportGUI")
-if not gui then
-	gui = Instance.new("ScreenGui")
-	gui.Name = "TeleportGUI"
-	gui.ResetOnSpawn = false
-	gui.Parent = player.PlayerGui
-end
+local gui = player.PlayerGui:FindFirstChild("TeleportGUI") or Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "TeleportGUI"
+gui.ResetOnSpawn = false
 
--- القائمة السوداء
+-- القائمة السوداء (أصغر، عريض وطويل)
 local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 200, 0, 100)
-	frame.Position = UDim2.new(0, 50, 0, 50)
-	frame.BackgroundColor3 = Color3.fromRGB(20,20,20) -- أسود داكن
+	frame.Size = UDim2.new(0, 250, 0, 150) -- عريض وطويل
+	frame.Position = UDim2.new(0, 100, 0, 100)
+	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+	frame.Active = true
+	frame.Draggable = true
 	frame.Parent = gui
 end
 
--- الخانة الرمادية داخل القائمة
+-- الخانة الرمادية (قصيرة جدًا، ممتدة من اليمين لليسار مع حافة بسيطة)
 local grayBox = frame:FindFirstChild("GrayBox")
 if not grayBox then
 	grayBox = Instance.new("Frame")
 	grayBox.Name = "GrayBox"
-	grayBox.Size = UDim2.new(1, -20, 0, 50)
-	grayBox.Position = UDim2.new(0, 10, 0, 25)
+	grayBox.Size = UDim2.new(1, -20, 0, 30) -- ممتدة عرضيًا، قصيرة ارتفاع
+	grayBox.Position = UDim2.new(0, 10, 0, 60) -- حافة بسيطة من الجوانب
 	grayBox.BackgroundColor3 = Color3.fromRGB(80,80,80)
 	grayBox.Parent = frame
 end
@@ -49,11 +47,9 @@ if not btn then
 	btn.Position = UDim2.new(0,0,0,0)
 	btn.Text = "Teleport"
 	btn.TextScaled = true
-	btn.TextColor3 = Color3.fromRGB(0,255,0) -- أخضر
+	btn.TextColor3 = Color3.fromRGB(0,255,0)
 	btn.Font = Enum.Font.GothamMedium
-	btn.BackgroundTransparency = 1 -- الشفافية عشان يظهر الرمادي تحت
-	btn.Active = true
-	btn.Draggable = false
+	btn.BackgroundTransparency = 1
 	btn.Parent = grayBox
 end
 
