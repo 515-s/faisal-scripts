@@ -2,10 +2,14 @@ local player = game.Players.LocalPlayer
 
 local coords = {
 	Vector3.new(200, -3, 0),
-	Vector3.new(284, -3, 0),
-	Vector3.new(396, -3, 0),
-	Vector3.new(541, -3, 0),
+	Vector3.new(283, -3, -1),
+	Vector3.new(398, -3, 0),
+	Vector3.new(542, -3, 0),
 	Vector3.new(756, -3, 0),
+	Vector3.new(1070, -3, 0),
+	Vector3.new(1543, -3, 0),
+	Vector3.new(2239, -3, 3),
+	Vector3.new(2587, -3, 0),
 }
 
 local currentIndex = 0
@@ -23,7 +27,7 @@ local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 250, 0, 500)
+	frame.Size = UDim2.new(0, 250, 0, 600)
 	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
@@ -166,10 +170,7 @@ end)
 
 backBtn.MouseButton1Click:Connect(function()
 	if moving then return end
-	if currentIndex == 0 then
-		-- لم تتم أي عملية للأمام بعد، ما في شي للوراء
-		return
-	end
+	if currentIndex == 0 then return end
 	if currentIndex > #coords then
 		currentIndex = #coords
 	end
