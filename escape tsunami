@@ -7,8 +7,8 @@ local coords = {
 }
 
 local index = 1
-local root
 local moving = false
+local root
 
 local gui = player.PlayerGui:FindFirstChild("TeleportGUI") or Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "TeleportGUI"
@@ -36,10 +36,22 @@ player.CharacterAdded:Connect(function()
 	moving = false
 end)
 
+local function resetToFirst()
+	root = getRoot()
+	if root then
+		root.CFrame = CFrame.new(coords[1])
+	end
+	index = 1
+	moving = false
+end
+
 local function tpStep(target)
 	moving = true
 	root = getRoot()
-	if not root then moving = false return end
+	if not root then
+		resetToFirst()
+		return
+	end
 
 	root.CFrame += Vector3.new(0,10,0)
 	task.wait(0.01)
@@ -47,13 +59,7 @@ local function tpStep(target)
 	while true do
 		root = getRoot()
 		if not root or not root.Parent then
-			task.wait(0.1)
-			root = getRoot()
-			if root then
-				root.CFrame = CFrame.new(coords[1])
-				index = 1
-			end
-			moving = false
+			resetToFirst()
 			return
 		end
 
@@ -65,7 +71,10 @@ local function tpStep(target)
 		task.wait(0.01)
 	end
 
-	root.CFrame = CFrame.new(target)
+	if root and root.Parent then
+		root.CFrame = CFrame.new(target)
+	end
+
 	moving = false
 end
 
