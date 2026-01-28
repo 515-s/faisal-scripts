@@ -1,17 +1,16 @@
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
--- الإحداثيات
 local coords = {
 	Vector3.new(200, -3, 0),
 	Vector3.new(284, -3, 0),
+	Vector3.new(396, -3, 0),
 }
 
 local index = 1
 local root
 
--- إنشاء GUI إذا ما موجود
-local gui = player:WaitForChild("PlayerGui"):FindFirstChild("TeleportGUI")
+local gui = player.PlayerGui:FindFirstChild("TeleportGUI")
 if not gui then
 	gui = Instance.new("ScreenGui")
 	gui.Name = "TeleportGUI"
@@ -35,7 +34,6 @@ if not btn then
 	btn.Parent = gui
 end
 
--- دالة لتحديث root
 local function refreshRoot()
 	local char = player.Character
 	if char then
@@ -46,17 +44,14 @@ local function refreshRoot()
 end
 refreshRoot()
 
--- عند تغيير الشخصية نخلي root يكون nil
 player.CharacterAdded:Connect(function()
 	root = nil
 end)
 
--- دالة النقل خطوة خطوة دقيقة مع إعادة البدء إذا مات اللاعب
 local function tpStep(targetPos)
 	refreshRoot()
 	if not root then return end
 
-	-- رفع اللاعب 10 وحدات أول شي
 	root.CFrame = root.CFrame + Vector3.new(0,10,0)
 	task.wait(0.01)
 
@@ -66,9 +61,6 @@ local function tpStep(targetPos)
 	while true do
 		refreshRoot()
 		if not root or not root.Parent then
-			-- لو مات اللاعب، يرجعك للإحداثية الأولى ويعيد العملية
-			root = nil
-			waitTime = 0.01
 			task.wait(0.1)
 			refreshRoot()
 			if root then
@@ -79,23 +71,21 @@ local function tpStep(targetPos)
 		end
 
 		local currentPos = root.Position
-		local direction = (targetPos - currentPos).Unit
-		local distance = (targetPos - currentPos).Magnitude
+		local diff = targetPos - currentPos
+		local distance = diff.Magnitude
 
-		if distance <= 0.1 then break end -- وصل الهدف
+		if distance <= 0.05 then break end
 
 		local move = math.min(stepSize, distance)
-		root.CFrame = CFrame.new(root.Position + direction * move)
+		root.CFrame = CFrame.new(currentPos + diff.Unit * move)
 		task.wait(waitTime)
 	end
 
-	-- النقل الأخير للوصول بدقة
 	if root and root.Parent then
 		root.CFrame = CFrame.new(targetPos)
 	end
 end
 
--- حدث الضغط على الزر
 btn.MouseButton1Click:Connect(function()
 	tpStep(coords[index])
 	index = index + 1
