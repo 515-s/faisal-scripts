@@ -1,5 +1,4 @@
 local player = game.Players.LocalPlayer
-local RunService = game:GetService("RunService")
 
 local coords = {
 	Vector3.new(200, -3, 0),
@@ -34,62 +33,48 @@ if not btn then
 	btn.Parent = gui
 end
 
-local function refreshRoot()
+local function getRoot()
 	local char = player.Character
-	if char then
-		root = char:FindFirstChild("HumanoidRootPart")
-	else
-		root = nil
-	end
+	return char and char:FindFirstChild("HumanoidRootPart")
 end
-refreshRoot()
 
-player.CharacterAdded:Connect(function()
-	root = nil
-end)
-
-local function tpStep(targetPos)
-	refreshRoot()
+local function tpStep(target)
+	root = getRoot()
 	if not root then return end
 
-	root.CFrame = root.CFrame + Vector3.new(0,10,0)
+	root.CFrame += Vector3.new(0,10,0)
 	task.wait(0.01)
 
-	local stepSize = 10
-	local waitTime = 0.01
-
 	while true do
-		refreshRoot()
+		root = getRoot()
 		if not root or not root.Parent then
-			task.wait(0.1)
-			refreshRoot()
+			root = getRoot()
 			if root then
 				root.CFrame = CFrame.new(coords[1])
-				index = 1
 			end
+			index = 1
 			return
 		end
 
-		local currentPos = root.Position
-		local diff = targetPos - currentPos
-		local distance = diff.Magnitude
+		local diff = target - root.Position
+		local dist = diff.Magnitude
+		if dist <= 0.05 then break end
 
-		if distance <= 0.05 then break end
-
-		local move = math.min(stepSize, distance)
-		root.CFrame = CFrame.new(currentPos + diff.Unit * move)
-		task.wait(waitTime)
+		root.CFrame = CFrame.new(root.Position + diff.Unit * math.min(10, dist))
+		task.wait(0.01)
 	end
 
-	if root and root.Parent then
-		root.CFrame = CFrame.new(targetPos)
-	end
+	root.CFrame = CFrame.new(target)
 end
 
 btn.MouseButton1Click:Connect(function()
 	tpStep(coords[index])
-	index = index + 1
+	index += 1
 	if index > #coords then
 		index = 1
 	end
+end)
+
+player.CharacterAdded:Connect(function()
+	root = nil
 end)
