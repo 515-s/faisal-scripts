@@ -59,7 +59,7 @@ end
 -- الأزرار
 local forwardBtn = createBtn("Forward", 10)
 local backBtn = createBtn("Back", 40)
-local autoPromptBtn = createBtn("Auto Activate Prompt", 70) -- الزر الجديد
+local autoPromptBtn = createBtn("Auto Activate: OFF", 70) -- الزر الجديد
 
 -- أدوات
 local function getRoot()
@@ -146,16 +146,31 @@ backBtn.MouseButton1Click:Connect(function()
 	tpStep(coords[currentIndex - 1], currentIndex - 1)
 end)
 
--- وظيفة الزر الجديد: تفعيل أي ProximityPrompt تلقائي
+-- Toggle حالة الزر الجديد
+local autoPromptOn = false
 autoPromptBtn.MouseButton1Click:Connect(function()
-	for _, part in ipairs(workspace:GetDescendants()) do
-		if part:IsA("ProximityPrompt") then
-			pcall(function()
-				part:InputHoldBegin() -- يحاكي الضغط على الزر
-				task.wait(0.1)
-				part:InputHoldEnd()
-				print("ProximityPrompt activated:", part.Name)
-			end)
+	autoPromptOn = not autoPromptOn
+	if autoPromptOn then
+		autoPromptBtn.Text = "Auto Activate: ON"
+	else
+		autoPromptBtn.Text = "Auto Activate: OFF"
+	end
+end)
+
+-- مهمة مستمرة لتفعيل ProximityPrompt كل 0.2 ثانية إذا الزر ON
+task.spawn(function()
+	while true do
+		if autoPromptOn then
+			for _, part in ipairs(workspace:GetDescendants()) do
+				if part:IsA("ProximityPrompt") then
+					pcall(function()
+						part:InputHoldBegin()
+						task.wait(0.1)
+						part:InputHoldEnd()
+					end)
+				end
+			end
 		end
+		task.wait(0.2)
 	end
 end)
