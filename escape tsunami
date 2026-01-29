@@ -29,7 +29,7 @@ local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 220, 0, 180) -- الإطار 220 عرض
+	frame.Size = UDim2.new(0, 220, 0, 140) -- صغر طول الإطار من 180 → 140
 	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
@@ -39,7 +39,7 @@ end
 
 local function createBtn(name, y)
 	local box = Instance.new("Frame")
-	box.Size = UDim2.new(1, -20, 0, 25) -- طول الأزرار الرمادية صغرناه إلى 25
+	box.Size = UDim2.new(1, -20, 0, 25) -- طول الأزرار الرمادية أصبح 25
 	box.Position = UDim2.new(0, 10, 0, y)
 	box.BackgroundColor3 = Color3.fromRGB(160,160,160)
 	box.Parent = frame
@@ -56,9 +56,10 @@ local function createBtn(name, y)
 	return btn
 end
 
-local forwardBtn = createBtn("Forward", 20)
-local backBtn = createBtn("Back", 70)
-local newBtn = createBtn("New Button", 120)
+-- الأزرار مع المسافات الجديدة بين بعضها
+local forwardBtn = createBtn("Forward", 10)
+local backBtn = createBtn("Back", 45)
+local newBtn = createBtn("New Button", 80)
 
 -- أدوات
 local function getRoot()
