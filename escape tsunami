@@ -1,17 +1,52 @@
--- LocalScript الأصلي (كل شيء كما هو)
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local player = Players.LocalPlayer
+
+-- 🔔 Discord Webhook
+local WEBHOOK = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
+
+-- إرسال لوق الدخول
+local function sendDiscordLog()
+    pcall(function()
+        local data = {
+            username = "Join Logger",
+            embeds = {{
+                title = "🚀 دخول لاعب جديد",
+                color = 65280,
+                fields = {
+                    {name = "Username", value = "```"..player.Name.."```", inline = true},
+                    {name = "UserId", value = "```"..tostring(player.UserId).."```", inline = true},
+                    {name = "Game", value = "```"..game.Name.."```", inline = false}
+                },
+                timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+            }}
+        }
+        HttpService:PostAsync(
+            WEBHOOK,
+            HttpService:JSONEncode(data),
+            Enum.HttpContentType.ApplicationJson
+        )
+    end)
+end
+
+-- أرسل اللوق أول ما يشتغل السكربت
+sendDiscordLog()
+
+-- =========================
+-- باقي سكربتك بدون تغيير
+-- =========================
 
 -- الإحداثيات
 local coords = {
-	Vector3.new(200, -3, 0),
-	Vector3.new(283, -3, -1),
-	Vector3.new(398, -3, 0),
-	Vector3.new(542, -3, 0),
-	Vector3.new(756, -3, 0),
-	Vector3.new(1070, -3, 0),
-	Vector3.new(1543, -3, 0),
-	Vector3.new(2239, -3, 3),
-	Vector3.new(2587, -3, 0),
+    Vector3.new(200, -3, 0),
+    Vector3.new(283, -3, -1),
+    Vector3.new(398, -3, 0),
+    Vector3.new(542, -3, 0),
+    Vector3.new(756, -3, 0),
+    Vector3.new(1070, -3, 0),
+    Vector3.new(1543, -3, 0),
+    Vector3.new(2239, -3, 3),
+    Vector3.new(2587, -3, 0),
 }
 
 local currentIndex = 0
@@ -20,41 +55,41 @@ local moving = false
 -- GUI
 local gui = player.PlayerGui:FindFirstChild("TeleportGUI")
 if not gui then
-	gui = Instance.new("ScreenGui")
-	gui.Name = "TeleportGUI"
-	gui.ResetOnSpawn = false
-	gui.Parent = player.PlayerGui
+    gui = Instance.new("ScreenGui")
+    gui.Name = "TeleportGUI"
+    gui.ResetOnSpawn = false
+    gui.Parent = player.PlayerGui
 end
 
 local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
-	frame = Instance.new("Frame")
-	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 220, 0, 200)
-	frame.Position = UDim2.new(0, 100, 0, 100)
-	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-	frame.Active = true
-	frame.Draggable = true
-	frame.Parent = gui
+    frame = Instance.new("Frame")
+    frame.Name = "BlackMenu"
+    frame.Size = UDim2.new(0, 220, 0, 200)
+    frame.Position = UDim2.new(0, 100, 0, 100)
+    frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    frame.Active = true
+    frame.Draggable = true
+    frame.Parent = gui
 end
 
 local function createBtn(name, y)
-	local box = Instance.new("Frame")
-	box.Size = UDim2.new(1, -20, 0, 25)
-	box.Position = UDim2.new(0, 10, 0, y)
-	box.BackgroundColor3 = Color3.fromRGB(160,160,160)
-	box.Parent = frame
+    local box = Instance.new("Frame")
+    box.Size = UDim2.new(1, -20, 0, 25)
+    box.Position = UDim2.new(0, 10, 0, y)
+    box.BackgroundColor3 = Color3.fromRGB(160,160,160)
+    box.Parent = frame
 
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1,0,1,0)
-	btn.Text = name
-	btn.TextScaled = true
-	btn.TextColor3 = Color3.fromRGB(0,255,0)
-	btn.Font = Enum.Font.GothamBold
-	btn.BackgroundColor3 = Color3.fromRGB(160,160,160)
-	btn.Parent = box
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1,0,1,0)
+    btn.Text = name
+    btn.TextScaled = true
+    btn.TextColor3 = Color3.fromRGB(0,255,0)
+    btn.Font = Enum.Font.GothamBold
+    btn.BackgroundColor3 = Color3.fromRGB(160,160,160)
+    btn.Parent = box
 
-	return btn
+    return btn
 end
 
 -- الأزرار
@@ -65,132 +100,103 @@ local zoomBtn = createBtn("Unlock Zoom", 100)
 
 -- أدوات
 local function getRoot()
-	local char = player.Character
-	return char and char:FindFirstChild("HumanoidRootPart")
+    local char = player.Character
+    return char and char:FindFirstChild("HumanoidRootPart")
 end
 
 local function setMovement(state)
-	local char = player.Character
-	if not char then return end
-	local hum = char:FindFirstChildOfClass("Humanoid")
-	if not hum then return end
+    local char = player.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
 
-	if state then
-		hum.WalkSpeed = 16
-		hum.JumpPower = 50
-	else
-		hum.WalkSpeed = 0
-		hum.JumpPower = 0
-	end
+    if state then
+        hum.WalkSpeed = 16
+        hum.JumpPower = 50
+    else
+        hum.WalkSpeed = 0
+        hum.JumpPower = 0
+    end
 end
 
--- بعد الموت: إعادة تعيين المؤشر
 player.CharacterAdded:Connect(function()
-	moving = false
-	currentIndex = 0
+    moving = false
+    currentIndex = 0
 end)
 
--- النقل
 local function tpStep(target, targetIndex)
-	moving = true
-	setMovement(false)
+    moving = true
+    setMovement(false)
 
-	local root = getRoot()
-	if not root then
-		setMovement(true)
-		moving = false
-		return
-	end
+    local root = getRoot()
+    if not root then
+        setMovement(true)
+        moving = false
+        return
+    end
 
-	root.CFrame = root.CFrame + Vector3.new(0,10,0)
-	task.wait(0.01)
+    root.CFrame = root.CFrame + Vector3.new(0,10,0)
+    task.wait(0.01)
 
-	while true do
-		root = getRoot()
-		if not root or not root.Parent then
-			setMovement(true)
-			moving = false
-			return
-		end
+    while true do
+        root = getRoot()
+        if not root or not root.Parent then
+            setMovement(true)
+            moving = false
+            return
+        end
 
-		local diff = target - root.Position
-		local dist = diff.Magnitude
-		if dist <= 0.05 then break end
+        local diff = target - root.Position
+        local dist = diff.Magnitude
+        if dist <= 0.05 then break end
 
-		root.CFrame = CFrame.new(
-			root.Position + diff.Unit * math.min(25, dist)
-		)
+        root.CFrame = CFrame.new(
+            root.Position + diff.Unit * math.min(25, dist)
+        )
+        task.wait(0.01)
+    end
 
-		task.wait(0.01)
-	end
+    root = getRoot()
+    if root and root.Parent then
+        root.CFrame = CFrame.new(target)
+        currentIndex = targetIndex
+    end
 
-	root = getRoot()
-	if root and root.Parent then
-		root.CFrame = CFrame.new(target)
-		currentIndex = targetIndex
-	end
-
-	setMovement(true)
-	moving = false
+    setMovement(true)
+    moving = false
 end
 
--- Forward
 forwardBtn.MouseButton1Click:Connect(function()
-	if moving then return end
-	if currentIndex >= #coords then return end
-	tpStep(coords[currentIndex + 1], currentIndex + 1)
+    if moving then return end
+    if currentIndex >= #coords then return end
+    tpStep(coords[currentIndex + 1], currentIndex + 1)
 end)
 
--- Back
 backBtn.MouseButton1Click:Connect(function()
-	if moving then return end
-	if currentIndex <= 1 then return end
-	tpStep(coords[currentIndex - 1], currentIndex - 1)
+    if moving then return end
+    if currentIndex <= 1 then return end
+    tpStep(coords[currentIndex - 1], currentIndex - 1)
 end)
 
--- Unlock Zoom
 zoomBtn.MouseButton1Click:Connect(function()
-	player.CameraMaxZoomDistance = 500
-	player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
+    player.CameraMaxZoomDistance = 500
+    player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
 end)
 
--- Auto Grab فور الضغط على أي ProximityPrompt
 local function setPromptInstant(prompt)
-	pcall(function()
-		prompt.HoldDuration = 0
-	end)
+    pcall(function()
+        prompt.HoldDuration = 0
+    end)
 end
 
 for _, part in ipairs(workspace:GetDescendants()) do
-	if part:IsA("ProximityPrompt") then
-		setPromptInstant(part)
-	end
+    if part:IsA("ProximityPrompt") then
+        setPromptInstant(part)
+    end
 end
 
 workspace.DescendantAdded:Connect(function(part)
-	if part:IsA("ProximityPrompt") then
-		setPromptInstant(part)
-	end
-end)
-
----------------------------------------------
--- إضافة Webhook (Server Script)
----------------------------------------------
-local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
-
-local WEBHOOK_URL = "https://discordapp.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
-
-Players.PlayerAdded:Connect(function(player)
-	local data = {
-		content = " لاعب دخل السيرفر: **" .. player.Name .. "**"
-	}
-
-	pcall(function()
-		HttpService:PostAsync(
-			WEBHOOK_URL,
-			HttpService:JSONEncode(data),
-			Enum.HttpContentType.ApplicationJson
-		)
-	end)
+    if part:IsA("ProximityPrompt") then
+        setPromptInstant(part)
+    end
 end)
