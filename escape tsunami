@@ -1,14 +1,10 @@
--- Services
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
 local player = Players.LocalPlayer
 
--- Settings
 local SPEED = 25
-local STEP_TIME = 0.01
-local TOLERANCE = 0.05
 
--- Coordinates
 local points = {
 	Vector3.new(200, -3, 0),
 	Vector3.new(283, -3, -1),
@@ -21,15 +17,20 @@ local points = {
 	Vector3.new(2587, -3, 0),
 }
 
--- State
 local index = 1
 local moving = false
-local root, humanoid
+local root, humanoid, tween
 
--- Character
+local function stopAll()
+	if tween then tween:Cancel() end
+	moving = false
+end
+
 local function bindCharacter(char)
 	humanoid = char:WaitForChild("Humanoid")
 	root = char:WaitForChild("HumanoidRootPart")
+
+	stopAll()
 	index = 1
 end
 
@@ -39,60 +40,55 @@ end
 
 player.CharacterAdded:Connect(bindCharacter)
 
--- Movement lock
-local function setMove(state)
+local function lockMove(state)
 	if humanoid then
 		humanoid.WalkSpeed = state and 16 or 0
 		humanoid.JumpPower = state and 50 or 0
 	end
 end
 
--- Step move
-local function moveTo(target)
+local function moveTo(pos)
 	if moving or not root then return end
 	moving = true
-	setMove(false)
+	lockMove(false)
 
-	while root and (root.Position - target).Magnitude > TOLERANCE do
-		local dir = (target - root.Position)
-		local dist = dir.Magnitude
-		if dist < TOLERANCE then break end
+	local distance = (root.Position - pos).Magnitude
+	local time = distance / SPEED
 
-		local step = math.min(SPEED * STEP_TIME, dist)
-		root.CFrame = root.CFrame + dir.Unit * step
-		task.wait(STEP_TIME)
-	end
+	tween = TweenService:Create(
+		root,
+		TweenInfo.new(time, Enum.EasingStyle.Linear),
+		{CFrame = CFrame.new(pos)}
+	)
 
-	if root then
-		root.CFrame = CFrame.new(target)
-	end
+	tween:Play()
 
-	setMove(true)
-	moving = false
+	tween.Completed:Once(function()
+		lockMove(true)
+		moving = false
+	end)
 end
 
 -- GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "TeleportUI"
+local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.ResetOnSpawn = false
-gui.Parent = player.PlayerGui
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 170, 0, 300)
-frame.Position = UDim2.new(0, 20, 0.5, -150)
+frame.Size = UDim2.new(0,170,0,300)
+frame.Position = UDim2.new(0,20,0.5,-150)
 frame.BackgroundColor3 = Color3.fromRGB(0,0,0)
 frame.Active = true
 frame.Draggable = true
 
-local function makeButton(text, y)
+local function makeBtn(txt, y)
 	local b = Instance.new("TextButton", frame)
-	b.Size = UDim2.new(1, -16, 0, 28)
-	b.Position = UDim2.new(0, 8, 0, y)
+	b.Size = UDim2.new(1,-16,0,28)
+	b.Position = UDim2.new(0,8,0,y)
 	b.BackgroundColor3 = Color3.fromRGB(65,65,65)
 	b.TextColor3 = Color3.fromRGB(0,255,0)
 	b.Font = Enum.Font.GothamBold
 	b.TextScaled = true
-	b.Text = text
+	b.Text = txt
 
 	b.MouseButton1Down:Connect(function()
 		b.BackgroundColor3 = Color3.fromRGB(45,45,45)
@@ -104,19 +100,17 @@ local function makeButton(text, y)
 	return b
 end
 
--- Buttons
-local forwardBtn = makeButton("FORWARD", 20)
-local backBtn = makeButton("BACK", 60)
+local forward = makeBtn("FORWARD", 20)
+local back = makeBtn("BACK", 60)
 
--- Logic
-forwardBtn.MouseButton1Click:Connect(function()
+forward.MouseButton1Click:Connect(function()
 	if moving then return end
 	if index >= #points then return end
 	index += 1
 	moveTo(points[index])
 end)
 
-backBtn.MouseButton1Click:Connect(function()
+back.MouseButton1Click:Connect(function()
 	if moving then return end
 	if index <= 1 then return end
 	index -= 1
