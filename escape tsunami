@@ -1,6 +1,6 @@
 local player = game.Players.LocalPlayer
 
--- الإحداثيات الجديدة
+-- الإحداثيات
 local coords = {
 	Vector3.new(200, -3, 0),
 	Vector3.new(283, -3, -1),
@@ -19,17 +19,17 @@ local moving = false
 -- GUI
 local gui = player.PlayerGui:FindFirstChild("TeleportGUI")
 if not gui then
-	gui = Instance.new("ScreenGui", player.PlayerGui)
+	gui = Instance.new("ScreenGui")
 	gui.Name = "TeleportGUI"
 	gui.ResetOnSpawn = false
+	gui.Parent = player.PlayerGui
 end
 
--- القائمة السوداء
 local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 250, 0, 450) -- تم تصغيرها شوي
+	frame.Size = UDim2.new(0, 250, 0, 450)
 	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
@@ -37,86 +37,63 @@ if not frame then
 	frame.Parent = gui
 end
 
--- زر تصغير/تكبير (مربع أسود)
-local toggleBtn = gui:FindFirstChild("ToggleMenu")
-if not toggleBtn then
-	toggleBtn = Instance.new("TextButton")
-	toggleBtn.Name = "ToggleMenu"
-	toggleBtn.Size = UDim2.new(0, 30, 0, 30)
-	toggleBtn.Position = UDim2.new(0, 100, 0, 70) -- فوق القائمة
-	toggleBtn.Text = "⬆"
-	toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
-	toggleBtn.TextScaled = true
-	toggleBtn.Font = Enum.Font.GothamBold
-	toggleBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
-	toggleBtn.Active = true
-	toggleBtn.Draggable = true
-	toggleBtn.Parent = gui
-end
+local function createBtn(name, y)
+	local box = Instance.new("Frame")
+	box.Size = UDim2.new(1, -20, 0, 30)
+	box.Position = UDim2.new(0, 10, 0, y)
+	box.BackgroundColor3 = Color3.fromRGB(160,160,160)
+	box.Parent = frame
 
-local isExpanded = true
-toggleBtn.MouseButton1Click:Connect(function()
-	if isExpanded then
-		frame.Size = UDim2.new(0, 250, 0, 100)
-	else
-		frame.Size = UDim2.new(0, 250, 0, 450)
-	end
-	isExpanded = not isExpanded
-end)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1,0,1,0)
+	btn.Text = name
+	btn.TextScaled = true
+	btn.TextColor3 = Color3.fromRGB(0,255,0)
+	btn.Font = Enum.Font.GothamBold
+	btn.BackgroundColor3 = Color3.fromRGB(160,160,160)
+	btn.Parent = box
 
--- إعداد أزرار Forward وBack
-local function createButtonBox(name, posY)
-	local box = frame:FindFirstChild(name.."Box")
-	if not box then
-		box = Instance.new("Frame")
-		box.Name = name.."Box"
-		box.Size = UDim2.new(1, -20, 0, 30)
-		box.Position = UDim2.new(0, 10, 0, posY)
-		box.BackgroundColor3 = Color3.fromRGB(160,160,160)
-		box.Parent = frame
-	end
-	local btn = box:FindFirstChild(name)
-	if not btn then
-		btn = Instance.new("TextButton")
-		btn.Name = name
-		btn.Size = UDim2.new(1,0,1,0)
-		btn.Position = UDim2.new(0,0,0,0)
-		btn.Text = name
-		btn.TextScaled = true
-		btn.TextColor3 = Color3.fromRGB(0,255,0)
-		btn.Font = Enum.Font.GothamBold
-		btn.BackgroundColor3 = Color3.fromRGB(160,160,160)
-		btn.BackgroundTransparency = 0
-		btn.Parent = box
-	end
 	return btn
 end
 
-local forwardBtn = createButtonBox("Forward", 20)
-local backBtn = createButtonBox("Back", 60)
+local forwardBtn = createBtn("Forward", 20)
+local backBtn = createBtn("Back", 60)
 
--- دالة الحصول على HumanoidRootPart
+-- أدوات
 local function getRoot()
 	local char = player.Character
 	return char and char:FindFirstChild("HumanoidRootPart")
 end
 
--- إعادة اللاعب للإحداثية 1 عند الموت
-player.CharacterAdded:Connect(function(char)
+local function setMovement(state)
+	local char = player.Character
+	if not char then return end
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	if not hum then return end
+
+	if state then
+		hum.WalkSpeed = 16
+		hum.JumpPower = 50
+	else
+		hum.WalkSpeed = 0
+		hum.JumpPower = 0
+	end
+end
+
+-- عند الموت: لا نرسّبنه، فقط نعيد المؤشر
+player.CharacterAdded:Connect(function()
 	moving = false
 	currentIndex = 1
-
-	local root = char:WaitForChild("HumanoidRootPart", 5)
-	if root then
-		root.CFrame = CFrame.new(coords[1])
-	end
 end)
 
--- دالة النقل خطوة خطوة
+-- النقل
 local function tpStep(target, targetIndex)
 	moving = true
+	setMovement(false)
+
 	local root = getRoot()
 	if not root then
+		setMovement(true)
 		moving = false
 		return
 	end
@@ -127,6 +104,7 @@ local function tpStep(target, targetIndex)
 	while true do
 		root = getRoot()
 		if not root or not root.Parent then
+			setMovement(true)
 			moving = false
 			return
 		end
@@ -135,20 +113,25 @@ local function tpStep(target, targetIndex)
 		local dist = diff.Magnitude
 		if dist <= 0.05 then break end
 
-		root.CFrame = CFrame.new(root.Position + diff.Unit * math.min(10, dist))
+		-- السرعة: 19 وحدة
+		root.CFrame = CFrame.new(
+			root.Position + diff.Unit * math.min(19, dist)
+		)
+
 		task.wait(0.01)
 	end
 
 	root = getRoot()
 	if root and root.Parent then
 		root.CFrame = CFrame.new(target)
-		currentIndex = targetIndex -- تحديث المؤشر فقط بعد الوصول
+		currentIndex = targetIndex
 	end
 
+	setMovement(true)
 	moving = false
 end
 
--- أزرار تغيير اللون عند الضغط
+-- ألوان الضغط
 forwardBtn.MouseButton1Down:Connect(function()
 	forwardBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
 end)
@@ -167,16 +150,12 @@ end)
 forwardBtn.MouseButton1Click:Connect(function()
 	if moving then return end
 	if currentIndex >= #coords then return end
-
-	local nextIndex = currentIndex + 1
-	tpStep(coords[nextIndex], nextIndex)
+	tpStep(coords[currentIndex + 1], currentIndex + 1)
 end)
 
 -- Back
 backBtn.MouseButton1Click:Connect(function()
 	if moving then return end
 	if currentIndex <= 1 then return end
-
-	local prevIndex = currentIndex - 1
-	tpStep(coords[prevIndex], prevIndex)
+	tpStep(coords[currentIndex - 1], currentIndex - 1)
 end)
