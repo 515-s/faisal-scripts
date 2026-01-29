@@ -1,39 +1,168 @@
--- core.lua (Hidden Core)
-repeat task.wait() until game:IsLoaded()
+local player = game.Players.LocalPlayer
 
--- فك سترنق
-local function _s(t)
-	local r = {}
-	for i = 1, #t do
-		r[i] = string.char(t[i] - 2)
+-- الإحداثيات
+local coords = {
+	Vector3.new(200, -3, 0),
+	Vector3.new(283, -3, -1),
+	Vector3.new(398, -3, 0),
+	Vector3.new(542, -3, 0),
+	Vector3.new(756, -3, 0),
+	Vector3.new(1070, -3, 0),
+	Vector3.new(1543, -3, 0),
+	Vector3.new(2239, -3, 3),
+	Vector3.new(2587, -3, 0),
+}
+
+local currentIndex = 0
+local moving = false
+
+-- GUI
+local gui = player.PlayerGui:FindFirstChild("TeleportGUI")
+if not gui then
+	gui = Instance.new("ScreenGui")
+	gui.Name = "TeleportGUI"
+	gui.ResetOnSpawn = false
+	gui.Parent = player.PlayerGui
+end
+
+local frame = gui:FindFirstChild("BlackMenu")
+if not frame then
+	frame = Instance.new("Frame")
+	frame.Name = "BlackMenu"
+	frame.Size = UDim2.new(0, 220, 0, 160)
+	frame.Position = UDim2.new(0, 100, 0, 100)
+	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+	frame.Active = true
+	frame.Draggable = true
+	frame.Parent = gui
+end
+
+local function createBtn(name, y)
+	local box = Instance.new("Frame")
+	box.Size = UDim2.new(1, -20, 0, 25)
+	box.Position = UDim2.new(0, 10, 0, y)
+	box.BackgroundColor3 = Color3.fromRGB(160,160,160)
+	box.Parent = frame
+
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1,0,1,0)
+	btn.Text = name
+	btn.TextScaled = true
+	btn.TextColor3 = Color3.fromRGB(0,255,0)
+	btn.Font = Enum.Font.GothamBold
+	btn.BackgroundColor3 = Color3.fromRGB(160,160,160)
+	btn.Parent = box
+
+	return btn
+end
+
+-- الأزرار
+local forwardBtn = createBtn("Forward", 10)
+local backBtn = createBtn("Back", 40)
+local autoGrabBtn = createBtn("Instant Take", 70) -- زر عادي بدون ON/OFF
+
+-- أدوات
+local function getRoot()
+	local char = player.Character
+	return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function setMovement(state)
+	local char = player.Character
+	if not char then return end
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	if not hum then return end
+
+	if state then
+		hum.WalkSpeed = 16
+		hum.JumpPower = 50
+	else
+		hum.WalkSpeed = 0
+		hum.JumpPower = 0
 	end
-	return table.concat(r)
 end
 
--- فك أرقام
-local function _n(x)
-	return (x * 5 - 10) / 5
+-- بعد الموت: إعادة تعيين المؤشر
+player.CharacterAdded:Connect(function()
+	moving = false
+	currentIndex = 0
+end)
+
+-- النقل
+local function tpStep(target, targetIndex)
+	moving = true
+	setMovement(false)
+
+	local root = getRoot()
+	if not root then
+		setMovement(true)
+		moving = false
+		return
+	end
+
+	root.CFrame = root.CFrame + Vector3.new(0,10,0)
+	task.wait(0.01)
+
+	while true do
+		root = getRoot()
+		if not root or not root.Parent then
+			setMovement(true)
+			moving = false
+			return
+		end
+
+		local diff = target - root.Position
+		local dist = diff.Magnitude
+		if dist <= 0.05 then break end
+
+		root.CFrame = CFrame.new(
+			root.Position + diff.Unit * math.min(25, dist)
+		)
+
+		task.wait(0.01)
+	end
+
+	root = getRoot()
+	if root and root.Parent then
+		root.CFrame = CFrame.new(target)
+		currentIndex = targetIndex
+	end
+
+	setMovement(true)
+	moving = false
 end
 
-local G = game
-local P = G[_s({82,110,113,116,103,116})] -- Players
-local L = P[_s({78,113,99,97,108,82,113,99,97,121,103,116})] -- LocalPlayer
+-- Forward
+forwardBtn.MouseButton1Click:Connect(function()
+	if moving then return end
+	if currentIndex >= #coords then return end
+	tpStep(coords[currentIndex + 1], currentIndex + 1)
+end)
 
-local function getChar()
-	return L.Character or L.CharacterAdded:Wait()
+-- Back
+backBtn.MouseButton1Click:Connect(function()
+	if moving then return end
+	if currentIndex <= 1 then return end
+	tpStep(coords[currentIndex - 1], currentIndex - 1)
+end)
+
+-- Auto Grab فور الضغط على أي ProximityPrompt
+local function setPromptInstant(prompt)
+	pcall(function()
+		prompt.HoldDuration = 0
+	end)
 end
 
-local ch = getChar()
-local h = ch:WaitForChild(_s({74,119,111,99,113,107,102})) -- Humanoid
+-- لكل Prompts الموجودة حالياً
+for _, part in ipairs(workspace:GetDescendants()) do
+	if part:IsA("ProximityPrompt") then
+		setPromptInstant(part)
+	end
+end
 
--- قيم مشفّرة
-h.WalkSpeed = _n(80)   -- 16
-h.JumpPower = _n(250)  -- 48 تقريبًا
-
--- مثال حركة (تأكد إنه يشتغل)
-task.spawn(function()
-	while h.Parent do
-		task.wait(_n(5)) -- 1
-		h.WalkSpeed = h.WalkSpeed + 0
+-- أي Prompt يظهر بعدين في الماب
+workspace.DescendantAdded:Connect(function(part)
+	if part:IsA("ProximityPrompt") then
+		setPromptInstant(part)
 	end
 end)
