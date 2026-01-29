@@ -148,29 +148,39 @@ end)
 
 -- Toggle حالة الزر الجديد
 local autoPromptOn = false
+local selectedPrompt = nil
+
 autoPromptBtn.MouseButton1Click:Connect(function()
 	autoPromptOn = not autoPromptOn
 	if autoPromptOn then
 		autoPromptBtn.Text = "Auto Activate: ON"
 	else
 		autoPromptBtn.Text = "Auto Activate: OFF"
+		selectedPrompt = nil
 	end
 end)
 
--- مهمة مستمرة لتفعيل ProximityPrompt كل 0.2 ثانية إذا الزر ON
+-- تخزين أي ProximityPrompt تضغطه أول مرة
+for _, part in ipairs(workspace:GetDescendants()) do
+	if part:IsA("ProximityPrompt") then
+		part.Triggered:Connect(function(player)
+			if autoPromptOn then
+				selectedPrompt = part
+			end
+		end)
+	end
+end
+
+-- مهمة مستمرة لتفعيل الـ ProximityPrompt المختار كل 0.1 ثانية إذا الزر ON
 task.spawn(function()
 	while true do
-		if autoPromptOn then
-			for _, part in ipairs(workspace:GetDescendants()) do
-				if part:IsA("ProximityPrompt") then
-					pcall(function()
-						part:InputHoldBegin()
-						task.wait(0.1)
-						part:InputHoldEnd()
-					end)
-				end
-			end
+		if autoPromptOn and selectedPrompt then
+			pcall(function()
+				selectedPrompt:InputHoldBegin()
+				task.wait(0.05)
+				selectedPrompt:InputHoldEnd()
+			end)
 		end
-		task.wait(0.2)
+		task.wait(0.1)
 	end
 end)
