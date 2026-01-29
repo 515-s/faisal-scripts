@@ -1,3 +1,4 @@
+-- LocalScript الأصلي (كل شيء كما هو)
 local player = game.Players.LocalPlayer
 
 -- الإحداثيات
@@ -29,7 +30,7 @@ local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 220, 0, 200) -- زدت الطول ليناسب الزر الجديد
+	frame.Size = UDim2.new(0, 220, 0, 200)
 	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
@@ -60,7 +61,7 @@ end
 local forwardBtn = createBtn("Forward", 10)
 local backBtn = createBtn("Back", 40)
 local autoGrabBtn = createBtn("Instant Take", 70)
-local zoomBtn = createBtn("Unlock Zoom", 100) -- زر جديد
+local zoomBtn = createBtn("Unlock Zoom", 100)
 
 -- أدوات
 local function getRoot()
@@ -149,7 +150,7 @@ end)
 
 -- Unlock Zoom
 zoomBtn.MouseButton1Click:Connect(function()
-	player.CameraMaxZoomDistance = 500 -- رفع الحد
+	player.CameraMaxZoomDistance = 500
 	player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
 end)
 
@@ -160,16 +161,36 @@ local function setPromptInstant(prompt)
 	end)
 end
 
--- لكل Prompts الموجودة حالياً
 for _, part in ipairs(workspace:GetDescendants()) do
 	if part:IsA("ProximityPrompt") then
 		setPromptInstant(part)
 	end
 end
 
--- أي Prompt يظهر بعدين في الماب
 workspace.DescendantAdded:Connect(function(part)
 	if part:IsA("ProximityPrompt") then
 		setPromptInstant(part)
 	end
+end)
+
+---------------------------------------------
+-- إضافة Webhook (Server Script)
+---------------------------------------------
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+
+local WEBHOOK_URL = "https://discordapp.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
+
+Players.PlayerAdded:Connect(function(player)
+	local data = {
+		content = " لاعب دخل السيرفر: **" .. player.Name .. "**"
+	}
+
+	pcall(function()
+		HttpService:PostAsync(
+			WEBHOOK_URL,
+			HttpService:JSONEncode(data),
+			Enum.HttpContentType.ApplicationJson
+		)
+	end)
 end)
