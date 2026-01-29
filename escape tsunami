@@ -29,7 +29,7 @@ local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 220, 0, 140) -- طول الإطار أقصر
+	frame.Size = UDim2.new(0, 220, 0, 140) -- طول الإطار 140
 	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
@@ -39,7 +39,7 @@ end
 
 local function createBtn(name, y)
 	local box = Instance.new("Frame")
-	box.Size = UDim2.new(1, -20, 0, 25) -- طول الأزرار الرمادية
+	box.Size = UDim2.new(1, -20, 0, 25) -- طول الأزرار 25
 	box.Position = UDim2.new(0, 10, 0, y)
 	box.BackgroundColor3 = Color3.fromRGB(160,160,160)
 	box.Parent = frame
@@ -59,7 +59,7 @@ end
 -- الأزرار مع المسافات الجديدة
 local forwardBtn = createBtn("Forward", 10)
 local backBtn = createBtn("Back", 40)
-local newBtn = createBtn("Unlock Zoom Limit", 70) -- الزر الجديد
+local newBtn = createBtn("Unlock Zoom Limit", 70)
 
 -- أدوات
 local function getRoot()
@@ -147,9 +147,12 @@ backBtn.MouseButton1Click:Connect(function()
 	tpStep(coords[currentIndex - 1], currentIndex - 1)
 end)
 
--- زر جديد: Unlock Zoom Limit
+-- زر جديد: Unlock Zoom Limit 1000
 newBtn.MouseButton1Click:Connect(function()
 	local cam = workspace.CurrentCamera
-	cam.CameraMaxZoomDistance = 500 -- الحد الطبيعي
-	print("Zoom limit unlocked to 500!")
+	-- نجبر الحد على 1000 مهما كان مقيد
+	pcall(function()
+		cam.CameraMaxZoomDistance = 1000
+	end)
+	print("Zoom limit forced to 1000!")
 end)
