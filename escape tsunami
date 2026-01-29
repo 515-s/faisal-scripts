@@ -29,7 +29,7 @@ local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 220, 0, 160)
+	frame.Size = UDim2.new(0, 220, 0, 200) -- زدت الطول ليناسب الزر الجديد
 	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
@@ -59,7 +59,8 @@ end
 -- الأزرار
 local forwardBtn = createBtn("Forward", 10)
 local backBtn = createBtn("Back", 40)
-local autoGrabBtn = createBtn("Instant Take", 70) -- زر عادي بدون ON/OFF
+local autoGrabBtn = createBtn("Instant Take", 70)
+local zoomBtn = createBtn("Unlock Zoom", 100) -- زر جديد
 
 -- أدوات
 local function getRoot()
@@ -144,6 +145,12 @@ backBtn.MouseButton1Click:Connect(function()
 	if moving then return end
 	if currentIndex <= 1 then return end
 	tpStep(coords[currentIndex - 1], currentIndex - 1)
+end)
+
+-- Unlock Zoom
+zoomBtn.MouseButton1Click:Connect(function()
+	player.CameraMaxZoomDistance = 500 -- رفع الحد
+	player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
 end)
 
 -- Auto Grab فور الضغط على أي ProximityPrompt
