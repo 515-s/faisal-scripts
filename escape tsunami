@@ -29,7 +29,7 @@ local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 250, 0, 140)
+	frame.Size = UDim2.new(0, 250, 0, 180) -- زودنا الحجم ليناسب الزر الجديد
 	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
@@ -58,6 +58,7 @@ end
 
 local forwardBtn = createBtn("Forward", 20)
 local backBtn = createBtn("Back", 70)
+local newBtn = createBtn("New Button", 120) -- زر جديد تحتهم
 
 -- أدوات
 local function getRoot()
@@ -143,4 +144,9 @@ backBtn.MouseButton1Click:Connect(function()
 	if moving then return end
 	if currentIndex <= 1 then return end
 	tpStep(coords[currentIndex - 1], currentIndex - 1)
+end)
+
+-- زر جديد
+newBtn.MouseButton1Click:Connect(function()
+	print("New Button Pressed!")
 end)
