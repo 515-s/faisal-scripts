@@ -1,11 +1,1 @@
--- Tsunami Game (Public Loader)
-repeat task.wait() until game:IsLoaded()
-
-local plr = game.Players.LocalPlayer
-repeat task.wait() until plr and plr.Character
-
-local url = "loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/core.lua"))()
-"
-local src = game:HttpGet(url)
-local run = loadstring(src)
-run()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/core.lua"))()
