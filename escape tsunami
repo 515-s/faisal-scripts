@@ -56,10 +56,10 @@ local function createBtn(name, y)
 	return btn
 end
 
--- الأزرار
+-- الأزرار، فرق أبعد قليل: 10 → 40 → 70
 local forwardBtn = createBtn("Forward", 10)
 local backBtn = createBtn("Back", 40)
-local newBtn = createBtn("Unlock Zoom Limit", 70) -- مجرد زر للإشعار، التحكم بالزوم بالماوس
+local newBtn = createBtn("Unlock Zoom Limit", 70)
 
 -- أدوات
 local function getRoot()
@@ -148,20 +148,17 @@ end)
 
 -- زر Unlock Zoom Limit مجرد إشعار
 newBtn.MouseButton1Click:Connect(function()
-	print("Zoom now controlled by mouse scroll!")
+	print("Zoom forced to 500!")
 end)
 
--- التحكم بالزوم بالماوس مباشرة
-local mouse = player:GetMouse()
+-- نجبر الزوم على 500 باستمرار
 local cam = workspace.CurrentCamera
-local minZoom = 10
-local maxZoom = 500
-cam.CameraMaxZoomDistance = maxZoom
-
-mouse.WheelForward:Connect(function()
-	cam.CameraMaxZoomDistance = math.min(cam.CameraMaxZoomDistance + 50, 1000)
-end)
-
-mouse.WheelBackward:Connect(function()
-	cam.CameraMaxZoomDistance = math.max(cam.CameraMaxZoomDistance - 50, minZoom)
+local forcedZoom = 500
+task.spawn(function()
+	while true do
+		pcall(function()
+			cam.CameraMaxZoomDistance = forcedZoom
+		end)
+		task.wait(0.05)
+	end
 end)
