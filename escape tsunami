@@ -29,7 +29,7 @@ local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 220, 0, 140)
+	frame.Size = UDim2.new(0, 220, 0, 160)
 	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
@@ -56,10 +56,10 @@ local function createBtn(name, y)
 	return btn
 end
 
--- الأزرار، فرق أبعد قليل: 10 → 40 → 70
+-- الأزرار
 local forwardBtn = createBtn("Forward", 10)
 local backBtn = createBtn("Back", 40)
-local newBtn = createBtn("Unlock Zoom Limit", 70)
+local autoPromptBtn = createBtn("Auto Activate Prompt", 70) -- الزر الجديد
 
 -- أدوات
 local function getRoot()
@@ -82,7 +82,7 @@ local function setMovement(state)
 	end
 end
 
--- بعد الموت: لا نقل، فقط إعادة تعيين المؤشر
+-- بعد الموت: إعادة تعيين المؤشر
 player.CharacterAdded:Connect(function()
 	moving = false
 	currentIndex = 0
@@ -146,19 +146,16 @@ backBtn.MouseButton1Click:Connect(function()
 	tpStep(coords[currentIndex - 1], currentIndex - 1)
 end)
 
--- زر Unlock Zoom Limit مجرد إشعار
-newBtn.MouseButton1Click:Connect(function()
-	print("Zoom forced to 500!")
-end)
-
--- نجبر الزوم على 500 باستمرار
-local cam = workspace.CurrentCamera
-local forcedZoom = 500
-task.spawn(function()
-	while true do
-		pcall(function()
-			cam.CameraMaxZoomDistance = forcedZoom
-		end)
-		task.wait(0.05)
+-- وظيفة الزر الجديد: تفعيل أي ProximityPrompt تلقائي
+autoPromptBtn.MouseButton1Click:Connect(function()
+	for _, part in ipairs(workspace:GetDescendants()) do
+		if part:IsA("ProximityPrompt") then
+			pcall(function()
+				part:InputHoldBegin() -- يحاكي الضغط على الزر
+				task.wait(0.1)
+				part:InputHoldEnd()
+				print("ProximityPrompt activated:", part.Name)
+			end)
+		end
 	end
 end)
