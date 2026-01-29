@@ -29,7 +29,7 @@ local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 220, 0, 180) -- زودنا الحجم ليناسب الزر الجديد
+	frame.Size = UDim2.new(0, 200, 0, 180) -- عرض أصغر ليناسب الشكل الجديد
 	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
@@ -39,7 +39,7 @@ end
 
 local function createBtn(name, y)
 	local box = Instance.new("Frame")
-	box.Size = UDim2.new(1, -20, 0, 35)
+	box.Size = UDim2.new(1, -20, 0, 25) -- طول أصغر للأزرار الرمادية
 	box.Position = UDim2.new(0, 10, 0, y)
 	box.BackgroundColor3 = Color3.fromRGB(160,160,160)
 	box.Parent = frame
@@ -58,7 +58,7 @@ end
 
 local forwardBtn = createBtn("Forward", 20)
 local backBtn = createBtn("Back", 70)
-local newBtn = createBtn("New Button", 120) -- زر جديد تحتهم
+local newBtn = createBtn("New Button", 120)
 
 -- أدوات
 local function getRoot()
