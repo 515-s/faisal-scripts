@@ -1,1 +1,9 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/core.lua"))()
+repeat task.wait() until game:IsLoaded()
+
+local u = "https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/core.lua"
+local s = game:HttpGet(u)
+local f = loadstring(s)
+
+if f then
+	f()
+end
