@@ -59,7 +59,7 @@ end
 -- الأزرار
 local forwardBtn = createBtn("Forward", 10)
 local backBtn = createBtn("Back", 40)
-local autoGrabBtn = createBtn("Auto Grab: OFF", 70) -- الزر الجديد
+local autoGrabBtn = createBtn("Auto Grab", 70) -- زر عادي بدون ON/OFF
 
 -- أدوات
 local function getRoot()
@@ -146,25 +146,14 @@ backBtn.MouseButton1Click:Connect(function()
 	tpStep(coords[currentIndex - 1], currentIndex - 1)
 end)
 
--- Toggle حالة زر Auto Grab
-local autoGrabOn = false
-autoGrabBtn.MouseButton1Click:Connect(function()
-	autoGrabOn = not autoGrabOn
-	if autoGrabOn then
-		autoGrabBtn.Text = "Auto Grab: ON"
-	else
-		autoGrabBtn.Text = "Auto Grab: OFF"
-	end
-end)
-
--- دالة لتغيير HoldDuration لأي ProximityPrompt فورًا
+-- Auto Grab فور الضغط على أي ProximityPrompt
 local function setPromptInstant(prompt)
 	pcall(function()
 		prompt.HoldDuration = 0
 	end)
 end
 
--- كل Prompts موجودة حالياً
+-- لكل Prompts الموجودة حالياً
 for _, part in ipairs(workspace:GetDescendants()) do
 	if part:IsA("ProximityPrompt") then
 		setPromptInstant(part)
