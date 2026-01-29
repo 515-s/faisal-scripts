@@ -29,7 +29,7 @@ local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 220, 0, 140) -- طول الإطار 140
+	frame.Size = UDim2.new(0, 220, 0, 140)
 	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
@@ -39,7 +39,7 @@ end
 
 local function createBtn(name, y)
 	local box = Instance.new("Frame")
-	box.Size = UDim2.new(1, -20, 0, 25) -- طول الأزرار 25
+	box.Size = UDim2.new(1, -20, 0, 25)
 	box.Position = UDim2.new(0, 10, 0, y)
 	box.BackgroundColor3 = Color3.fromRGB(160,160,160)
 	box.Parent = frame
@@ -56,10 +56,10 @@ local function createBtn(name, y)
 	return btn
 end
 
--- الأزرار مع المسافات الجديدة
+-- الأزرار
 local forwardBtn = createBtn("Forward", 10)
 local backBtn = createBtn("Back", 40)
-local newBtn = createBtn("Unlock Zoom Limit", 70)
+local newBtn = createBtn("Unlock Zoom Limit", 70) -- مجرد زر للإشعار، التحكم بالزوم بالماوس
 
 -- أدوات
 local function getRoot()
@@ -85,7 +85,7 @@ end
 -- بعد الموت: لا نقل، فقط إعادة تعيين المؤشر
 player.CharacterAdded:Connect(function()
 	moving = false
-	currentIndex = 0 -- 🔥 هذا هو الحل
+	currentIndex = 0
 end)
 
 -- النقل
@@ -115,7 +115,6 @@ local function tpStep(target, targetIndex)
 		local dist = diff.Magnitude
 		if dist <= 0.05 then break end
 
-		-- السرعة: 25 وحدة
 		root.CFrame = CFrame.new(
 			root.Position + diff.Unit * math.min(25, dist)
 		)
@@ -147,12 +146,22 @@ backBtn.MouseButton1Click:Connect(function()
 	tpStep(coords[currentIndex - 1], currentIndex - 1)
 end)
 
--- زر جديد: Unlock Zoom Limit 1000
+-- زر Unlock Zoom Limit مجرد إشعار
 newBtn.MouseButton1Click:Connect(function()
-	local cam = workspace.CurrentCamera
-	-- نجبر الحد على 1000 مهما كان مقيد
-	pcall(function()
-		cam.CameraMaxZoomDistance = 1000
-	end)
-	print("Zoom limit forced to 1000!")
+	print("Zoom now controlled by mouse scroll!")
+end)
+
+-- التحكم بالزوم بالماوس مباشرة
+local mouse = player:GetMouse()
+local cam = workspace.CurrentCamera
+local minZoom = 10
+local maxZoom = 500
+cam.CameraMaxZoomDistance = maxZoom
+
+mouse.WheelForward:Connect(function()
+	cam.CameraMaxZoomDistance = math.min(cam.CameraMaxZoomDistance + 50, 1000)
+end)
+
+mouse.WheelBackward:Connect(function()
+	cam.CameraMaxZoomDistance = math.max(cam.CameraMaxZoomDistance - 50, minZoom)
 end)
