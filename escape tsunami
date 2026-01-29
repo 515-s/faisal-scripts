@@ -59,7 +59,7 @@ end
 -- الأزرار
 local forwardBtn = createBtn("Forward", 10)
 local backBtn = createBtn("Back", 40)
-local autoGrabBtn = createBtn("Auto Grab", 70) -- زر عادي بدون ON/OFF
+local autoGrabBtn = createBtn("Instant Take", 70) -- زر عادي بدون ON/OFF
 
 -- أدوات
 local function getRoot()
