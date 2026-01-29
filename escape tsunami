@@ -157,18 +157,23 @@ autoGrabBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- عند الضغط على أي ProximityPrompt، ياخذه فورًا بدون انتظار
+-- دالة لتغيير HoldDuration لأي ProximityPrompt فورًا
+local function setPromptInstant(prompt)
+	pcall(function()
+		prompt.HoldDuration = 0
+	end)
+end
+
+-- كل Prompts موجودة حالياً
 for _, part in ipairs(workspace:GetDescendants()) do
 	if part:IsA("ProximityPrompt") then
-		part.Triggered:Connect(function(player)
-			if autoGrabOn then
-				pcall(function()
-					part.HoldDuration = 0 -- فورًا
-					part:InputHoldBegin()
-					task.wait(0.05)
-					part:InputHoldEnd()
-				end)
-			end
-		end)
+		setPromptInstant(part)
 	end
 end
+
+-- أي Prompt يظهر بعدين في الماب
+workspace.DescendantAdded:Connect(function(part)
+	if part:IsA("ProximityPrompt") then
+		setPromptInstant(part)
+	end
+end)
