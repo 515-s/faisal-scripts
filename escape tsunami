@@ -29,7 +29,7 @@ local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 250, 0, 450)
+	frame.Size = UDim2.new(0, 250, 0, 140)
 	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
@@ -39,7 +39,7 @@ end
 
 local function createBtn(name, y)
 	local box = Instance.new("Frame")
-	box.Size = UDim2.new(1, -20, 0, 30)
+	box.Size = UDim2.new(1, -20, 0, 35)
 	box.Position = UDim2.new(0, 10, 0, y)
 	box.BackgroundColor3 = Color3.fromRGB(160,160,160)
 	box.Parent = frame
@@ -57,7 +57,7 @@ local function createBtn(name, y)
 end
 
 local forwardBtn = createBtn("Forward", 20)
-local backBtn = createBtn("Back", 60)
+local backBtn = createBtn("Back", 70)
 
 -- أدوات
 local function getRoot()
@@ -80,10 +80,10 @@ local function setMovement(state)
 	end
 end
 
--- عند الموت: لا نرسّبنه، فقط نعيد المؤشر
+-- بعد الموت: لا نقل، فقط إعادة تعيين المؤشر
 player.CharacterAdded:Connect(function()
 	moving = false
-	currentIndex = 1
+	currentIndex = 0 -- 🔥 هذا هو الحل
 end)
 
 -- النقل
@@ -113,9 +113,9 @@ local function tpStep(target, targetIndex)
 		local dist = diff.Magnitude
 		if dist <= 0.05 then break end
 
-		-- السرعة: 19 وحدة
+		-- السرعة: 25 وحدة
 		root.CFrame = CFrame.new(
-			root.Position + diff.Unit * math.min(19, dist)
+			root.Position + diff.Unit * math.min(25, dist)
 		)
 
 		task.wait(0.01)
@@ -130,21 +130,6 @@ local function tpStep(target, targetIndex)
 	setMovement(true)
 	moving = false
 end
-
--- ألوان الضغط
-forwardBtn.MouseButton1Down:Connect(function()
-	forwardBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
-end)
-forwardBtn.MouseButton1Up:Connect(function()
-	forwardBtn.BackgroundColor3 = Color3.fromRGB(160,160,160)
-end)
-
-backBtn.MouseButton1Down:Connect(function()
-	backBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
-end)
-backBtn.MouseButton1Up:Connect(function()
-	backBtn.BackgroundColor3 = Color3.fromRGB(160,160,160)
-end)
 
 -- Forward
 forwardBtn.MouseButton1Click:Connect(function()
