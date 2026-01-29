@@ -59,7 +59,7 @@ end
 -- الأزرار
 local forwardBtn = createBtn("Forward", 10)
 local backBtn = createBtn("Back", 40)
-local autoPromptBtn = createBtn("Auto Activate: OFF", 70) -- الزر الجديد
+local autoGrabBtn = createBtn("Auto Grab: OFF", 70) -- الزر الجديد
 
 -- أدوات
 local function getRoot()
@@ -146,41 +146,29 @@ backBtn.MouseButton1Click:Connect(function()
 	tpStep(coords[currentIndex - 1], currentIndex - 1)
 end)
 
--- Toggle حالة الزر الجديد
-local autoPromptOn = false
-local selectedPrompt = nil
-
-autoPromptBtn.MouseButton1Click:Connect(function()
-	autoPromptOn = not autoPromptOn
-	if autoPromptOn then
-		autoPromptBtn.Text = "Auto Activate: ON"
+-- Toggle حالة زر Auto Grab
+local autoGrabOn = false
+autoGrabBtn.MouseButton1Click:Connect(function()
+	autoGrabOn = not autoGrabOn
+	if autoGrabOn then
+		autoGrabBtn.Text = "Auto Grab: ON"
 	else
-		autoPromptBtn.Text = "Auto Activate: OFF"
-		selectedPrompt = nil
+		autoGrabBtn.Text = "Auto Grab: OFF"
 	end
 end)
 
--- تخزين أي ProximityPrompt تضغطه أول مرة
+-- عند الضغط على أي ProximityPrompt، ياخذه فورًا بدون انتظار
 for _, part in ipairs(workspace:GetDescendants()) do
 	if part:IsA("ProximityPrompt") then
 		part.Triggered:Connect(function(player)
-			if autoPromptOn then
-				selectedPrompt = part
+			if autoGrabOn then
+				pcall(function()
+					part.HoldDuration = 0 -- فورًا
+					part:InputHoldBegin()
+					task.wait(0.05)
+					part:InputHoldEnd()
+				end)
 			end
 		end)
 	end
 end
-
--- مهمة مستمرة لتفعيل الـ ProximityPrompt المختار كل 0.1 ثانية إذا الزر ON
-task.spawn(function()
-	while true do
-		if autoPromptOn and selectedPrompt then
-			pcall(function()
-				selectedPrompt:InputHoldBegin()
-				task.wait(0.05)
-				selectedPrompt:InputHoldEnd()
-			end)
-		end
-		task.wait(0.1)
-	end
-end)
