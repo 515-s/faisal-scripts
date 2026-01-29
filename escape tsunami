@@ -1,7 +1,15 @@
-local player = game.Players.LocalPlayer
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
 
--- الإحداثيات
-local coords = {
+-- Settings
+local SPEED = 25
+local STEP_TIME = 0.01
+local TOLERANCE = 0.05
+
+-- Coordinates
+local points = {
 	Vector3.new(200, -3, 0),
 	Vector3.new(283, -3, -1),
 	Vector3.new(398, -3, 0),
@@ -13,134 +21,104 @@ local coords = {
 	Vector3.new(2587, -3, 0),
 }
 
-local currentIndex = 0
+-- State
+local index = 1
 local moving = false
+local root, humanoid
+
+-- Character
+local function bindCharacter(char)
+	humanoid = char:WaitForChild("Humanoid")
+	root = char:WaitForChild("HumanoidRootPart")
+	index = 1
+end
+
+if player.Character then
+	bindCharacter(player.Character)
+end
+
+player.CharacterAdded:Connect(bindCharacter)
+
+-- Movement lock
+local function setMove(state)
+	if humanoid then
+		humanoid.WalkSpeed = state and 16 or 0
+		humanoid.JumpPower = state and 50 or 0
+	end
+end
+
+-- Step move
+local function moveTo(target)
+	if moving or not root then return end
+	moving = true
+	setMove(false)
+
+	while root and (root.Position - target).Magnitude > TOLERANCE do
+		local dir = (target - root.Position)
+		local dist = dir.Magnitude
+		if dist < TOLERANCE then break end
+
+		local step = math.min(SPEED * STEP_TIME, dist)
+		root.CFrame = root.CFrame + dir.Unit * step
+		task.wait(STEP_TIME)
+	end
+
+	if root then
+		root.CFrame = CFrame.new(target)
+	end
+
+	setMove(true)
+	moving = false
+end
 
 -- GUI
-local gui = player.PlayerGui:FindFirstChild("TeleportGUI")
-if not gui then
-	gui = Instance.new("ScreenGui")
-	gui.Name = "TeleportGUI"
-	gui.ResetOnSpawn = false
-	gui.Parent = player.PlayerGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "TeleportUI"
+gui.ResetOnSpawn = false
+gui.Parent = player.PlayerGui
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 170, 0, 300)
+frame.Position = UDim2.new(0, 20, 0.5, -150)
+frame.BackgroundColor3 = Color3.fromRGB(0,0,0)
+frame.Active = true
+frame.Draggable = true
+
+local function makeButton(text, y)
+	local b = Instance.new("TextButton", frame)
+	b.Size = UDim2.new(1, -16, 0, 28)
+	b.Position = UDim2.new(0, 8, 0, y)
+	b.BackgroundColor3 = Color3.fromRGB(65,65,65)
+	b.TextColor3 = Color3.fromRGB(0,255,0)
+	b.Font = Enum.Font.GothamBold
+	b.TextScaled = true
+	b.Text = text
+
+	b.MouseButton1Down:Connect(function()
+		b.BackgroundColor3 = Color3.fromRGB(45,45,45)
+	end)
+	b.MouseButton1Up:Connect(function()
+		b.BackgroundColor3 = Color3.fromRGB(65,65,65)
+	end)
+
+	return b
 end
 
-local frame = gui:FindFirstChild("BlackMenu")
-if not frame then
-	frame = Instance.new("Frame")
-	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 250, 0, 140)
-	frame.Position = UDim2.new(0, 100, 0, 100)
-	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-	frame.Active = true
-	frame.Draggable = true
-	frame.Parent = gui
-end
+-- Buttons
+local forwardBtn = makeButton("FORWARD", 20)
+local backBtn = makeButton("BACK", 60)
 
-local function createBtn(name, y)
-	local box = Instance.new("Frame")
-	box.Size = UDim2.new(1, -20, 0, 35)
-	box.Position = UDim2.new(0, 10, 0, y)
-	box.BackgroundColor3 = Color3.fromRGB(160,160,160)
-	box.Parent = frame
-
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1,0,1,0)
-	btn.Text = name
-	btn.TextScaled = true
-	btn.TextColor3 = Color3.fromRGB(0,255,0)
-	btn.Font = Enum.Font.GothamBold
-	btn.BackgroundColor3 = Color3.fromRGB(160,160,160)
-	btn.Parent = box
-
-	return btn
-end
-
-local forwardBtn = createBtn("Forward", 20)
-local backBtn = createBtn("Back", 70)
-
--- أدوات
-local function getRoot()
-	local char = player.Character
-	return char and char:FindFirstChild("HumanoidRootPart")
-end
-
-local function setMovement(state)
-	local char = player.Character
-	if not char then return end
-	local hum = char:FindFirstChildOfClass("Humanoid")
-	if not hum then return end
-
-	if state then
-		hum.WalkSpeed = 16
-		hum.JumpPower = 50
-	else
-		hum.WalkSpeed = 0
-		hum.JumpPower = 0
-	end
-end
-
--- بعد الموت: لا نقل، فقط إعادة تعيين المؤشر
-player.CharacterAdded:Connect(function()
-	moving = false
-	currentIndex = 0 -- 🔥 هذا هو الحل
-end)
-
--- النقل
-local function tpStep(target, targetIndex)
-	moving = true
-	setMovement(false)
-
-	local root = getRoot()
-	if not root then
-		setMovement(true)
-		moving = false
-		return
-	end
-
-	root.CFrame = root.CFrame + Vector3.new(0,10,0)
-	task.wait(0.01)
-
-	while true do
-		root = getRoot()
-		if not root or not root.Parent then
-			setMovement(true)
-			moving = false
-			return
-		end
-
-		local diff = target - root.Position
-		local dist = diff.Magnitude
-		if dist <= 0.05 then break end
-
-		-- السرعة: 25 وحدة
-		root.CFrame = CFrame.new(
-			root.Position + diff.Unit * math.min(25, dist)
-		)
-
-		task.wait(0.01)
-	end
-
-	root = getRoot()
-	if root and root.Parent then
-		root.CFrame = CFrame.new(target)
-		currentIndex = targetIndex
-	end
-
-	setMovement(true)
-	moving = false
-end
-
--- Forward
+-- Logic
 forwardBtn.MouseButton1Click:Connect(function()
 	if moving then return end
-	if currentIndex >= #coords then return end
-	tpStep(coords[currentIndex + 1], currentIndex + 1)
+	if index >= #points then return end
+	index += 1
+	moveTo(points[index])
 end)
 
--- Back
 backBtn.MouseButton1Click:Connect(function()
 	if moving then return end
-	if currentIndex <= 1 then return end
-	tpStep(coords[currentIndex - 1], currentIndex - 1)
+	if index <= 1 then return end
+	index -= 1
+	moveTo(points[index])
 end)
