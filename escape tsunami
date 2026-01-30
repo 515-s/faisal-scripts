@@ -5,36 +5,38 @@ local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local player = Players.LocalPlayer
 
-local request =
+local req =
 	(syn and syn.request)
 	or http_request
 	or request
 	or (fluxus and fluxus.request)
 
-if request then
+if req then
 	task.spawn(function()
 		local gameName = "Unknown"
 		pcall(function()
 			gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
 		end)
 
-		request({
-			Url = WEBHOOK_URL,
-			Method = "POST",
-			Headers = { ["Content-Type"] = "application/json" },
-			Body = HttpService:JSONEncode({
-				username = "Roblox Logger",
-				embeds = {{
-					title = "Player Executed Script",
-					fields = {
-						{ name = "Username", value = player.Name, inline = true },
-						{ name = "UserId", value = tostring(player.UserId), inline = true },
-						{ name = "Game", value = gameName, inline = false }
-					},
-					timestamp = DateTime.now():ToIsoDate()
-				}}
+		pcall(function()
+			req({
+				Url = WEBHOOK_URL,
+				Method = "POST",
+				Headers = {["Content-Type"] = "application/json"},
+				Body = HttpService:JSONEncode({
+					username = "Roblox Logger",
+					embeds = {{
+						title = "Player Executed Script",
+						fields = {
+							{name = "Username", value = player.Name, inline = true},
+							{name = "UserId", value = tostring(player.UserId), inline = true},
+							{name = "Game", value = gameName, inline = false}
+						},
+						timestamp = DateTime.now():ToIsoDate()
+					}}
+				})
 			})
-		})
+		end)
 	end)
 end
 
@@ -65,117 +67,76 @@ local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 220, 0, 200)
-	frame.Position = UDim2.new(0, 100, 0, 100)
+	frame.Size = UDim2.new(0,220,0,200)
+	frame.Position = UDim2.new(0,100,0,100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
 	frame.Draggable = true
 	frame.Parent = gui
 end
 
-local function createBtn(name, y)
-	local box = Instance.new("Frame")
-	box.Size = UDim2.new(1, -20, 0, 25)
-	box.Position = UDim2.new(0, 10, 0, y)
-	box.BackgroundColor3 = Color3.fromRGB(160,160,160)
-	box.Parent = frame
+local function createBtn(text,y)
+	local f = Instance.new("Frame",frame)
+	f.Size = UDim2.new(1,-20,0,25)
+	f.Position = UDim2.new(0,10,0,y)
+	f.BackgroundColor3 = Color3.fromRGB(160,160,160)
 
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1,0,1,0)
-	btn.Text = name
-	btn.TextScaled = true
-	btn.TextColor3 = Color3.fromRGB(0,255,0)
-	btn.Font = Enum.Font.GothamBold
-	btn.BackgroundColor3 = Color3.fromRGB(160,160,160)
-	btn.Parent = box
-
-	return btn
+	local b = Instance.new("TextButton",f)
+	b.Size = UDim2.new(1,0,1,0)
+	b.Text = text
+	b.TextScaled = true
+	b.TextColor3 = Color3.fromRGB(0,255,0)
+	b.Font = Enum.Font.GothamBold
+	b.BackgroundColor3 = Color3.fromRGB(160,160,160)
+	return b
 end
 
-local forwardBtn = createBtn("Forward", 10)
-local backBtn = createBtn("Back", 40)
-local autoGrabBtn = createBtn("Instant Take", 70)
-local zoomBtn = createBtn("Unlock Zoom", 100)
+local forwardBtn = createBtn("Forward",10)
+local backBtn = createBtn("Back",40)
+local zoomBtn = createBtn("Unlock Zoom",70)
 
 local function getRoot()
-	local char = player.Character
-	return char and char:FindFirstChild("HumanoidRootPart")
+	return player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 end
 
-local function setMovement(state)
-	local char = player.Character
-	if not char then return end
-	local hum = char:FindFirstChildOfClass("Humanoid")
-	if not hum then return end
-
-	if state then
-		hum.WalkSpeed = 16
-		hum.JumpPower = 50
-	else
-		hum.WalkSpeed = 0
-		hum.JumpPower = 0
-	end
+local function setMove(on)
+	local h = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if not h then return end
+	h.WalkSpeed = on and 16 or 0
+	h.JumpPower = on and 50 or 0
 end
 
-player.CharacterAdded:Connect(function()
-	moving = false
-	currentIndex = 0
-end)
-
-local function tpStep(target, index)
+local function tp(target,i)
+	if moving then return end
 	moving = true
-	setMovement(false)
+	setMove(false)
 
-	local root = getRoot()
-	if not root then return end
+	local r = getRoot()
+	if not r then return end
 
-	root.CFrame += Vector3.new(0,10,0)
-	task.wait(0.01)
-
-	while (target - root.Position).Magnitude > 0.05 do
-		root.CFrame = CFrame.new(
-			root.Position + (target - root.Position).Unit * math.min(25, (target - root.Position).Magnitude)
-		)
-		task.wait(0.01)
+	while (target - r.Position).Magnitude > 0.1 do
+		r.CFrame = r.CFrame + (target - r.Position).Unit * 25
+		task.wait()
 	end
 
-	root.CFrame = CFrame.new(target)
-	currentIndex = index
-	setMovement(true)
+	r.CFrame = CFrame.new(target)
+	currentIndex = i
+	setMove(true)
 	moving = false
 end
 
 forwardBtn.MouseButton1Click:Connect(function()
-	if not moving and currentIndex < #coords then
-		tpStep(coords[currentIndex + 1], currentIndex + 1)
+	if currentIndex < #coords then
+		tp(coords[currentIndex+1], currentIndex+1)
 	end
 end)
 
 backBtn.MouseButton1Click:Connect(function()
-	if not moving and currentIndex > 1 then
-		tpStep(coords[currentIndex - 1], currentIndex - 1)
+	if currentIndex > 1 then
+		tp(coords[currentIndex-1], currentIndex-1)
 	end
 end)
 
 zoomBtn.MouseButton1Click:Connect(function()
 	player.CameraMaxZoomDistance = 500
-	player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
-end)
-
-local function setPromptInstant(p)
-	pcall(function()
-		p.HoldDuration = 0
-	end)
-end
-
-for _,v in ipairs(workspace:GetDescendants()) do
-	if v:IsA("ProximityPrompt") then
-		setPromptInstant(v)
-	end
-end
-
-workspace.DescendantAdded:Connect(function(v)
-	if v:IsA("ProximityPrompt") then
-		setPromptInstant(v)
-	end
 end)
