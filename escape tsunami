@@ -1,3 +1,4 @@
+-- ===== Discord Webhook =====
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
 
 local Players = game:GetService("Players")
@@ -40,6 +41,10 @@ if req then
 	end)
 end
 
+-- ===== سكربتك الأصلي بدون أي نقص =====
+
+local player = game.Players.LocalPlayer
+
 local coords = {
 	Vector3.new(200, -3, 0),
 	Vector3.new(283, -3, -1),
@@ -67,76 +72,137 @@ local frame = gui:FindFirstChild("BlackMenu")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0,220,0,200)
-	frame.Position = UDim2.new(0,100,0,100)
+	frame.Size = UDim2.new(0, 220, 0, 200)
+	frame.Position = UDim2.new(0, 100, 0, 100)
 	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 	frame.Active = true
 	frame.Draggable = true
 	frame.Parent = gui
 end
 
-local function createBtn(text,y)
-	local f = Instance.new("Frame",frame)
-	f.Size = UDim2.new(1,-20,0,25)
-	f.Position = UDim2.new(0,10,0,y)
-	f.BackgroundColor3 = Color3.fromRGB(160,160,160)
+local function createBtn(name, y)
+	local box = Instance.new("Frame")
+	box.Size = UDim2.new(1, -20, 0, 25)
+	box.Position = UDim2.new(0, 10, 0, y)
+	box.BackgroundColor3 = Color3.fromRGB(160,160,160)
+	box.Parent = frame
 
-	local b = Instance.new("TextButton",f)
-	b.Size = UDim2.new(1,0,1,0)
-	b.Text = text
-	b.TextScaled = true
-	b.TextColor3 = Color3.fromRGB(0,255,0)
-	b.Font = Enum.Font.GothamBold
-	b.BackgroundColor3 = Color3.fromRGB(160,160,160)
-	return b
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1,0,1,0)
+	btn.Text = name
+	btn.TextScaled = true
+	btn.TextColor3 = Color3.fromRGB(0,255,0)
+	btn.Font = Enum.Font.GothamBold
+	btn.BackgroundColor3 = Color3.fromRGB(160,160,160)
+	btn.Parent = box
+
+	return btn
 end
 
-local forwardBtn = createBtn("Forward",10)
-local backBtn = createBtn("Back",40)
-local zoomBtn = createBtn("Unlock Zoom",70)
+local forwardBtn = createBtn("Forward", 10)
+local backBtn = createBtn("Back", 40)
+local autoGrabBtn = createBtn("Instant Take", 70)
+local zoomBtn = createBtn("Unlock Zoom", 100)
 
 local function getRoot()
-	return player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	local char = player.Character
+	return char and char:FindFirstChild("HumanoidRootPart")
 end
 
-local function setMove(on)
-	local h = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-	if not h then return end
-	h.WalkSpeed = on and 16 or 0
-	h.JumpPower = on and 50 or 0
+local function setMovement(state)
+	local char = player.Character
+	if not char then return end
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	if not hum then return end
+
+	if state then
+		hum.WalkSpeed = 16
+		hum.JumpPower = 50
+	else
+		hum.WalkSpeed = 0
+		hum.JumpPower = 0
+	end
 end
 
-local function tp(target,i)
-	if moving then return end
+player.CharacterAdded:Connect(function()
+	moving = false
+	currentIndex = 0
+end)
+
+local function tpStep(target, targetIndex)
 	moving = true
-	setMove(false)
+	setMovement(false)
 
-	local r = getRoot()
-	if not r then return end
-
-	while (target - r.Position).Magnitude > 0.1 do
-		r.CFrame = r.CFrame + (target - r.Position).Unit * 25
-		task.wait()
+	local root = getRoot()
+	if not root then
+		setMovement(true)
+		moving = false
+		return
 	end
 
-	r.CFrame = CFrame.new(target)
-	currentIndex = i
-	setMove(true)
+	root.CFrame = root.CFrame + Vector3.new(0,10,0)
+	task.wait(0.01)
+
+	while true do
+		root = getRoot()
+		if not root or not root.Parent then
+			setMovement(true)
+			moving = false
+			return
+		end
+
+		local diff = target - root.Position
+		local dist = diff.Magnitude
+		if dist <= 0.05 then break end
+
+		root.CFrame = CFrame.new(
+			root.Position + diff.Unit * math.min(25, dist)
+		)
+
+		task.wait(0.01)
+	end
+
+	root = getRoot()
+	if root and root.Parent then
+		root.CFrame = CFrame.new(target)
+		currentIndex = targetIndex
+	end
+
+	setMovement(true)
 	moving = false
 end
 
 forwardBtn.MouseButton1Click:Connect(function()
-	if currentIndex < #coords then
-		tp(coords[currentIndex+1], currentIndex+1)
-	end
+	if moving then return end
+	if currentIndex >= #coords then return end
+	tpStep(coords[currentIndex + 1], currentIndex + 1)
 end)
 
 backBtn.MouseButton1Click:Connect(function()
-	if currentIndex > 1 then
-		tp(coords[currentIndex-1], currentIndex-1)
-	end
+	if moving then return end
+	if currentIndex <= 1 then return end
+	tpStep(coords[currentIndex - 1], currentIndex - 1)
 end)
 
 zoomBtn.MouseButton1Click:Connect(function()
 	player.CameraMaxZoomDistance = 500
+	player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
+end)
+
+local function setPromptInstant(prompt)
+	pcall(function()
+		prompt.HoldDuration = 0
+	end)
+end
+
+for _, part in ipairs(workspace:GetDescendants()) do
+	if part:IsA("ProximityPrompt") then
+		setPromptInstant(part)
+	end
+end
+
+workspace.DescendantAdded:Connect(function(part)
+	if part:IsA("ProximityPrompt") then
+		setPromptInstant(part)
+	end
 end)
