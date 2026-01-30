@@ -41,10 +41,7 @@ if req then
 	end)
 end
 
--- ===== سكربتك الأصلي بدون أي نقص =====
-
-local player = game.Players.LocalPlayer
-
+-- ===== Teleport & ProximityPrompt Script =====
 local coords = {
 	Vector3.new(200, -3, 0),
 	Vector3.new(283, -3, -1),
@@ -68,45 +65,72 @@ if not gui then
 	gui.Parent = player.PlayerGui
 end
 
-local frame = gui:FindFirstChild("BlackMenu")
+local frame = gui:FindFirstChild("MainFrame")
 if not frame then
 	frame = Instance.new("Frame")
-	frame.Name = "BlackMenu"
-	frame.Size = UDim2.new(0, 220, 0, 200)
+	frame.Name = "MainFrame"
+	frame.Size = UDim2.new(0, 260, 0, 230)
 	frame.Position = UDim2.new(0, 100, 0, 100)
-	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+	frame.BackgroundColor3 = Color3.fromRGB(245,245,245)
+	frame.BorderSizePixel = 0
 	frame.Active = true
 	frame.Draggable = true
 	frame.Parent = gui
 end
 
-local function createBtn(name, y)
-	local box = Instance.new("Frame")
-	box.Size = UDim2.new(1, -20, 0, 25)
-	box.Position = UDim2.new(0, 10, 0, y)
-	box.BackgroundColor3 = Color3.fromRGB(160,160,160)
-	box.Parent = frame
+-- Title
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,40)
+title.Position = UDim2.new(0,0,0,0)
+title.BackgroundTransparency = 1
+title.Text = "Faisal Scripts"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.TextColor3 = Color3.fromRGB(30,30,30)
 
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1,0,1,0)
-	btn.Text = name
-	btn.TextScaled = true
-	btn.TextColor3 = Color3.fromRGB(0,255,0)
+-- Create Button function
+local function createBtn(text, y)
+	local btn = Instance.new("TextButton", frame)
+	btn.Size = UDim2.new(1,-20,0,35)
+	btn.Position = UDim2.new(0,10,0,y)
+	btn.BackgroundColor3 = Color3.fromRGB(200,200,200)
+	btn.TextColor3 = Color3.fromRGB(0,0,0)
 	btn.Font = Enum.Font.GothamBold
-	btn.BackgroundColor3 = Color3.fromRGB(160,160,160)
-	btn.Parent = box
-
+	btn.TextScaled = true
+	btn.Text = text
+	btn.AutoButtonColor = true
 	return btn
 end
 
-local forwardBtn = createBtn("Forward", 10)
-local backBtn = createBtn("Back", 40)
-local autoGrabBtn = createBtn("Instant Take", 70)
-local zoomBtn = createBtn("Unlock Zoom", 100)
+local forwardBtn = createBtn("Forward", 50)
+local backBtn = createBtn("Back", 90)
+local instantBtn = createBtn("Instant Take", 130)
+local zoomBtn = createBtn("Unlock Zoom", 170)
 
+-- Toggle GUI Button
+local toggleBtn = Instance.new("TextButton", frame)
+toggleBtn.Size = UDim2.new(0, 30, 0, 30)
+toggleBtn.Position = UDim2.new(1,-35,0,5)
+toggleBtn.Text = "×"
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 20
+toggleBtn.TextColor3 = Color3.fromRGB(0,0,0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(220,220,220)
+
+-- Mini Button when GUI hidden
+local miniBtn = Instance.new("TextButton", gui)
+miniBtn.Size = UDim2.new(0,120,0,40)
+miniBtn.Position = UDim2.new(0,10,0,100)
+miniBtn.Text = "faisal-scripts"
+miniBtn.Font = Enum.Font.GothamBold
+miniBtn.TextSize = 18
+miniBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+miniBtn.TextColor3 = Color3.fromRGB(255,255,255)
+miniBtn.Visible = false
+
+-- ================= BUTTON LOGIC =================
 local function getRoot()
-	local char = player.Character
-	return char and char:FindFirstChild("HumanoidRootPart")
+	return player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 end
 
 local function setMovement(state)
@@ -114,7 +138,6 @@ local function setMovement(state)
 	if not char then return end
 	local hum = char:FindFirstChildOfClass("Humanoid")
 	if not hum then return end
-
 	if state then
 		hum.WalkSpeed = 16
 		hum.JumpPower = 50
@@ -174,14 +197,24 @@ end
 
 forwardBtn.MouseButton1Click:Connect(function()
 	if moving then return end
-	if currentIndex >= #coords then return end
-	tpStep(coords[currentIndex + 1], currentIndex + 1)
+	if currentIndex < #coords then
+		tpStep(coords[currentIndex + 1], currentIndex + 1)
+	end
 end)
 
 backBtn.MouseButton1Click:Connect(function()
 	if moving then return end
-	if currentIndex <= 1 then return end
-	tpStep(coords[currentIndex - 1], currentIndex - 1)
+	if currentIndex > 1 then
+		tpStep(coords[currentIndex - 1], currentIndex - 1)
+	end
+end)
+
+instantBtn.MouseButton1Click:Connect(function()
+	for _, part in ipairs(workspace:GetDescendants()) do
+		if part:IsA("ProximityPrompt") then
+			pcall(function() part.HoldDuration = 0 end)
+		end
+	end
 end)
 
 zoomBtn.MouseButton1Click:Connect(function()
@@ -189,20 +222,18 @@ zoomBtn.MouseButton1Click:Connect(function()
 	player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
 end)
 
-local function setPromptInstant(prompt)
-	pcall(function()
-		prompt.HoldDuration = 0
-	end)
-end
+toggleBtn.MouseButton1Click:Connect(function()
+	frame.Visible = false
+	miniBtn.Visible = true
+end)
 
-for _, part in ipairs(workspace:GetDescendants()) do
-	if part:IsA("ProximityPrompt") then
-		setPromptInstant(part)
-	end
-end
+miniBtn.MouseButton1Click:Connect(function()
+	frame.Visible = true
+	miniBtn.Visible = false
+end)
 
 workspace.DescendantAdded:Connect(function(part)
 	if part:IsA("ProximityPrompt") then
-		setPromptInstant(part)
+		pcall(function() part.HoldDuration = 0 end)
 	end
 end)
