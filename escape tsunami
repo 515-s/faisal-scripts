@@ -1,15 +1,11 @@
---// Faisal Script UI + Lucky Blocks Highlighter + Webhook
+--// Faisal Script UI + Lucky Blocks Highlighter (مرتب)
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
-local MarketplaceService = game:GetService("MarketplaceService")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
--------------------------------------------------
 -- GUI
--------------------------------------------------
 local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
@@ -59,34 +55,33 @@ layout.Padding = UDim.new(0,6)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
--------------------------------------------------
--- Lucky Blocks Buttons
--------------------------------------------------
-local blocks = {
-	["common lucky block"] = "NaturalLuckyBlock_Common",
-	["uncommon lucky block"] = "NaturalLuckyBlock_Uncommon",
-	["epic lucky block"] = "NaturalLuckyBlock_Epic",
-	["legendary lucky block"] = "NaturalLuckyBlock_Legendary",
-	["mythical lucky block"] = "NaturalLuckyBlock_Mythical",
-	["cosmic lucky block"] = "NaturalLuckyBlock_Cosmic",
-	["secret lucky block"] = "NaturalLuckyBlock_Secret"
+-- ترتيب الأزرار من Common → Secret
+local orderedBlocks = {
+	{name = "common lucky block", model = "NaturalLuckyBlock_Common"},
+	{name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon"},
+	{name = "epic lucky block", model = "NaturalLuckyBlock_Epic"},
+	{name = "legendary lucky block", model = "NaturalLuckyBlock_Legendary"},
+	{name = "mythical lucky block", model = "NaturalLuckyBlock_Mythical"},
+	{name = "cosmic lucky block", model = "NaturalLuckyBlock_Cosmic"},
+	{name = "secret lucky block", model = "NaturalLuckyBlock_Secret"}
 }
 
-for name, modelName in pairs(blocks) do
+for _, block in ipairs(orderedBlocks) do
 	local btn = Instance.new("TextButton")
 	btn.Parent = content
 	btn.Size = UDim2.new(1,-12,0,24)
 	btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-	btn.Text = name
+	btn.Text = block.name
 	btn.TextColor3 = Color3.fromRGB(230,230,230)
 	btn.TextSize = 11
 	btn.Font = Enum.Font.Gotham
 	btn.BorderSizePixel = 0
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
 
+	-- كل زر يلون الموديلات الخاصة به Neon أحمر ومرئية
 	btn.MouseButton1Click:Connect(function()
 		for _, obj in pairs(workspace:GetDescendants()) do
-			if obj:IsA("Model") and obj.Name == modelName then
+			if obj:IsA("Model") and obj.Name == block.model then
 				for _, part in pairs(obj:GetDescendants()) do
 					if part:IsA("BasePart") then
 						part.BrickColor = BrickColor.new("Really red")
@@ -99,13 +94,11 @@ for name, modelName in pairs(blocks) do
 				end
 			end
 		end
-		print(name .. " highlighted!")
+		print(block.name .. " highlighted!")
 	end)
 end
 
--------------------------------------------------
 -- Toggle Open/Close
--------------------------------------------------
 local opened = true
 local openSize = UDim2.fromOffset(180,300)
 local closeSize = UDim2.fromOffset(180,26)
@@ -121,29 +114,3 @@ local function toggle()
 end
 
 arrow.MouseButton1Click:Connect(toggle)
-
--------------------------------------------------
--- Discord Webhook Logger
--------------------------------------------------
-local WEBHOOK_URL = "YOUR_WEBHOOK_HERE"
-local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
-
-if req then
-	task.spawn(function()
-		local gameName = "Unknown"
-		pcall(function()
-			gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
-		end)
-		pcall(function()
-			req({
-				Url = WEBHOOK_URL,
-				Method = "POST",
-				Headers = {["Content-Type"] = "application/json"},
-				Body = HttpService:JSONEncode({
-					username = "Roblox Logger",
-					content = player.Name .. " executed Faisal Script in " .. gameName
-				})
-			})
-		end)
-	end)
-end
