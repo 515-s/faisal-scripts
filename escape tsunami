@@ -1,42 +1,54 @@
---// Faisal Script UI + Discord Webhook Logger
+--// Faisal Script UI + Buttons + Webhook
+
+-- Services
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
+
 local player = Players.LocalPlayer
 
+-------------------------------------------------
 -- GUI
-local gui = Instance.new("ScreenGui", player.PlayerGui)
+-------------------------------------------------
+
+local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
+gui.Parent = player.PlayerGui
 
 -- Main Frame
-local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromOffset(180, 120)
+local main = Instance.new("Frame")
+main.Parent = gui
+main.Size = UDim2.fromOffset(180, 230) -- كبرنا الطول عشان الأزرار
 main.Position = UDim2.new(0.02, 0, 0.35, 0)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
 main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
+
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
+-------------------------------------------------
 -- Top Bar
+-------------------------------------------------
+
 local top = Instance.new("Frame", main)
 top.Size = UDim2.new(1,0,0,26)
 top.BackgroundColor3 = Color3.fromRGB(25,25,25)
 top.BorderSizePixel = 0
+
 Instance.new("UICorner", top).CornerRadius = UDim.new(0,10)
 
--- Title
+-- Title (في النص)
 local title = Instance.new("TextLabel", top)
-title.Size = UDim2.new(1,-26,1,0)
-title.Position = UDim2.new(0,8,0,0)
+title.Size = UDim2.new(1,0,1,0)
 title.BackgroundTransparency = 1
 title.Text = "faisal-script"
 title.TextColor3 = Color3.fromRGB(230,230,230)
 title.TextSize = 12
 title.Font = Enum.Font.GothamBold
-title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextXAlignment = Enum.TextXAlignment.Center
 
 -- Arrow Button
 local arrow = Instance.new("TextButton", top)
@@ -48,67 +60,101 @@ arrow.Font = Enum.Font.GothamBold
 arrow.TextColor3 = Color3.fromRGB(220,220,220)
 arrow.BackgroundTransparency = 1
 
+-------------------------------------------------
 -- Content
+-------------------------------------------------
+
 local content = Instance.new("Frame", main)
 content.Position = UDim2.new(0,0,0,26)
 content.Size = UDim2.new(1,0,1,-26)
 content.BackgroundTransparency = 1
 
--- مثال عنصر صغير
-local example = Instance.new("TextLabel", content)
-example.Size = UDim2.new(1,-10,0,20)
-example.Position = UDim2.new(0,5,0,5)
-example.BackgroundTransparency = 1
-example.Text = "ready"
-example.TextSize = 11
-example.Font = Enum.Font.Gotham
-example.TextColor3 = Color3.fromRGB(180,180,180)
+-- ترتيب تلقائي تحت بعض
+local layout = Instance.new("UIListLayout", content)
+layout.Padding = UDim.new(0,6)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
--- Toggle
+-------------------------------------------------
+-- Buttons
+-------------------------------------------------
+
+local names = {
+	"common lucky block",
+	"uncommon lucky block",
+	"epic lucky block",
+	"legendary lucky block",
+	"mythical lucky block",
+	"cosmic lucky block",
+	"secret lucky block"
+}
+
+for _, text in ipairs(names) do
+	local btn = Instance.new("TextButton")
+	btn.Parent = content
+	btn.Size = UDim2.new(1,-12,0,24)
+	btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	btn.Text = text
+	btn.TextColor3 = Color3.fromRGB(230,230,230)
+	btn.TextSize = 11
+	btn.Font = Enum.Font.Gotham
+	btn.BorderSizePixel = 0
+
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+
+	-- بدون وظيفة حالياً
+	btn.MouseButton1Click:Connect(function()
+		print(text .. " clicked")
+	end)
+end
+
+-------------------------------------------------
+-- Toggle Open/Close
+-------------------------------------------------
+
 local opened = true
-local openSize = UDim2.fromOffset(180,120)
+local openSize = UDim2.fromOffset(180,230)
 local closeSize = UDim2.fromOffset(180,26)
 
 local function toggle()
-    opened = not opened
-    arrow.Text = opened and "▼" or "▲"
-    content.Visible = opened
-    TweenService:Create(main,
-        TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        {Size = opened and openSize or closeSize}
-    ):Play()
+	opened = not opened
+	arrow.Text = opened and "▼" or "▲"
+	content.Visible = opened
+
+	TweenService:Create(main,
+		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{Size = opened and openSize or closeSize}
+	):Play()
 end
 
 arrow.MouseButton1Click:Connect(toggle)
 
+-------------------------------------------------
 -- Discord Webhook Logger
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
+-------------------------------------------------
+
+local WEBHOOK_URL = "YOUR_WEBHOOK_HERE"
+
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 
 if req then
-    task.spawn(function()
-        local gameName = "Unknown"
-        pcall(function()
-            gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
-        end)
-        pcall(function()
-            req({
-                Url = WEBHOOK_URL,
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = HttpService:JSONEncode({
-                    username = "Roblox Logger",
-                    embeds = {{
-                        title = "Player Executed Script",
-                        fields = {
-                            {name = "Username", value = player.Name, inline = true},
-                            {name = "UserId", value = tostring(player.UserId), inline = true},
-                            {name = "Game", value = gameName, inline = false}
-                        },
-                        timestamp = DateTime.now():ToIsoDate()
-                    }}
-                })
-            })
-        end)
-    end)
+	task.spawn(function()
+		local gameName = "Unknown"
+
+		pcall(function()
+			gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
+		end)
+
+		pcall(function()
+			req({
+				Url = WEBHOOK_URL,
+				Method = "POST",
+				Headers = {["Content-Type"] = "application/json"},
+				Body = HttpService:JSONEncode({
+					username = "Roblox Logger",
+					content = player.Name .. " executed Faisal Script in " .. gameName
+				})
+			})
+		end)
+	end)
 end
