@@ -1,4 +1,4 @@
---// Faisal Script UI + Lucky Blocks ESP
+--// Faisal Script UI + Lucky Blocks ESP (ألوان مخصصة)
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -15,15 +15,15 @@ local topHeight = 26
 local buttonHeight = 28
 local padding = 6
 
--- ترتيب الأزرار
+-- ترتيب الأزرار + ألوان مخصصة
 local orderedBlocks = {
-	{name = "common lucky block", model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(255,0,0)},
-	{name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)},
-	{name = "epic lucky block", model = "NaturalLuckyBlock_Epic", color = Color3.fromRGB(0,0,255)},
-	{name = "legendary lucky block", model = "NaturalLuckyBlock_Legendary", color = Color3.fromRGB(255,255,0)},
-	{name = "mythical lucky block", model = "NaturalLuckyBlock_Mythical", color = Color3.fromRGB(128,0,128)},
-	{name = "cosmic lucky block", model = "NaturalLuckyBlock_Cosmic", color = Color3.fromRGB(0,255,255)},
-	{name = "secret lucky block", model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,165,0)}
+	{name = "common lucky block", model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(200,200,200)}, -- رمادي فاتح
+	{name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)}, -- أخضر
+	{name = "epic lucky block", model = "NaturalLuckyBlock_Epic", color = Color3.fromRGB(128,0,128)}, -- بنفسجي
+	{name = "legendary lucky block", model = "NaturalLuckyBlock_Legendary", color = Color3.fromRGB(255,255,0)}, -- أصفر
+	{name = "mythical lucky block", model = "NaturalLuckyBlock_Mythical", color = Color3.fromRGB(255,215,0)}, -- ذهبي
+	{name = "cosmic lucky block", model = "NaturalLuckyBlock_Cosmic", color = Color3.fromRGB(0,0,0)}, -- أسود
+	{name = "secret lucky block", model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,0,0)} -- أحمر
 }
 
 local totalButtons = #orderedBlocks
@@ -102,7 +102,7 @@ local function highlightModel(model, color)
 			-- إنشاء BoxHandleAdornment جديد
 			local adorn = Instance.new("BoxHandleAdornment")
 			adorn.Adornee = part
-			adorn.AlwaysOnTop = true -- يبقى ظاهر من ورا الجدران
+			adorn.AlwaysOnTop = true -- يظهر من ورا أي جدار
 			adorn.ZIndex = 10
 			adorn.Size = part.Size
 			adorn.Color3 = color
