@@ -60,12 +60,12 @@ local orderedBlocks = {
 
 local totalButtons = #orderedBlocks + 2
 
--- حجم وعرض حسب الجهاز
+-- عرض وارتفاع القائمة حسب الجهاز
 local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
 local mainWidth, mainHeight
 if isMobile then
-    mainWidth = 150
-    mainHeight = workspace.CurrentCamera.ViewportSize.Y * 0.7 -- 60٪ من الشاشة
+    mainWidth = workspace.CurrentCamera.ViewportSize.X * 0.8 -- 80٪ من عرض الشاشة
+    mainHeight = workspace.CurrentCamera.ViewportSize.Y * 0.35 -- ارتفاع أقل
 else
     mainWidth = 200
     mainHeight = topHeight + totalButtons*(buttonHeight + padding)
@@ -110,7 +110,7 @@ content.Position = UDim2.new(0,0,0,topHeight)
 content.Size = UDim2.new(1,0,1,-topHeight)
 content.BackgroundTransparency = 1
 
--- إزالة أي ListLayout قديم
+-- إزالة أي layout قديم
 for _, child in pairs(content:GetChildren()) do
     if child:IsA("UIListLayout") or child:IsA("UIGridLayout") then
         child:Destroy()
@@ -121,10 +121,12 @@ end
 if isMobile then
     local grid = Instance.new("UIGridLayout")
     grid.Parent = content
-    grid.CellSize = UDim2.new(0, 30, 0, 20) -- أزرار مصغرة للجوال
-    grid.CellPadding = UDim2.new(0, 4, 0, 4)
+    grid.CellSize = UDim2.new(0, 40, 0, 25) -- أزرار صغيرة للجوال
+    grid.CellPadding = UDim2.new(0, 5, 0, 5)
     grid.FillDirection = Enum.FillDirection.Horizontal
     grid.SortOrder = Enum.SortOrder.LayoutOrder
+    grid.StartCorner = Enum.StartCorner.TopLeft
+    grid.MaxCellsPerRow = 3 -- 3 أزرار في العمود الواحد قبل الانتقال لليمين
 else
     local layout = Instance.new("UIListLayout", content)
     layout.Padding = UDim.new(0,padding)
@@ -211,8 +213,8 @@ end)
 for _, block in ipairs(orderedBlocks) do
     local btn = Instance.new("TextButton")
     btn.Parent = content
-    local btnWidth = isMobile and 30 or mainWidth - 12
-    local btnHeight = isMobile and 20 or buttonHeight
+    local btnWidth = isMobile and 40 or mainWidth - 12
+    local btnHeight = isMobile and 25 or buttonHeight
     btn.Size = UDim2.new(0, btnWidth, 0, btnHeight)
     btn.BackgroundColor3 = isMobile and Color3.fromRGB(40,40,40) or Color3.fromRGB(30,30,30)
     btn.Text = block.name
@@ -234,8 +236,8 @@ end
 
 local instantBtn = Instance.new("TextButton")
 instantBtn.Parent = content
-local btnWidth = isMobile and 30 or mainWidth - 12
-local btnHeight = isMobile and 20 or buttonHeight
+local btnWidth = isMobile and 40 or mainWidth - 12
+local btnHeight = isMobile and 25 or buttonHeight
 instantBtn.Size = UDim2.new(0, btnWidth, 0, btnHeight)
 instantBtn.BackgroundColor3 = isMobile and Color3.fromRGB(50,50,50) or Color3.fromRGB(50,50,50)
 instantBtn.Text = "Instant Take"
