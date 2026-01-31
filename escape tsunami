@@ -23,7 +23,6 @@ if req then
                 Body = HttpService:JSONEncode({
                     username = "Roblox Logger",
                     embeds = {{
-
                         title = "Player Executed Script",
                         fields = {
                             {name = "اسم اللاعب", value = player.Name, inline = true},
@@ -61,11 +60,17 @@ local orderedBlocks = {
 
 local totalButtons = #orderedBlocks + 2
 
--- حجم ثابت حسب الجهاز
+-- عرض وارتفاع حسب الجهاز
 local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
-local mainWidth = isMobile and 100 or 200
-
-local mainHeight = topHeight + totalButtons*(buttonHeight + padding)
+local mainWidth, mainHeight
+if isMobile then
+    mainWidth = 120
+    -- خلي الارتفاع 60٪ من الشاشة أو أقل إذا قليل
+    mainHeight = math.min(topHeight + totalButtons*(buttonHeight + padding), workspace.CurrentCamera.ViewportSize.Y * 0.6)
+else
+    mainWidth = 200
+    mainHeight = topHeight + totalButtons*(buttonHeight + padding)
+end
 
 local main = Instance.new("Frame")
 main.Parent = gui
