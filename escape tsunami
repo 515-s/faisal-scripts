@@ -41,6 +41,8 @@ gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
+local screenSize = player.PlayerGui.AbsoluteSize
+
 local topHeight = 26
 local buttonHeight = 28
 local padding = 6
@@ -57,12 +59,14 @@ local orderedBlocks = {
     {name = "celestial lucky block", model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)}
 }
 
-local totalButtons = #orderedBlocks + 2 -- + Refresh + Instant Take
+local totalButtons = #orderedBlocks + 2
+
+local mainWidth = math.clamp(screenSize.X * 0.23, 160, 260)
 local mainHeight = topHeight + totalButtons*(buttonHeight + padding)
 
 local main = Instance.new("Frame")
 main.Parent = gui
-main.Size = UDim2.fromOffset(180, mainHeight)
+main.Size = UDim2.fromOffset(mainWidth, mainHeight)
 main.Position = UDim2.new(0.02,0,0.35,0)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
 main.BorderSizePixel = 0
@@ -106,7 +110,7 @@ layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
 local opened = true
 local openSize = main.Size
-local closeSize = UDim2.fromOffset(180,topHeight)
+local closeSize = UDim2.fromOffset(mainWidth,topHeight)
 
 arrow.MouseButton1Click:Connect(function()
     opened = not opened
@@ -164,14 +168,11 @@ local function refreshAll()
             end
         end
     end
-    print("All Lucky Blocks refreshed!")
 end
 
 local function setPromptInstant(prompt)
     if prompt:IsA("ProximityPrompt") then
-        pcall(function()
-            prompt.HoldDuration = 0
-        end)
+        prompt.HoldDuration = 0
     end
 end
 
@@ -202,7 +203,6 @@ for _, block in ipairs(orderedBlocks) do
                 highlightModel(obj, block.color, isRainbow)
             end
         end
-        print(block.name .. " highlighted!")
     end)
 end
 
@@ -221,7 +221,6 @@ instantBtn.MouseButton1Click:Connect(function()
     for _, v in ipairs(workspace:GetDescendants()) do
         setPromptInstant(v)
     end
-    print("Instant Take applied!")
 end)
 
 local refreshBtn = Instance.new("TextButton")
