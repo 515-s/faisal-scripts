@@ -1,9 +1,9 @@
---// Faisal Script UI + Lucky Blocks Highlighter (مرتب)
+--// Faisal Script UI + Lucky Blocks ESP
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-
 local player = Players.LocalPlayer
+local workspace = game:GetService("Workspace")
 
 -- GUI
 local gui = Instance.new("ScreenGui")
@@ -11,18 +11,37 @@ gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
+local topHeight = 26
+local buttonHeight = 28
+local padding = 6
+
+-- ترتيب الأزرار
+local orderedBlocks = {
+	{name = "common lucky block", model = "NaturalLuckyBlock_Common"},
+	{name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon"},
+	{name = "epic lucky block", model = "NaturalLuckyBlock_Epic"},
+	{name = "legendary lucky block", model = "NaturalLuckyBlock_Legendary"},
+	{name = "mythical lucky block", model = "NaturalLuckyBlock_Mythical"},
+	{name = "cosmic lucky block", model = "NaturalLuckyBlock_Cosmic"},
+	{name = "secret lucky block", model = "NaturalLuckyBlock_Secret"}
+}
+
+local totalButtons = #orderedBlocks
+local mainHeight = topHeight + totalButtons*(buttonHeight + padding)
+
 local main = Instance.new("Frame")
 main.Parent = gui
-main.Size = UDim2.fromOffset(180, 300)
-main.Position = UDim2.new(0.02, 0, 0.35, 0)
+main.Size = UDim2.fromOffset(180, mainHeight)
+main.Position = UDim2.new(0.02,0,0.35,0)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
 main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
+-- Top Bar
 local top = Instance.new("Frame", main)
-top.Size = UDim2.new(1,0,0,26)
+top.Size = UDim2.new(1,0,0,topHeight)
 top.BackgroundColor3 = Color3.fromRGB(25,25,25)
 top.BorderSizePixel = 0
 Instance.new("UICorner", top).CornerRadius = UDim.new(0,10)
@@ -37,39 +56,64 @@ title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Center
 
 local arrow = Instance.new("TextButton", top)
-arrow.Size = UDim2.fromOffset(26,26)
-arrow.Position = UDim2.new(1,-26,0,0)
+arrow.Size = UDim2.fromOffset(topHeight,topHeight)
+arrow.Position = UDim2.new(1,-topHeight,0,0)
 arrow.Text = "▼"
 arrow.TextSize = 12
 arrow.Font = Enum.Font.GothamBold
 arrow.TextColor3 = Color3.fromRGB(220,220,220)
 arrow.BackgroundTransparency = 1
 
+-- Content
 local content = Instance.new("Frame", main)
-content.Position = UDim2.new(0,0,0,26)
-content.Size = UDim2.new(1,0,1,-26)
+content.Position = UDim2.new(0,0,0,topHeight)
+content.Size = UDim2.new(1,0,1, -topHeight)
 content.BackgroundTransparency = 1
 
 local layout = Instance.new("UIListLayout", content)
-layout.Padding = UDim.new(0,6)
+layout.Padding = UDim.new(0,padding)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
--- ترتيب الأزرار من Common → Secret
-local orderedBlocks = {
-	{name = "common lucky block", model = "NaturalLuckyBlock_Common"},
-	{name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon"},
-	{name = "epic lucky block", model = "NaturalLuckyBlock_Epic"},
-	{name = "legendary lucky block", model = "NaturalLuckyBlock_Legendary"},
-	{name = "mythical lucky block", model = "NaturalLuckyBlock_Mythical"},
-	{name = "cosmic lucky block", model = "NaturalLuckyBlock_Cosmic"},
-	{name = "secret lucky block", model = "NaturalLuckyBlock_Secret"}
-}
+-- Toggle
+local opened = true
+local openSize = main.Size
+local closeSize = UDim2.fromOffset(180,topHeight)
 
+local function toggle()
+	opened = not opened
+	arrow.Text = opened and "▼" or "▲"
+	content.Visible = opened
+	TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+		{Size = opened and openSize or closeSize}):Play()
+end
+arrow.MouseButton1Click:Connect(toggle)
+
+-- Function to highlight models using SelectionBox
+local function highlightModel(model)
+	for _, part in pairs(model:GetDescendants()) do
+		if part:IsA("BasePart") then
+			-- Remove previous selectionbox if موجود
+			for _, child in pairs(part:GetChildren()) do
+				if child:IsA("SelectionBox") then
+					child:Destroy()
+				end
+			end
+			local sb = Instance.new("SelectionBox")
+			sb.Adornee = part
+			sb.LineThickness = 0.1
+			sb.Color3 = Color3.fromRGB(255,0,0) -- أحمر فاقع
+			sb.SurfaceTransparency = 1
+			sb.Parent = part
+		end
+	end
+end
+
+-- Create Buttons
 for _, block in ipairs(orderedBlocks) do
 	local btn = Instance.new("TextButton")
 	btn.Parent = content
-	btn.Size = UDim2.new(1,-12,0,24)
+	btn.Size = UDim2.new(1,-12,0,buttonHeight)
 	btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
 	btn.Text = block.name
 	btn.TextColor3 = Color3.fromRGB(230,230,230)
@@ -78,39 +122,12 @@ for _, block in ipairs(orderedBlocks) do
 	btn.BorderSizePixel = 0
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
 
-	-- كل زر يلون الموديلات الخاصة به Neon أحمر ومرئية
 	btn.MouseButton1Click:Connect(function()
 		for _, obj in pairs(workspace:GetDescendants()) do
 			if obj:IsA("Model") and obj.Name == block.model then
-				for _, part in pairs(obj:GetDescendants()) do
-					if part:IsA("BasePart") then
-						part.BrickColor = BrickColor.new("Really red")
-						part.Material = Enum.Material.Neon
-						part.Transparency = 0
-						part.CastShadow = false
-						part.CanCollide = false
-						part.LocalTransparencyModifier = 0
-					end
-				end
+				highlightModel(obj)
 			end
 		end
 		print(block.name .. " highlighted!")
 	end)
 end
-
--- Toggle Open/Close
-local opened = true
-local openSize = UDim2.fromOffset(180,300)
-local closeSize = UDim2.fromOffset(180,26)
-
-local function toggle()
-	opened = not opened
-	arrow.Text = opened and "▼" or "▲"
-	content.Visible = opened
-	TweenService:Create(main,
-		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{Size = opened and openSize or closeSize}
-	):Play()
-end
-
-arrow.MouseButton1Click:Connect(toggle)
