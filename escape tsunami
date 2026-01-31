@@ -1,239 +1,114 @@
--- ===== Discord Webhook =====
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
-
+--// Faisal Script UI + Discord Webhook Logger
+local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local player = Players.LocalPlayer
 
-local req =
-	(syn and syn.request)
-	or http_request
-	or request
-	or (fluxus and fluxus.request)
+-- GUI
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "FaisalUI"
+gui.ResetOnSpawn = false
 
-if req then
-	task.spawn(function()
-		local gameName = "Unknown"
-		pcall(function()
-			gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
-		end)
+-- Main Frame
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromOffset(180, 120)
+main.Position = UDim2.new(0.02, 0, 0.35, 0)
+main.BackgroundColor3 = Color3.fromRGB(15,15,15)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
-		pcall(function()
-			req({
-				Url = WEBHOOK_URL,
-				Method = "POST",
-				Headers = {["Content-Type"] = "application/json"},
-				Body = HttpService:JSONEncode({
-					username = "Roblox Logger",
-					embeds = {{
-						title = "Player Executed Script",
-						fields = {
-							{name = "Username", value = player.Name, inline = true},
-							{name = "UserId", value = tostring(player.UserId), inline = true},
-							{name = "Game", value = gameName, inline = false}
-						},
-						timestamp = DateTime.now():ToIsoDate()
-					}}
-				})
-			})
-		end)
-	end)
-end
-
--- ===== Teleport & ProximityPrompt Script =====
-local coords = {
-	Vector3.new(200, -3, 0),
-	Vector3.new(283, -3, -1),
-	Vector3.new(398, -3, 0),
-	Vector3.new(542, -3, 0),
-	Vector3.new(756, -3, 0),
-	Vector3.new(1070, -3, 0),
-	Vector3.new(1543, -3, 0),
-	Vector3.new(2239, -3, 3),
-	Vector3.new(2587, -3, 0),
-}
-
-local currentIndex = 0
-local moving = false
-
-local gui = player.PlayerGui:FindFirstChild("TeleportGUI")
-if not gui then
-	gui = Instance.new("ScreenGui")
-	gui.Name = "TeleportGUI"
-	gui.ResetOnSpawn = false
-	gui.Parent = player.PlayerGui
-end
-
-local frame = gui:FindFirstChild("MainFrame")
-if not frame then
-	frame = Instance.new("Frame")
-	frame.Name = "MainFrame"
-	frame.Size = UDim2.new(0, 260, 0, 230)
-	frame.Position = UDim2.new(0, 100, 0, 100)
-	frame.BackgroundColor3 = Color3.fromRGB(245,245,245)
-	frame.BorderSizePixel = 0
-	frame.Active = true
-	frame.Draggable = true
-	frame.Parent = gui
-end
+-- Top Bar
+local top = Instance.new("Frame", main)
+top.Size = UDim2.new(1,0,0,26)
+top.BackgroundColor3 = Color3.fromRGB(25,25,25)
+top.BorderSizePixel = 0
+Instance.new("UICorner", top).CornerRadius = UDim.new(0,10)
 
 -- Title
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1,0,0,40)
-title.Position = UDim2.new(0,0,0,0)
+local title = Instance.new("TextLabel", top)
+title.Size = UDim2.new(1,-26,1,0)
+title.Position = UDim2.new(0,8,0,0)
 title.BackgroundTransparency = 1
-title.Text = "Faisal Scripts"
+title.Text = "faisal-script"
+title.TextColor3 = Color3.fromRGB(230,230,230)
+title.TextSize = 12
 title.Font = Enum.Font.GothamBold
-title.TextSize = 20
-title.TextColor3 = Color3.fromRGB(30,30,30)
+title.TextXAlignment = Enum.TextXAlignment.Left
 
--- Create Button function
-local function createBtn(text, y)
-	local btn = Instance.new("TextButton", frame)
-	btn.Size = UDim2.new(1,-20,0,35)
-	btn.Position = UDim2.new(0,10,0,y)
-	btn.BackgroundColor3 = Color3.fromRGB(200,200,200)
-	btn.TextColor3 = Color3.fromRGB(0,0,0)
-	btn.Font = Enum.Font.GothamBold
-	btn.TextScaled = true
-	btn.Text = text
-	btn.AutoButtonColor = true
-	return btn
+-- Arrow Button
+local arrow = Instance.new("TextButton", top)
+arrow.Size = UDim2.fromOffset(26,26)
+arrow.Position = UDim2.new(1,-26,0,0)
+arrow.Text = "▼"
+arrow.TextSize = 12
+arrow.Font = Enum.Font.GothamBold
+arrow.TextColor3 = Color3.fromRGB(220,220,220)
+arrow.BackgroundTransparency = 1
+
+-- Content
+local content = Instance.new("Frame", main)
+content.Position = UDim2.new(0,0,0,26)
+content.Size = UDim2.new(1,0,1,-26)
+content.BackgroundTransparency = 1
+
+-- مثال عنصر صغير
+local example = Instance.new("TextLabel", content)
+example.Size = UDim2.new(1,-10,0,20)
+example.Position = UDim2.new(0,5,0,5)
+example.BackgroundTransparency = 1
+example.Text = "ready"
+example.TextSize = 11
+example.Font = Enum.Font.Gotham
+example.TextColor3 = Color3.fromRGB(180,180,180)
+
+-- Toggle
+local opened = true
+local openSize = UDim2.fromOffset(180,120)
+local closeSize = UDim2.fromOffset(180,26)
+
+local function toggle()
+    opened = not opened
+    arrow.Text = opened and "▼" or "▲"
+    content.Visible = opened
+    TweenService:Create(main,
+        TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {Size = opened and openSize or closeSize}
+    ):Play()
 end
 
-local forwardBtn = createBtn("Forward", 50)
-local backBtn = createBtn("Back", 90)
-local instantBtn = createBtn("Instant Take", 130)
-local zoomBtn = createBtn("Unlock Zoom", 170)
+arrow.MouseButton1Click:Connect(toggle)
 
--- Toggle GUI Button
-local toggleBtn = Instance.new("TextButton", frame)
-toggleBtn.Size = UDim2.new(0, 30, 0, 30)
-toggleBtn.Position = UDim2.new(1,-35,0,5)
-toggleBtn.Text = "×"
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 20
-toggleBtn.TextColor3 = Color3.fromRGB(0,0,0)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(220,220,220)
+-- Discord Webhook Logger
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
+local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 
--- Mini Button when GUI hidden
-local miniBtn = Instance.new("TextButton", gui)
-miniBtn.Size = UDim2.new(0,120,0,40)
-miniBtn.Position = UDim2.new(0,10,0,100)
-miniBtn.Text = "faisal-scripts"
-miniBtn.Font = Enum.Font.GothamBold
-miniBtn.TextSize = 18
-miniBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-miniBtn.TextColor3 = Color3.fromRGB(255,255,255)
-miniBtn.Visible = false
-
--- ================= BUTTON LOGIC =================
-local function getRoot()
-	return player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+if req then
+    task.spawn(function()
+        local gameName = "Unknown"
+        pcall(function()
+            gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
+        end)
+        pcall(function()
+            req({
+                Url = WEBHOOK_URL,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = HttpService:JSONEncode({
+                    username = "Roblox Logger",
+                    embeds = {{
+                        title = "Player Executed Script",
+                        fields = {
+                            {name = "Username", value = player.Name, inline = true},
+                            {name = "UserId", value = tostring(player.UserId), inline = true},
+                            {name = "Game", value = gameName, inline = false}
+                        },
+                        timestamp = DateTime.now():ToIsoDate()
+                    }}
+                })
+            })
+        end)
+    end)
 end
-
-local function setMovement(state)
-	local char = player.Character
-	if not char then return end
-	local hum = char:FindFirstChildOfClass("Humanoid")
-	if not hum then return end
-	if state then
-		hum.WalkSpeed = 16
-		hum.JumpPower = 50
-	else
-		hum.WalkSpeed = 0
-		hum.JumpPower = 0
-	end
-end
-
-player.CharacterAdded:Connect(function()
-	moving = false
-	currentIndex = 0
-end)
-
-local function tpStep(target, targetIndex)
-	moving = true
-	setMovement(false)
-
-	local root = getRoot()
-	if not root then
-		setMovement(true)
-		moving = false
-		return
-	end
-
-	root.CFrame = root.CFrame + Vector3.new(0,10,0)
-	task.wait(0.01)
-
-	while true do
-		root = getRoot()
-		if not root or not root.Parent then
-			setMovement(true)
-			moving = false
-			return
-		end
-
-		local diff = target - root.Position
-		local dist = diff.Magnitude
-		if dist <= 0.05 then break end
-
-		root.CFrame = CFrame.new(
-			root.Position + diff.Unit * math.min(25, dist)
-		)
-
-		task.wait(0.01)
-	end
-
-	root = getRoot()
-	if root and root.Parent then
-		root.CFrame = CFrame.new(target)
-		currentIndex = targetIndex
-	end
-
-	setMovement(true)
-	moving = false
-end
-
-forwardBtn.MouseButton1Click:Connect(function()
-	if moving then return end
-	if currentIndex < #coords then
-		tpStep(coords[currentIndex + 1], currentIndex + 1)
-	end
-end)
-
-backBtn.MouseButton1Click:Connect(function()
-	if moving then return end
-	if currentIndex > 1 then
-		tpStep(coords[currentIndex - 1], currentIndex - 1)
-	end
-end)
-
-instantBtn.MouseButton1Click:Connect(function()
-	for _, part in ipairs(workspace:GetDescendants()) do
-		if part:IsA("ProximityPrompt") then
-			pcall(function() part.HoldDuration = 0 end)
-		end
-	end
-end)
-
-zoomBtn.MouseButton1Click:Connect(function()
-	player.CameraMaxZoomDistance = 500
-	player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
-end)
-
-toggleBtn.MouseButton1Click:Connect(function()
-	frame.Visible = false
-	miniBtn.Visible = true
-end)
-
-miniBtn.MouseButton1Click:Connect(function()
-	frame.Visible = true
-	miniBtn.Visible = false
-end)
-
-workspace.DescendantAdded:Connect(function(part)
-	if part:IsA("ProximityPrompt") then
-		pcall(function() part.HoldDuration = 0 end)
-	end
-end)
