@@ -1,6 +1,7 @@
---// Faisal Script UI + Lucky Blocks ESP خفيف بدون أسماء
+--// Faisal Script UI + Lucky Blocks ESP (ألوان مخصصة)
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local workspace = game:GetService("Workspace")
 
@@ -26,11 +27,11 @@ local orderedBlocks = {
 }
 
 local totalButtons = #orderedBlocks
-local mainHeight = topHeight + totalButtons*(buttonHeight + padding) + 20 -- زيادة الحجم شوي
+local mainHeight = topHeight + totalButtons*(buttonHeight + padding)
 
 local main = Instance.new("Frame")
 main.Parent = gui
-main.Size = UDim2.fromOffset(200, mainHeight)
+main.Size = UDim2.fromOffset(180, mainHeight)
 main.Position = UDim2.new(0.02,0,0.35,0)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
 main.BorderSizePixel = 0
@@ -77,38 +78,31 @@ layout.VerticalAlignment = Enum.VerticalAlignment.Top
 -- Toggle
 local opened = true
 local openSize = main.Size
-local closeSize = UDim2.fromOffset(200,topHeight)
+local closeSize = UDim2.fromOffset(180,topHeight)
 
-arrow.MouseButton1Click:Connect(function()
+local function toggle()
 	opened = not opened
 	arrow.Text = opened and "▼" or "▲"
 	content.Visible = opened
 	TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
 		{Size = opened and openSize or closeSize}):Play()
-end)
-
--- جدول لتسجيل موديلات تم تمييزها لكل نوع على حدة
-local highlightedModels = {}
-for _, block in ipairs(orderedBlocks) do
-	highlightedModels[block.model] = {}
 end
+arrow.MouseButton1Click:Connect(toggle)
 
--- Function to highlight models using BoxHandleAdornment (ESP خفيف)
+-- Function to highlight models using BoxHandleAdornment (ESP حقيقي)
 local function highlightModel(model, color)
-	if highlightedModels[model.Name][model] then return end
-	highlightedModels[model.Name][model] = true
-
 	for _, part in pairs(model:GetDescendants()) do
 		if part:IsA("BasePart") then
-			-- إزالة أي ESP قديمة
+			-- إزالة أي BoxHandleAdornment قديمة
 			for _, child in pairs(part:GetChildren()) do
 				if child:IsA("BoxHandleAdornment") then
 					child:Destroy()
 				end
 			end
+			-- إنشاء BoxHandleAdornment جديد
 			local adorn = Instance.new("BoxHandleAdornment")
 			adorn.Adornee = part
-			adorn.AlwaysOnTop = true
+			adorn.AlwaysOnTop = true -- يظهر من ورا أي جدار
 			adorn.ZIndex = 10
 			adorn.Size = part.Size
 			adorn.Color3 = color
@@ -137,19 +131,6 @@ for _, block in ipairs(orderedBlocks) do
 				highlightModel(obj, block.color)
 			end
 		end
+		print(block.name .. " highlighted!")
 	end)
 end
-
--- تحديث تلقائي كل ثانية للموديلات الجديدة فقط بدون أسماء
-task.spawn(function()
-	while true do
-		task.wait(1) -- خفيف على الجهاز
-		for _, block in ipairs(orderedBlocks) do
-			for _, obj in pairs(workspace:GetDescendants()) do
-				if obj:IsA("Model") and obj.Name == block.model then
-					highlightModel(obj, block.color)
-				end
-			end
-		end
-	end
-end)
