@@ -1,4 +1,4 @@
---// Faisal Script UI + Lucky Blocks ESP (ألوان مخصصة + Celestial Rainbow + Refresh)
+--// Faisal Script UI + Lucky Blocks ESP (ألوان مخصصة + Rare + Celestial Rainbow + Refresh)
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -14,16 +14,17 @@ local topHeight = 26
 local buttonHeight = 28
 local padding = 6
 
--- ترتيب الأزرار + ألوان مخصصة + Celestial
+-- ترتيب الأزرار + ألوان مخصصة + Celestial + Rare
 local orderedBlocks = {
 	{name = "common lucky block", model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(200,200,200)}, -- رمادي فاتح
 	{name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)}, -- أخضر
+	{name = "rare lucky block", model = "NaturalLuckyBlock_Rare", color = Color3.fromRGB(0,150,255)}, -- أزرق غامق
 	{name = "epic lucky block", model = "NaturalLuckyBlock_Epic", color = Color3.fromRGB(128,0,128)}, -- بنفسجي
 	{name = "legendary lucky block", model = "NaturalLuckyBlock_Legendary", color = Color3.fromRGB(255,255,0)}, -- أصفر
 	{name = "mythical lucky block", model = "NaturalLuckyBlock_Mythical", color = Color3.fromRGB(255,215,0)}, -- ذهبي
 	{name = "cosmic lucky block", model = "NaturalLuckyBlock_Cosmic", color = Color3.fromRGB(0,0,0)}, -- أسود
 	{name = "secret lucky block", model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,0,0)}, -- أحمر
-	{name = "celestial lucky block", model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)} -- لون أساسي، يتحول Rainbow
+	{name = "celestial lucky block", model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)} -- Rainbow
 }
 
 local totalButtons = #orderedBlocks + 1 -- +1 للزر Refresh
