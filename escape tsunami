@@ -17,13 +17,13 @@ local padding = 6
 
 -- ترتيب الأزرار
 local orderedBlocks = {
-	{name = "common lucky block", model = "NaturalLuckyBlock_Common"},
-	{name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon"},
-	{name = "epic lucky block", model = "NaturalLuckyBlock_Epic"},
-	{name = "legendary lucky block", model = "NaturalLuckyBlock_Legendary"},
-	{name = "mythical lucky block", model = "NaturalLuckyBlock_Mythical"},
-	{name = "cosmic lucky block", model = "NaturalLuckyBlock_Cosmic"},
-	{name = "secret lucky block", model = "NaturalLuckyBlock_Secret"}
+	{name = "common lucky block", model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(255,0,0)},
+	{name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)},
+	{name = "epic lucky block", model = "NaturalLuckyBlock_Epic", color = Color3.fromRGB(0,0,255)},
+	{name = "legendary lucky block", model = "NaturalLuckyBlock_Legendary", color = Color3.fromRGB(255,255,0)},
+	{name = "mythical lucky block", model = "NaturalLuckyBlock_Mythical", color = Color3.fromRGB(128,0,128)},
+	{name = "cosmic lucky block", model = "NaturalLuckyBlock_Cosmic", color = Color3.fromRGB(0,255,255)},
+	{name = "secret lucky block", model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,165,0)}
 }
 
 local totalButtons = #orderedBlocks
@@ -89,22 +89,25 @@ local function toggle()
 end
 arrow.MouseButton1Click:Connect(toggle)
 
--- Function to highlight models using SelectionBox
-local function highlightModel(model)
+-- Function to highlight models using BoxHandleAdornment (ESP حقيقي)
+local function highlightModel(model, color)
 	for _, part in pairs(model:GetDescendants()) do
 		if part:IsA("BasePart") then
-			-- Remove previous selectionbox if موجود
+			-- إزالة أي BoxHandleAdornment قديمة
 			for _, child in pairs(part:GetChildren()) do
-				if child:IsA("SelectionBox") then
+				if child:IsA("BoxHandleAdornment") then
 					child:Destroy()
 				end
 			end
-			local sb = Instance.new("SelectionBox")
-			sb.Adornee = part
-			sb.LineThickness = 0.1
-			sb.Color3 = Color3.fromRGB(255,0,0) -- أحمر فاقع
-			sb.SurfaceTransparency = 1
-			sb.Parent = part
+			-- إنشاء BoxHandleAdornment جديد
+			local adorn = Instance.new("BoxHandleAdornment")
+			adorn.Adornee = part
+			adorn.AlwaysOnTop = true -- يبقى ظاهر من ورا الجدران
+			adorn.ZIndex = 10
+			adorn.Size = part.Size
+			adorn.Color3 = color
+			adorn.Transparency = 0.3
+			adorn.Parent = part
 		end
 	end
 end
@@ -125,7 +128,7 @@ for _, block in ipairs(orderedBlocks) do
 	btn.MouseButton1Click:Connect(function()
 		for _, obj in pairs(workspace:GetDescendants()) do
 			if obj:IsA("Model") and obj.Name == block.model then
-				highlightModel(obj)
+				highlightModel(obj, block.color)
 			end
 		end
 		print(block.name .. " highlighted!")
