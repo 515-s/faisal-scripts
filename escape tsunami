@@ -1,7 +1,6 @@
---// Faisal Script UI + Lucky Blocks ESP + Auto Update
+--// Faisal Script UI + Lucky Blocks ESP + Auto Update خفيف
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local workspace = game:GetService("Workspace")
 
@@ -31,7 +30,7 @@ local mainHeight = topHeight + totalButtons*(buttonHeight + padding) + 20 -- ز�
 
 local main = Instance.new("Frame")
 main.Parent = gui
-main.Size = UDim2.fromOffset(200, mainHeight) -- عرض أكبر شوي
+main.Size = UDim2.fromOffset(200, mainHeight)
 main.Position = UDim2.new(0.02,0,0.35,0)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
 main.BorderSizePixel = 0
@@ -80,26 +79,24 @@ local opened = true
 local openSize = main.Size
 local closeSize = UDim2.fromOffset(200,topHeight)
 
-local function toggle()
+arrow.MouseButton1Click:Connect(function()
 	opened = not opened
 	arrow.Text = opened and "▼" or "▲"
 	content.Visible = opened
 	TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
 		{Size = opened and openSize or closeSize}):Play()
-end
-arrow.MouseButton1Click:Connect(toggle)
+end)
 
--- Function to highlight models using BoxHandleAdornment (ESP حقيقي)
+-- جدول لتسجيل موديلات تم تمييزها بالفعل
+local highlightedModels = {}
+
+-- Function to highlight models using BoxHandleAdornment (ESP خفيف)
 local function highlightModel(model, color, rarityName)
+	if highlightedModels[model] then return end -- إذا تم تمييزه مسبقًا نتخطاه
+	highlightedModels[model] = true
+
 	for _, part in pairs(model:GetDescendants()) do
 		if part:IsA("BasePart") then
-			-- إزالة أي BoxHandleAdornment قديمة
-			for _, child in pairs(part:GetChildren()) do
-				if child:IsA("BoxHandleAdornment") or child:IsA("BillboardGui") then
-					child:Destroy()
-				end
-			end
-			-- إنشاء BoxHandleAdornment
 			local adorn = Instance.new("BoxHandleAdornment")
 			adorn.Adornee = part
 			adorn.AlwaysOnTop = true
@@ -109,7 +106,6 @@ local function highlightModel(model, color, rarityName)
 			adorn.Transparency = 0.3
 			adorn.Parent = part
 
-			-- اسم النُدرة فوق البوكس
 			local bgui = Instance.new("BillboardGui")
 			bgui.Adornee = part
 			bgui.Size = UDim2.new(0,100,0,20)
@@ -149,14 +145,13 @@ for _, block in ipairs(orderedBlocks) do
 				highlightModel(obj, block.color, block.name)
 			end
 		end
-		print(block.name .. " highlighted!")
 	end)
 end
 
--- تحديث تلقائي كل 5 ثواني
+-- تحديث تلقائي كل ثانية للموديلات الجديدة فقط
 task.spawn(function()
 	while true do
-		task.wait(5)
+		task.wait(1)
 		for _, block in ipairs(orderedBlocks) do
 			for _, obj in pairs(workspace:GetDescendants()) do
 				if obj:IsA("Model") and obj.Name == block.model then
