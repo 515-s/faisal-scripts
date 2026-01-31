@@ -163,6 +163,7 @@ local orderedBlocks = {
     {model = "NaturalLuckyBlock_Mythical", color = Color3.fromRGB(255,215,0)},
     {model = "NaturalLuckyBlock_Cosmic", color = Color3.fromRGB(0,0,0)},
     {model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,0,0)},
+    {model = "NaturalLuckyBlock_UFO", color = Color3.fromRGB(0,255,127)}, -- مضاف
 
     -- ===== Event =====
     {model = "EventLuckyBlock_Common", color = Color3.fromRGB(180,180,180)},
@@ -187,7 +188,8 @@ local orderedBlocks = {
     {model = "GlobalLuckyBlock_Secret", color = Color3.fromRGB(255,80,80)},
     {model = "GlobalLuckyBlock_Money", color = Color3.fromRGB(0,255,0)},
     {model = "GlobalLuckyBlock_Radioactive", color = Color3.fromRGB(57,255,20)},
-    {model = "GlobalLuckyBlock_Admin", color = Color3.fromRGB(255,0,255)}
+    {model = "GlobalLuckyBlock_Admin", color = Color3.fromRGB(255,0,255)},
+    {model = "GlobalLuckyBlock_UFO", color = Color3.fromRGB(0,255,127)} -- مضاف
 }
 
 local highlightedModels = {}
