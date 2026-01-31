@@ -49,7 +49,7 @@ local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabl
 local mainWidth, mainHeight
 if isMobile then
     mainWidth = 100 -- عرض ثابت للجوال
-    mainHeight = 150 -- ارتفاع مبدئي، سيعدل تلقائيًا بعد إضافة الزرين
+    mainHeight = 150 -- ارتفاع مبدئي
 else
     mainWidth = 200
     mainHeight = topHeight + 2*(buttonHeight + 6)
@@ -94,12 +94,6 @@ content.Position = UDim2.new(0,0,0,topHeight)
 content.Size = UDim2.new(1,0,1,-topHeight)
 content.BackgroundTransparency = 1
 
--- layout بسيط عمودي
-for _, child in pairs(content:GetChildren()) do
-    if child:IsA("UIListLayout") then
-        child:Destroy()
-    end
-end
 local layout = Instance.new("UIListLayout", content)
 layout.Padding = UDim.new(0,5)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -117,7 +111,6 @@ arrow.MouseButton1Click:Connect(function()
         {Size = opened and openSize or closeSize}):Play()
 end)
 
--- تفعيل Instant Take لكل ProximityPrompt
 local function setPromptInstant(prompt)
     if prompt:IsA("ProximityPrompt") then
         prompt.HoldDuration = 0
@@ -132,7 +125,6 @@ workspace.DescendantAdded:Connect(function(v)
     setPromptInstant(v)
 end)
 
--- زر Instant Take
 local instantBtn = Instance.new("TextButton")
 instantBtn.Parent = content
 instantBtn.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
@@ -149,7 +141,6 @@ instantBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- زر Refresh
 local refreshBtn = Instance.new("TextButton")
 refreshBtn.Parent = content
 refreshBtn.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
@@ -161,7 +152,6 @@ refreshBtn.Font = Enum.Font.GothamBold
 refreshBtn.BorderSizePixel = 0
 Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
 
--- كشف كل اللكي بلوكس عند الضغط على Refresh
 local orderedBlocks = {
     {model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(200,200,200)},
     {model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)},
@@ -173,6 +163,12 @@ local orderedBlocks = {
     {model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,0,0)},
     {model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)}
 }
+
+-- ✅ إضافة EventLuckyBlock_UFO باللون الأخضر المميز
+table.insert(orderedBlocks, {
+    model = "EventLuckyBlock_UFO",
+    color = Color3.fromRGB(0,255,127) -- أخضر مختلف عن Uncommon
+})
 
 local highlightedModels = {}
 for _, block in ipairs(orderedBlocks) do
@@ -211,7 +207,6 @@ refreshBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- تعديل تلقائي لارتفاع القائمة للجوال لتجنب الفراغ
 if isMobile then
     local padding = 5
     local totalHeight = 0
