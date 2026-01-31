@@ -41,7 +41,7 @@ gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
-local screenSize = player.PlayerGui.AbsoluteSize
+local screenSize = workspace.CurrentCamera.ViewportSize
 
 local topHeight = 26
 local buttonHeight = 28
