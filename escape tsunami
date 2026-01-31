@@ -153,6 +153,8 @@ refreshBtn.BorderSizePixel = 0
 Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
 
 local orderedBlocks = {
+
+    -- ===== Natural =====
     {model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(200,200,200)},
     {model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)},
     {model = "NaturalLuckyBlock_Rare", color = Color3.fromRGB(0,150,255)},
@@ -161,14 +163,30 @@ local orderedBlocks = {
     {model = "NaturalLuckyBlock_Mythical", color = Color3.fromRGB(255,215,0)},
     {model = "NaturalLuckyBlock_Cosmic", color = Color3.fromRGB(0,0,0)},
     {model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,0,0)},
-    {model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)}
+
+    -- ===== Event =====
+    {model = "EventLuckyBlock_Common", color = Color3.fromRGB(180,180,180)},
+    {model = "EventLuckyBlock_Uncommon", color = Color3.fromRGB(0,200,0)},
+    {model = "EventLuckyBlock_Rare", color = Color3.fromRGB(0,120,255)},
+    {model = "EventLuckyBlock_Epic", color = Color3.fromRGB(150,0,200)},
+    {model = "EventLuckyBlock_Legendary", color = Color3.fromRGB(255,230,0)},
+    {model = "EventLuckyBlock_Mythical", color = Color3.fromRGB(255,180,0)},
+    {model = "EventLuckyBlock_Cosmic", color = Color3.fromRGB(40,40,40)},
+    {model = "EventLuckyBlock_Secret", color = Color3.fromRGB(255,50,50)},
+    {model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)},
+    {model = "EventLuckyBlock_UFO", color = Color3.fromRGB(0,255,127)},
+
+    -- ===== Global (مضافة زيادة) =====
+    {model = "GlobalLuckyBlock_Common", color = Color3.fromRGB(160,160,160)},
+    {model = "GlobalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,120)},
+    {model = "GlobalLuckyBlock_Rare", color = Color3.fromRGB(0,170,255)},
+    {model = "GlobalLuckyBlock_Epic", color = Color3.fromRGB(180,0,255)},
+    {model = "GlobalLuckyBlock_Legendary", color = Color3.fromRGB(255,200,0)},
+    {model = "GlobalLuckyBlock_Mythical", color = Color3.fromRGB(255,140,0)},
+    {model = "GlobalLuckyBlock_Cosmic", color = Color3.fromRGB(70,70,70)},
+    {model = "GlobalLuckyBlock_Secret", color = Color3.fromRGB(255,80,80)}
 }
 
--- ✅ إضافة EventLuckyBlock_UFO باللون الأخضر المميز
-table.insert(orderedBlocks, {
-    model = "EventLuckyBlock_UFO",
-    color = Color3.fromRGB(0,255,127) -- أخضر مختلف عن Uncommon
-})
 
 local highlightedModels = {}
 for _, block in ipairs(orderedBlocks) do
