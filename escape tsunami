@@ -1,3 +1,4 @@
+--// Services
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -6,9 +7,9 @@ local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
 
+--// Webhook
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
-
 if req then
     task.spawn(function()
         local gameName = "Unknown"
@@ -37,6 +38,7 @@ if req then
     end)
 end
 
+--// Main GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
@@ -48,8 +50,8 @@ local buttonHeight = 28
 local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
 local mainWidth, mainHeight
 if isMobile then
-    mainWidth = 100 -- عرض ثابت للجوال
-    mainHeight = 150 -- ارتفاع مبدئي
+    mainWidth = 100
+    mainHeight = 150
 else
     mainWidth = 200
     mainHeight = topHeight + 2*(buttonHeight + 6)
@@ -65,6 +67,7 @@ main.Active = true
 main.Draggable = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
+--// Top bar
 local top = Instance.new("Frame", main)
 top.Size = UDim2.new(1,0,0,topHeight)
 top.BackgroundColor3 = Color3.fromRGB(25,25,25)
@@ -80,14 +83,74 @@ title.TextSize = 12
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Center
 
+--// Version button ≡
+local versionBtn = Instance.new("TextButton", top)
+versionBtn.Size = UDim2.fromOffset(topHeight, topHeight)
+versionBtn.Position = UDim2.new(0,0,0,0)
+versionBtn.Text = "≡"
+versionBtn.BackgroundTransparency = 1
+versionBtn.TextColor3 = Color3.fromRGB(255,255,255)
+versionBtn.Font = Enum.Font.GothamBold
+versionBtn.TextSize = 14
+
+--// Version window
+local versionWindow = Instance.new("Frame")
+versionWindow.Parent = gui
+versionWindow.Size = UDim2.fromOffset(mainWidth,160)
+versionWindow.Position = UDim2.new(0.5,-mainWidth/2,0.5,-80)
+versionWindow.BackgroundColor3 = Color3.fromRGB(15,15,15)
+versionWindow.Visible = false
+versionWindow.Active = true
+versionWindow.Draggable = true
+Instance.new("UICorner", versionWindow).CornerRadius = UDim.new(0,10)
+
+local closeBtn = Instance.new("TextButton", versionWindow)
+closeBtn.Text = "×"
+closeBtn.Size = UDim2.fromOffset(18,18)
+closeBtn.Position = UDim2.new(1,-20,0,2)
+closeBtn.BackgroundTransparency = 1
+closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 14
+closeBtn.MouseButton1Click:Connect(function()
+    versionWindow.Visible = false
+end)
+
+versionBtn.MouseButton1Click:Connect(function()
+    versionWindow.Visible = not versionWindow.Visible
+end)
+
+local versionLayout = Instance.new("UIListLayout", versionWindow)
+versionLayout.Padding = UDim.new(0,4)
+versionLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+versionLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+
+local function addLabel(txt,bold)
+    local lbl = Instance.new("TextLabel", versionWindow)
+    lbl.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(1,0,0,18)
+    lbl.Text = txt
+    lbl.Font = bold and Enum.Font.GothamBold or Enum.Font.Gotham
+    lbl.TextColor3 = Color3.fromRGB(255,255,255)
+    lbl.TextSize = 12
+end
+
+addLabel("v1.1",true)
+addLabel("Added LuckyBlock Admin")
+addLabel("Added LuckyBlock UFO")
+addLabel("Added LuckyBlock Money")
+addLabel("Added LuckyBlock Radioactive")
+addLabel("Added LuckyBlock Divine")
+
+--// Toggle arrow
 local arrow = Instance.new("TextButton", top)
 arrow.Size = UDim2.fromOffset(topHeight,topHeight)
 arrow.Position = UDim2.new(1,-topHeight,0,0)
 arrow.Text = "▼"
+arrow.BackgroundTransparency = 1
 arrow.TextSize = 12
 arrow.Font = Enum.Font.GothamBold
 arrow.TextColor3 = Color3.fromRGB(220,220,220)
-arrow.BackgroundTransparency = 1
 
 local content = Instance.new("Frame", main)
 content.Position = UDim2.new(0,0,0,topHeight)
@@ -111,6 +174,7 @@ arrow.MouseButton1Click:Connect(function()
         {Size = opened and openSize or closeSize}):Play()
 end)
 
+--// Instant ProximityPrompt
 local function setPromptInstant(prompt)
     if prompt:IsA("ProximityPrompt") then
         prompt.HoldDuration = 0
@@ -152,6 +216,7 @@ refreshBtn.Font = Enum.Font.GothamBold
 refreshBtn.BorderSizePixel = 0
 Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
 
+--// Blocks
 local orderedBlocks = {
 
     -- ===== Natural =====
@@ -167,6 +232,7 @@ local orderedBlocks = {
     {model = "NaturalLuckyBlock_Money", color = Color3.fromRGB(0,255,0)},
     {model = "NaturalLuckyBlock_Radioactive", color = Color3.fromRGB(57,255,20)},
     {model = "NaturalLuckyBlock_Admin", color = Color3.fromRGB(255,0,255)},
+    {model = "NaturalLuckyBlock_Divine", color = Color3.fromRGB(255,255,255)},
 
     -- ===== Event =====
     {model = "EventLuckyBlock_Common", color = Color3.fromRGB(180,180,180)},
@@ -182,6 +248,7 @@ local orderedBlocks = {
     {model = "EventLuckyBlock_Money", color = Color3.fromRGB(0,255,0)},
     {model = "EventLuckyBlock_Radioactive", color = Color3.fromRGB(57,255,20)},
     {model = "EventLuckyBlock_Admin", color = Color3.fromRGB(255,0,255)},
+    {model = "EventLuckyBlock_Divine", color = Color3.fromRGB(255,255,255)},
 
     -- ===== Global =====
     {model = "GlobalLuckyBlock_Common", color = Color3.fromRGB(160,160,160)},
@@ -195,7 +262,8 @@ local orderedBlocks = {
     {model = "GlobalLuckyBlock_Money", color = Color3.fromRGB(0,255,0)},
     {model = "GlobalLuckyBlock_Radioactive", color = Color3.fromRGB(57,255,20)},
     {model = "GlobalLuckyBlock_Admin", color = Color3.fromRGB(255,0,255)},
-    {model = "GlobalLuckyBlock_UFO", color = Color3.fromRGB(0,255,127)}
+    {model = "GlobalLuckyBlock_UFO", color = Color3.fromRGB(0,255,127)},
+    {model = "GlobalLuckyBlock_Divine", color = Color3.fromRGB(255,255,255)}
 }
 
 local highlightedModels = {}
