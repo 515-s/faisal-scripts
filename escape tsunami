@@ -184,9 +184,11 @@ local orderedBlocks = {
     {model = "GlobalLuckyBlock_Legendary", color = Color3.fromRGB(255,200,0)},
     {model = "GlobalLuckyBlock_Mythical", color = Color3.fromRGB(255,140,0)},
     {model = "GlobalLuckyBlock_Cosmic", color = Color3.fromRGB(70,70,70)},
-    {model = "GlobalLuckyBlock_Secret", color = Color3.fromRGB(255,80,80)}
+    {model = "GlobalLuckyBlock_Secret", color = Color3.fromRGB(255,80,80)},
+    {model = "GlobalLuckyBlock_Money", color = Color3.fromRGB(0,255,0)},
+    {model = "GlobalLuckyBlock_Radioactive", color = Color3.fromRGB(57,255,20)},
+    {model = "GlobalLuckyBlock_Admin", color = Color3.fromRGB(255,0,255)}
 }
-
 
 local highlightedModels = {}
 for _, block in ipairs(orderedBlocks) do
