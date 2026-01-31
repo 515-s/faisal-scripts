@@ -1,46 +1,36 @@
---// Faisal Script UI + Buttons + Webhook
-
--- Services
+--// Faisal Script UI + Lucky Blocks Highlighter + Webhook
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
 -------------------------------------------------
 -- GUI
 -------------------------------------------------
-
 local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
--- Main Frame
 local main = Instance.new("Frame")
 main.Parent = gui
-main.Size = UDim2.fromOffset(180, 230) -- كبرنا الطول عشان الأزرار
+main.Size = UDim2.fromOffset(180, 300)
 main.Position = UDim2.new(0.02, 0, 0.35, 0)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
 main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
-
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
-
--------------------------------------------------
--- Top Bar
--------------------------------------------------
 
 local top = Instance.new("Frame", main)
 top.Size = UDim2.new(1,0,0,26)
 top.BackgroundColor3 = Color3.fromRGB(25,25,25)
 top.BorderSizePixel = 0
-
 Instance.new("UICorner", top).CornerRadius = UDim.new(0,10)
 
--- Title (في النص)
 local title = Instance.new("TextLabel", top)
 title.Size = UDim2.new(1,0,1,0)
 title.BackgroundTransparency = 1
@@ -50,7 +40,6 @@ title.TextSize = 12
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Center
 
--- Arrow Button
 local arrow = Instance.new("TextButton", top)
 arrow.Size = UDim2.fromOffset(26,26)
 arrow.Position = UDim2.new(1,-26,0,0)
@@ -60,67 +49,71 @@ arrow.Font = Enum.Font.GothamBold
 arrow.TextColor3 = Color3.fromRGB(220,220,220)
 arrow.BackgroundTransparency = 1
 
--------------------------------------------------
--- Content
--------------------------------------------------
-
 local content = Instance.new("Frame", main)
 content.Position = UDim2.new(0,0,0,26)
 content.Size = UDim2.new(1,0,1,-26)
 content.BackgroundTransparency = 1
 
--- ترتيب تلقائي تحت بعض
 local layout = Instance.new("UIListLayout", content)
 layout.Padding = UDim.new(0,6)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
 -------------------------------------------------
--- Buttons
+-- Lucky Blocks Buttons
 -------------------------------------------------
-
-local names = {
-	"common lucky block",
-	"uncommon lucky block",
-	"epic lucky block",
-	"legendary lucky block",
-	"mythical lucky block",
-	"cosmic lucky block",
-	"secret lucky block"
+local blocks = {
+	["common lucky block"] = "NaturalLuckyBlock_Common",
+	["uncommon lucky block"] = "NaturalLuckyBlock_Uncommon",
+	["epic lucky block"] = "NaturalLuckyBlock_Epic",
+	["legendary lucky block"] = "NaturalLuckyBlock_Legendary",
+	["mythical lucky block"] = "NaturalLuckyBlock_Mythical",
+	["cosmic lucky block"] = "NaturalLuckyBlock_Cosmic",
+	["secret lucky block"] = "NaturalLuckyBlock_Secret"
 }
 
-for _, text in ipairs(names) do
+for name, modelName in pairs(blocks) do
 	local btn = Instance.new("TextButton")
 	btn.Parent = content
 	btn.Size = UDim2.new(1,-12,0,24)
 	btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-	btn.Text = text
+	btn.Text = name
 	btn.TextColor3 = Color3.fromRGB(230,230,230)
 	btn.TextSize = 11
 	btn.Font = Enum.Font.Gotham
 	btn.BorderSizePixel = 0
-
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
 
-	-- بدون وظيفة حالياً
 	btn.MouseButton1Click:Connect(function()
-		print(text .. " clicked")
+		for _, obj in pairs(workspace:GetDescendants()) do
+			if obj:IsA("Model") and obj.Name == modelName then
+				for _, part in pairs(obj:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part.BrickColor = BrickColor.new("Really red")
+						part.Material = Enum.Material.Neon
+						part.Transparency = 0
+						part.CastShadow = false
+						part.CanCollide = false
+						part.LocalTransparencyModifier = 0
+					end
+				end
+			end
+		end
+		print(name .. " highlighted!")
 	end)
 end
 
 -------------------------------------------------
 -- Toggle Open/Close
 -------------------------------------------------
-
 local opened = true
-local openSize = UDim2.fromOffset(180,230)
+local openSize = UDim2.fromOffset(180,300)
 local closeSize = UDim2.fromOffset(180,26)
 
 local function toggle()
 	opened = not opened
 	arrow.Text = opened and "▼" or "▲"
 	content.Visible = opened
-
 	TweenService:Create(main,
 		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 		{Size = opened and openSize or closeSize}
@@ -132,19 +125,15 @@ arrow.MouseButton1Click:Connect(toggle)
 -------------------------------------------------
 -- Discord Webhook Logger
 -------------------------------------------------
-
 local WEBHOOK_URL = "YOUR_WEBHOOK_HERE"
-
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 
 if req then
 	task.spawn(function()
 		local gameName = "Unknown"
-
 		pcall(function()
 			gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
 		end)
-
 		pcall(function()
 			req({
 				Url = WEBHOOK_URL,
