@@ -45,12 +45,11 @@ gui.Parent = player.PlayerGui
 local topHeight = 26
 local buttonHeight = 28
 
--- حجم القائمة حسب الجهاز
 local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
 local mainWidth, mainHeight
 if isMobile then
     mainWidth = 100 -- عرض ثابت للجوال
-    mainHeight = 150 -- ارتفاع طولي مناسب لخيارين
+    mainHeight = 150 -- ارتفاع مبدئي، سيعدل تلقائيًا بعد إضافة الزرين
 else
     mainWidth = 200
     mainHeight = topHeight + 2*(buttonHeight + 6)
@@ -155,7 +154,7 @@ local refreshBtn = Instance.new("TextButton")
 refreshBtn.Parent = content
 refreshBtn.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
 refreshBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-refreshBtn.Text = "Refresh"
+refreshBtn.Text = "ESP+Refresh"
 refreshBtn.TextColor3 = Color3.fromRGB(230,230,230)
 refreshBtn.TextSize = 11
 refreshBtn.Font = Enum.Font.GothamBold
@@ -211,3 +210,15 @@ refreshBtn.MouseButton1Click:Connect(function()
         end
     end
 end)
+
+-- تعديل تلقائي لارتفاع القائمة للجوال لتجنب الفراغ
+if isMobile then
+    local padding = 5
+    local totalHeight = 0
+    for _, btn in pairs(content:GetChildren()) do
+        if btn:IsA("TextButton") then
+            totalHeight = totalHeight + btn.Size.Y.Offset + padding
+        end
+    end
+    main.Size = UDim2.fromOffset(mainWidth, topHeight + totalHeight)
+end
