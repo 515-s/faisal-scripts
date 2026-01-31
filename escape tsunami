@@ -1,7 +1,6 @@
---// Faisal Script UI + Lucky Blocks ESP (ألوان مخصصة)
+--// Faisal Script UI + Lucky Blocks ESP (ألوان مخصصة + Celestial Rainbow)
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local workspace = game:GetService("Workspace")
 
@@ -15,7 +14,7 @@ local topHeight = 26
 local buttonHeight = 28
 local padding = 6
 
--- ترتيب الأزرار + ألوان مخصصة
+-- ترتيب الأزرار + ألوان مخصصة + إضافة Celestial
 local orderedBlocks = {
 	{name = "common lucky block", model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(200,200,200)}, -- رمادي فاتح
 	{name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)}, -- أخضر
@@ -23,7 +22,8 @@ local orderedBlocks = {
 	{name = "legendary lucky block", model = "NaturalLuckyBlock_Legendary", color = Color3.fromRGB(255,255,0)}, -- أصفر
 	{name = "mythical lucky block", model = "NaturalLuckyBlock_Mythical", color = Color3.fromRGB(255,215,0)}, -- ذهبي
 	{name = "cosmic lucky block", model = "NaturalLuckyBlock_Cosmic", color = Color3.fromRGB(0,0,0)}, -- أسود
-	{name = "secret lucky block", model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,0,0)} -- أحمر
+	{name = "secret lucky block", model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,0,0)}, -- أحمر
+	{name = "celestial lucky block", model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)} -- لون أساسي، يتحول لرينبو
 }
 
 local totalButtons = #orderedBlocks
@@ -80,34 +80,45 @@ local opened = true
 local openSize = main.Size
 local closeSize = UDim2.fromOffset(180,topHeight)
 
-local function toggle()
+arrow.MouseButton1Click:Connect(function()
 	opened = not opened
 	arrow.Text = opened and "▼" or "▲"
 	content.Visible = opened
 	TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
 		{Size = opened and openSize or closeSize}):Play()
-end
-arrow.MouseButton1Click:Connect(toggle)
+end)
 
--- Function to highlight models using BoxHandleAdornment (ESP حقيقي)
-local function highlightModel(model, color)
+-- Function لتلوين موديل مع دعم Rainbow للـCelestial
+local function highlightModel(model, color, isRainbow)
 	for _, part in pairs(model:GetDescendants()) do
 		if part:IsA("BasePart") then
-			-- إزالة أي BoxHandleAdornment قديمة
+			-- إزالة أي ESP قديمة
 			for _, child in pairs(part:GetChildren()) do
 				if child:IsA("BoxHandleAdornment") then
 					child:Destroy()
 				end
 			end
-			-- إنشاء BoxHandleAdornment جديد
+
 			local adorn = Instance.new("BoxHandleAdornment")
 			adorn.Adornee = part
-			adorn.AlwaysOnTop = true -- يظهر من ورا أي جدار
+			adorn.AlwaysOnTop = true
 			adorn.ZIndex = 10
 			adorn.Size = part.Size
-			adorn.Color3 = color
 			adorn.Transparency = 0.3
 			adorn.Parent = part
+
+			if isRainbow then
+				-- Rainbow effect خفيف
+				task.spawn(function()
+					while adorn.Parent do
+						local t = tick()
+						adorn.Color3 = Color3.fromHSV(t % 1, 1, 1)
+						task.wait(0.1)
+					end
+				end)
+			else
+				adorn.Color3 = color
+			end
 		end
 	end
 end
@@ -126,9 +137,10 @@ for _, block in ipairs(orderedBlocks) do
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
 
 	btn.MouseButton1Click:Connect(function()
+		local isRainbow = (block.name == "celestial lucky block")
 		for _, obj in pairs(workspace:GetDescendants()) do
 			if obj:IsA("Model") and obj.Name == block.model then
-				highlightModel(obj, block.color)
+				highlightModel(obj, block.color, isRainbow)
 			end
 		end
 		print(block.name .. " highlighted!")
