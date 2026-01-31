@@ -45,25 +45,12 @@ gui.Parent = player.PlayerGui
 local topHeight = 26
 local buttonHeight = 28
 
--- أنواع اللكي بلوكس
-local orderedBlocks = {
-    {name = "common lucky block", model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(200,200,200)},
-    {name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)},
-    {name = "rare lucky block", model = "NaturalLuckyBlock_Rare", color = Color3.fromRGB(0,150,255)},
-    {name = "epic lucky block", model = "NaturalLuckyBlock_Epic", color = Color3.fromRGB(128,0,128)},
-    {name = "legendary lucky block", model = "NaturalLuckyBlock_Legendary", color = Color3.fromRGB(255,255,0)},
-    {name = "mythical lucky block", model = "NaturalLuckyBlock_Mythical", color = Color3.fromRGB(255,215,0)},
-    {name = "cosmic lucky block", model = "NaturalLuckyBlock_Cosmic", color = Color3.fromRGB(0,0,0)},
-    {name = "secret lucky block", model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,0,0)},
-    {name = "celestial lucky block", model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)}
-}
-
 -- حجم القائمة حسب الجهاز
 local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
 local mainWidth, mainHeight
 if isMobile then
-    mainWidth = workspace.CurrentCamera.ViewportSize.X * 0.8
-    mainHeight = workspace.CurrentCamera.ViewportSize.Y * 0.35
+    mainWidth = 100 -- عرض ثابت للجوال
+    mainHeight = 150 -- ارتفاع طولي مناسب لخيارين
 else
     mainWidth = 200
     mainHeight = topHeight + 2*(buttonHeight + 6)
@@ -108,29 +95,16 @@ content.Position = UDim2.new(0,0,0,topHeight)
 content.Size = UDim2.new(1,0,1,-topHeight)
 content.BackgroundTransparency = 1
 
--- إزالة أي layout قديم
+-- layout بسيط عمودي
 for _, child in pairs(content:GetChildren()) do
-    if child:IsA("UIListLayout") or child:IsA("UIGridLayout") then
+    if child:IsA("UIListLayout") then
         child:Destroy()
     end
 end
-
--- layout بسيط للأزرار
-if isMobile then
-    local grid = Instance.new("UIGridLayout")
-    grid.Parent = content
-    grid.CellSize = UDim2.new(0, 60, 0, 25)
-    grid.CellPadding = UDim2.new(0, 5, 0, 5)
-    grid.FillDirection = Enum.FillDirection.Horizontal
-    grid.SortOrder = Enum.SortOrder.LayoutOrder
-    grid.StartCorner = Enum.StartCorner.TopLeft
-    grid.MaxCellsPerRow = 2
-else
-    local layout = Instance.new("UIListLayout", content)
-    layout.Padding = UDim.new(0,6)
-    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    layout.VerticalAlignment = Enum.VerticalAlignment.Top
-end
+local layout = Instance.new("UIListLayout", content)
+layout.Padding = UDim.new(0,5)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
 local opened = true
 local openSize = main.Size
@@ -144,57 +118,7 @@ arrow.MouseButton1Click:Connect(function()
         {Size = opened and openSize or closeSize}):Play()
 end)
 
--- تمييز كل الموديلات
-local highlightedModels = {}
-for _, block in ipairs(orderedBlocks) do
-    highlightedModels[block.model] = {}
-end
-
-local function highlightModel(model, color, isRainbow)
-    if highlightedModels[model.Name][model] then return end
-    highlightedModels[model.Name][model] = true
-
-    for _, part in pairs(model:GetDescendants()) do
-        if part:IsA("BasePart") then
-            for _, child in pairs(part:GetChildren()) do
-                if child:IsA("BoxHandleAdornment") then
-                    child:Destroy()
-                end
-            end
-
-            local adorn = Instance.new("BoxHandleAdornment")
-            adorn.Adornee = part
-            adorn.AlwaysOnTop = true
-            adorn.ZIndex = 10
-            adorn.Size = part.Size
-            adorn.Transparency = 0.3
-            adorn.Parent = part
-
-            if isRainbow then
-                task.spawn(function()
-                    while adorn.Parent do
-                        adorn.Color3 = Color3.fromHSV(tick() % 1,1,1)
-                        task.wait(0.1)
-                    end
-                end)
-            else
-                adorn.Color3 = color
-            end
-        end
-    end
-end
-
-local function refreshAll()
-    for _, block in ipairs(orderedBlocks) do
-        local isRainbow = (block.name == "celestial lucky block")
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("Model") and obj.Name == block.model then
-                highlightModel(obj, block.color, isRainbow)
-            end
-        end
-    end
-end
-
+-- تفعيل Instant Take لكل ProximityPrompt
 local function setPromptInstant(prompt)
     if prompt:IsA("ProximityPrompt") then
         prompt.HoldDuration = 0
@@ -212,11 +136,11 @@ end)
 -- زر Instant Take
 local instantBtn = Instance.new("TextButton")
 instantBtn.Parent = content
-instantBtn.Size = UDim2.new(0, isMobile and 60 or mainWidth - 12, 0, isMobile and 25 or buttonHeight)
+instantBtn.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
 instantBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 instantBtn.Text = "Instant Take"
 instantBtn.TextColor3 = Color3.fromRGB(230,230,230)
-instantBtn.TextSize = isMobile and 10 or 11
+instantBtn.TextSize = 11
 instantBtn.Font = Enum.Font.GothamBold
 instantBtn.BorderSizePixel = 0
 Instance.new("UICorner", instantBtn).CornerRadius = UDim.new(0,6)
@@ -229,12 +153,61 @@ end)
 -- زر Refresh
 local refreshBtn = Instance.new("TextButton")
 refreshBtn.Parent = content
-refreshBtn.Size = UDim2.new(0, isMobile and 60 or mainWidth - 12, 0, isMobile and 25 or buttonHeight)
+refreshBtn.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
 refreshBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 refreshBtn.Text = "Refresh"
 refreshBtn.TextColor3 = Color3.fromRGB(230,230,230)
-refreshBtn.TextSize = isMobile and 10 or 11
+refreshBtn.TextSize = 11
 refreshBtn.Font = Enum.Font.GothamBold
 refreshBtn.BorderSizePixel = 0
 Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
-refreshBtn.MouseButton1Click:Connect(refreshAll)
+
+-- كشف كل اللكي بلوكس عند الضغط على Refresh
+local orderedBlocks = {
+    {model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(200,200,200)},
+    {model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)},
+    {model = "NaturalLuckyBlock_Rare", color = Color3.fromRGB(0,150,255)},
+    {model = "NaturalLuckyBlock_Epic", color = Color3.fromRGB(128,0,128)},
+    {model = "NaturalLuckyBlock_Legendary", color = Color3.fromRGB(255,255,0)},
+    {model = "NaturalLuckyBlock_Mythical", color = Color3.fromRGB(255,215,0)},
+    {model = "NaturalLuckyBlock_Cosmic", color = Color3.fromRGB(0,0,0)},
+    {model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,0,0)},
+    {model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)}
+}
+
+local highlightedModels = {}
+for _, block in ipairs(orderedBlocks) do
+    highlightedModels[block.model] = {}
+end
+
+local function highlightModel(model, color)
+    if highlightedModels[model.Name][model] then return end
+    highlightedModels[model.Name][model] = true
+    for _, part in pairs(model:GetDescendants()) do
+        if part:IsA("BasePart") then
+            for _, child in pairs(part:GetChildren()) do
+                if child:IsA("BoxHandleAdornment") then
+                    child:Destroy()
+                end
+            end
+            local adorn = Instance.new("BoxHandleAdornment")
+            adorn.Adornee = part
+            adorn.AlwaysOnTop = true
+            adorn.ZIndex = 10
+            adorn.Size = part.Size
+            adorn.Transparency = 0.3
+            adorn.Color3 = color
+            adorn.Parent = part
+        end
+    end
+end
+
+refreshBtn.MouseButton1Click:Connect(function()
+    for _, block in ipairs(orderedBlocks) do
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj.Name == block.model then
+                highlightModel(obj, block.color)
+            end
+        end
+    end
+end)
