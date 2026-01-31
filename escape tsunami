@@ -64,8 +64,8 @@ local totalButtons = #orderedBlocks + 2
 local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
 local mainWidth, mainHeight
 if isMobile then
-    mainWidth = 120
-    mainHeight = workspace.CurrentCamera.ViewportSize.Y * 0.6 -- 60٪ من الشاشة
+    mainWidth = 150
+    mainHeight = workspace.CurrentCamera.ViewportSize.Y * 0.7 -- 60٪ من الشاشة
 else
     mainWidth = 200
     mainHeight = topHeight + totalButtons*(buttonHeight + padding)
