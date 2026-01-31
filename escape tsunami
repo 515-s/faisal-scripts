@@ -1,4 +1,4 @@
---// Faisal Script UI + Lucky Blocks ESP + Auto Update خفيف
+--// Faisal Script UI + Lucky Blocks ESP خفيف + أسماء مرة وحدة
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -87,16 +87,26 @@ arrow.MouseButton1Click:Connect(function()
 		{Size = opened and openSize or closeSize}):Play()
 end)
 
--- جدول لتسجيل موديلات تم تمييزها بالفعل
+-- جدول لتسجيل موديلات تم تمييزها لكل نوع على حدة
 local highlightedModels = {}
+for _, block in ipairs(orderedBlocks) do
+	highlightedModels[block.model] = {} -- جدول لكل نوع
+end
 
 -- Function to highlight models using BoxHandleAdornment (ESP خفيف)
 local function highlightModel(model, color, rarityName)
-	if highlightedModels[model] then return end -- إذا تم تمييزه مسبقًا نتخطاه
-	highlightedModels[model] = true
+	if highlightedModels[model.Name][model] then return end
+	highlightedModels[model.Name][model] = true
 
+	-- إنشاء ESP مرة واحدة لكل موديل
 	for _, part in pairs(model:GetDescendants()) do
 		if part:IsA("BasePart") then
+			-- إزالة أي ESP قديمة
+			for _, child in pairs(part:GetChildren()) do
+				if child:IsA("BoxHandleAdornment") then
+					child:Destroy()
+				end
+			end
 			local adorn = Instance.new("BoxHandleAdornment")
 			adorn.Adornee = part
 			adorn.AlwaysOnTop = true
@@ -105,24 +115,28 @@ local function highlightModel(model, color, rarityName)
 			adorn.Color3 = color
 			adorn.Transparency = 0.3
 			adorn.Parent = part
-
-			local bgui = Instance.new("BillboardGui")
-			bgui.Adornee = part
-			bgui.Size = UDim2.new(0,100,0,20)
-			bgui.StudsOffset = Vector3.new(0, part.Size.Y/2 + 0.5, 0)
-			bgui.AlwaysOnTop = true
-			bgui.Parent = part
-
-			local label = Instance.new("TextLabel", bgui)
-			label.Size = UDim2.new(1,0,1,0)
-			label.BackgroundTransparency = 1
-			label.Text = rarityName
-			label.TextColor3 = color
-			label.TextSize = 12
-			label.Font = Enum.Font.GothamBold
-			label.TextStrokeTransparency = 0.5
-			label.TextScaled = true
 		end
+	end
+
+	-- اسم النُدرة مرة واحدة على موديل
+	local mainPart = model:FindFirstChildWhichIsA("BasePart")
+	if mainPart then
+		local bgui = Instance.new("BillboardGui")
+		bgui.Adornee = mainPart
+		bgui.Size = UDim2.new(0,100,0,20)
+		bgui.StudsOffset = Vector3.new(0, mainPart.Size.Y/2 + 0.5, 0)
+		bgui.AlwaysOnTop = true
+		bgui.Parent = model
+
+		local label = Instance.new("TextLabel", bgui)
+		label.Size = UDim2.new(1,0,1,0)
+		label.BackgroundTransparency = 1
+		label.Text = rarityName
+		label.TextColor3 = color
+		label.TextSize = 12
+		label.Font = Enum.Font.GothamBold
+		label.TextStrokeTransparency = 0.5
+		label.TextScaled = true
 	end
 end
 
@@ -151,7 +165,7 @@ end
 -- تحديث تلقائي كل ثانية للموديلات الجديدة فقط
 task.spawn(function()
 	while true do
-		task.wait(1)
+		task.wait(1) -- أخف من قبل
 		for _, block in ipairs(orderedBlocks) do
 			for _, obj in pairs(workspace:GetDescendants()) do
 				if obj:IsA("Model") and obj.Name == block.model then
