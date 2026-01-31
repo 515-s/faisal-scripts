@@ -1,4 +1,4 @@
---// Faisal Script UI + Lucky Blocks ESP (ألوان مخصصة + Celestial Rainbow)
+--// Faisal Script UI + Lucky Blocks ESP (ألوان مخصصة + Celestial Rainbow + Refresh)
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -14,7 +14,7 @@ local topHeight = 26
 local buttonHeight = 28
 local padding = 6
 
--- ترتيب الأزرار + ألوان مخصصة + إضافة Celestial
+-- ترتيب الأزرار + ألوان مخصصة + Celestial
 local orderedBlocks = {
 	{name = "common lucky block", model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(200,200,200)}, -- رمادي فاتح
 	{name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)}, -- أخضر
@@ -23,10 +23,10 @@ local orderedBlocks = {
 	{name = "mythical lucky block", model = "NaturalLuckyBlock_Mythical", color = Color3.fromRGB(255,215,0)}, -- ذهبي
 	{name = "cosmic lucky block", model = "NaturalLuckyBlock_Cosmic", color = Color3.fromRGB(0,0,0)}, -- أسود
 	{name = "secret lucky block", model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,0,0)}, -- أحمر
-	{name = "celestial lucky block", model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)} -- لون أساسي، يتحول لرينبو
+	{name = "celestial lucky block", model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)} -- لون أساسي، يتحول Rainbow
 }
 
-local totalButtons = #orderedBlocks
+local totalButtons = #orderedBlocks + 1 -- +1 للزر Refresh
 local mainHeight = topHeight + totalButtons*(buttonHeight + padding)
 
 local main = Instance.new("Frame")
@@ -88,11 +88,19 @@ arrow.MouseButton1Click:Connect(function()
 		{Size = opened and openSize or closeSize}):Play()
 end)
 
+-- جدول لتسجيل موديلات تم تمييزها لكل نوع
+local highlightedModels = {}
+for _, block in ipairs(orderedBlocks) do
+	highlightedModels[block.model] = {}
+end
+
 -- Function لتلوين موديل مع دعم Rainbow للـCelestial
 local function highlightModel(model, color, isRainbow)
+	if highlightedModels[model.Name][model] then return end
+	highlightedModels[model.Name][model] = true
+
 	for _, part in pairs(model:GetDescendants()) do
 		if part:IsA("BasePart") then
-			-- إزالة أي ESP قديمة
 			for _, child in pairs(part:GetChildren()) do
 				if child:IsA("BoxHandleAdornment") then
 					child:Destroy()
@@ -108,7 +116,6 @@ local function highlightModel(model, color, isRainbow)
 			adorn.Parent = part
 
 			if isRainbow then
-				-- Rainbow effect خفيف
 				task.spawn(function()
 					while adorn.Parent do
 						local t = tick()
@@ -121,6 +128,19 @@ local function highlightModel(model, color, isRainbow)
 			end
 		end
 	end
+end
+
+-- Function لعمل Refresh لكل الموديلات
+local function refreshAll()
+	for _, block in ipairs(orderedBlocks) do
+		local isRainbow = (block.name == "celestial lucky block")
+		for _, obj in pairs(workspace:GetDescendants()) do
+			if obj:IsA("Model") and obj.Name == block.model then
+				highlightModel(obj, block.color, isRainbow)
+			end
+		end
+	end
+	print("All Lucky Blocks refreshed!")
 end
 
 -- Create Buttons
@@ -146,3 +166,17 @@ for _, block in ipairs(orderedBlocks) do
 		print(block.name .. " highlighted!")
 	end)
 end
+
+-- زر Refresh
+local refreshBtn = Instance.new("TextButton")
+refreshBtn.Parent = content
+refreshBtn.Size = UDim2.new(1,-12,0,buttonHeight)
+refreshBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+refreshBtn.Text = "Refresh"
+refreshBtn.TextColor3 = Color3.fromRGB(230,230,230)
+refreshBtn.TextSize = 11
+refreshBtn.Font = Enum.Font.GothamBold
+refreshBtn.BorderSizePixel = 0
+Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
+
+refreshBtn.MouseButton1Click:Connect(refreshAll)
