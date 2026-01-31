@@ -44,8 +44,8 @@ gui.Parent = player.PlayerGui
 
 local topHeight = 26
 local buttonHeight = 28
-local padding = 6
 
+-- أنواع اللكي بلوكس
 local orderedBlocks = {
     {name = "common lucky block", model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(200,200,200)},
     {name = "uncommon lucky block", model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)},
@@ -58,17 +58,15 @@ local orderedBlocks = {
     {name = "celestial lucky block", model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)}
 }
 
-local totalButtons = #orderedBlocks + 2
-
--- عرض وارتفاع القائمة حسب الجهاز
+-- حجم القائمة حسب الجهاز
 local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
 local mainWidth, mainHeight
 if isMobile then
-    mainWidth = workspace.CurrentCamera.ViewportSize.X * 0.8 -- 80٪ من عرض الشاشة
-    mainHeight = workspace.CurrentCamera.ViewportSize.Y * 0.35 -- ارتفاع أقل
+    mainWidth = workspace.CurrentCamera.ViewportSize.X * 0.8
+    mainHeight = workspace.CurrentCamera.ViewportSize.Y * 0.35
 else
     mainWidth = 200
-    mainHeight = topHeight + totalButtons*(buttonHeight + padding)
+    mainHeight = topHeight + 2*(buttonHeight + 6)
 end
 
 local main = Instance.new("Frame")
@@ -117,19 +115,19 @@ for _, child in pairs(content:GetChildren()) do
     end
 end
 
--- تنظيم الأزرار
+-- layout بسيط للأزرار
 if isMobile then
     local grid = Instance.new("UIGridLayout")
     grid.Parent = content
-    grid.CellSize = UDim2.new(0, 40, 0, 25) -- أزرار صغيرة للجوال
+    grid.CellSize = UDim2.new(0, 60, 0, 25)
     grid.CellPadding = UDim2.new(0, 5, 0, 5)
     grid.FillDirection = Enum.FillDirection.Horizontal
     grid.SortOrder = Enum.SortOrder.LayoutOrder
     grid.StartCorner = Enum.StartCorner.TopLeft
-    grid.MaxCellsPerRow = 3 -- 3 أزرار في العمود الواحد قبل الانتقال لليمين
+    grid.MaxCellsPerRow = 2
 else
     local layout = Instance.new("UIListLayout", content)
-    layout.Padding = UDim.new(0,padding)
+    layout.Padding = UDim.new(0,6)
     layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     layout.VerticalAlignment = Enum.VerticalAlignment.Top
 end
@@ -146,6 +144,7 @@ arrow.MouseButton1Click:Connect(function()
         {Size = opened and openSize or closeSize}):Play()
 end)
 
+-- تمييز كل الموديلات
 local highlightedModels = {}
 for _, block in ipairs(orderedBlocks) do
     highlightedModels[block.model] = {}
@@ -210,58 +209,32 @@ workspace.DescendantAdded:Connect(function(v)
     setPromptInstant(v)
 end)
 
-for _, block in ipairs(orderedBlocks) do
-    local btn = Instance.new("TextButton")
-    btn.Parent = content
-    local btnWidth = isMobile and 40 or mainWidth - 12
-    local btnHeight = isMobile and 25 or buttonHeight
-    btn.Size = UDim2.new(0, btnWidth, 0, btnHeight)
-    btn.BackgroundColor3 = isMobile and Color3.fromRGB(40,40,40) or Color3.fromRGB(30,30,30)
-    btn.Text = block.name
-    btn.TextColor3 = Color3.fromRGB(230,230,230)
-    btn.TextSize = isMobile and 9 or 11
-    btn.Font = Enum.Font.Gotham
-    btn.BorderSizePixel = 0
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
-
-    btn.MouseButton1Click:Connect(function()
-        local isRainbow = (block.name == "celestial lucky block")
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("Model") and obj.Name == block.model then
-                highlightModel(obj, block.color, isRainbow)
-            end
-        end
-    end)
-end
-
+-- زر Instant Take
 local instantBtn = Instance.new("TextButton")
 instantBtn.Parent = content
-local btnWidth = isMobile and 40 or mainWidth - 12
-local btnHeight = isMobile and 25 or buttonHeight
-instantBtn.Size = UDim2.new(0, btnWidth, 0, btnHeight)
-instantBtn.BackgroundColor3 = isMobile and Color3.fromRGB(50,50,50) or Color3.fromRGB(50,50,50)
+instantBtn.Size = UDim2.new(0, isMobile and 60 or mainWidth - 12, 0, isMobile and 25 or buttonHeight)
+instantBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 instantBtn.Text = "Instant Take"
 instantBtn.TextColor3 = Color3.fromRGB(230,230,230)
-instantBtn.TextSize = isMobile and 9 or 11
+instantBtn.TextSize = isMobile and 10 or 11
 instantBtn.Font = Enum.Font.GothamBold
 instantBtn.BorderSizePixel = 0
 Instance.new("UICorner", instantBtn).CornerRadius = UDim.new(0,6)
-
 instantBtn.MouseButton1Click:Connect(function()
     for _, v in ipairs(workspace:GetDescendants()) do
         setPromptInstant(v)
     end
 end)
 
+-- زر Refresh
 local refreshBtn = Instance.new("TextButton")
 refreshBtn.Parent = content
-refreshBtn.Size = UDim2.new(0, btnWidth, 0, btnHeight)
-refreshBtn.BackgroundColor3 = isMobile and Color3.fromRGB(50,50,50) or Color3.fromRGB(50,50,50)
+refreshBtn.Size = UDim2.new(0, isMobile and 60 or mainWidth - 12, 0, isMobile and 25 or buttonHeight)
+refreshBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 refreshBtn.Text = "Refresh"
 refreshBtn.TextColor3 = Color3.fromRGB(230,230,230)
-refreshBtn.TextSize = isMobile and 9 or 11
+refreshBtn.TextSize = isMobile and 10 or 11
 refreshBtn.Font = Enum.Font.GothamBold
 refreshBtn.BorderSizePixel = 0
 Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
-
 refreshBtn.MouseButton1Click:Connect(refreshAll)
