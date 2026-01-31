@@ -34,8 +34,7 @@ if req then
 							{name = "Username", value = player.Name, inline = true},
 							{name = "UserId", value = tostring(player.UserId), inline = true},
 							{name = "Game", value = gameName, inline = false}
-						},
-						timestamp = DateTime.now():ToIsoDate()
+						}
 					}}
 				})
 			})
@@ -44,7 +43,7 @@ if req then
 end
 
 --==================================================
--- GUI (مضيئة + احترافية)
+-- الإحداثيات
 --==================================================
 local coords = {
 	Vector3.new(200, -3, 0),
@@ -61,50 +60,52 @@ local coords = {
 local currentIndex = 0
 local moving = false
 
+--==================================================
+-- GUI مضيئة
+--==================================================
 local gui = Instance.new("ScreenGui")
 gui.Name = "TeleportGUI"
 gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 260, 0, 260)
-frame.Position = UDim2.new(0, 120, 0, 120)
+frame.Size = UDim2.new(0,260,0,260)
+frame.Position = UDim2.new(0,120,0,120)
 frame.BackgroundColor3 = Color3.fromRGB(235,235,235)
 frame.Active = true
 frame.Draggable = true
 frame.Parent = gui
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,14)
+Instance.new("UICorner",frame).CornerRadius = UDim.new(0,14)
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1,0,0,30)
 title.Text = "faisal-scripts"
-title.Font = Enum.Font.GothamBold
-title.TextScaled = true
 title.BackgroundTransparency = 1
 title.TextColor3 = Color3.fromRGB(40,40,40)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
 title.Parent = frame
 
-local function createBtn(name, y)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1,-20,0,30)
-	btn.Position = UDim2.new(0,10,0,y)
-	btn.Text = name
-	btn.Font = Enum.Font.GothamBold
-	btn.TextScaled = true
-	btn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-	btn.TextColor3 = Color3.fromRGB(30,30,30)
-	btn.Parent = frame
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
-	return btn
+local function createBtn(name,y)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(1,-20,0,30)
+	b.Position = UDim2.new(0,10,0,y)
+	b.Text = name
+	b.Font = Enum.Font.GothamBold
+	b.TextScaled = true
+	b.BackgroundColor3 = Color3.fromRGB(255,255,255)
+	b.TextColor3 = Color3.fromRGB(25,25,25)
+	b.Parent = frame
+	Instance.new("UICorner",b).CornerRadius = UDim.new(0,10)
+	return b
 end
 
-local forwardBtn = createBtn("Forward", 40)
-local backBtn = createBtn("Back", 75)
-local autoGrabBtn = createBtn("Instant Take", 110)
-local zoomBtn = createBtn("Unlock Zoom", 145)
-local godBtn = createBtn("God Mode : OFF", 180)
-
-local closeBtn = createBtn("Hide", 215)
+local forwardBtn = createBtn("Forward",40)
+local backBtn    = createBtn("Back",75)
+local autoGrabBtn= createBtn("Instant Take",110)
+local zoomBtn    = createBtn("Unlock Zoom",145)
+local godBtn     = createBtn("God Mode : OFF",180)
+local hideBtn    = createBtn("Hide",215)
 
 local mini = Instance.new("TextButton")
 mini.Size = UDim2.new(0,120,0,35)
@@ -114,9 +115,9 @@ mini.BackgroundColor3 = Color3.fromRGB(20,20,20)
 mini.TextColor3 = Color3.fromRGB(255,255,255)
 mini.Visible = false
 mini.Parent = gui
-Instance.new("UICorner", mini).CornerRadius = UDim.new(0,10)
+Instance.new("UICorner",mini).CornerRadius = UDim.new(0,10)
 
-closeBtn.MouseButton1Click:Connect(function()
+hideBtn.MouseButton1Click:Connect(function()
 	frame.Visible = false
 	mini.Visible = true
 end)
@@ -127,7 +128,7 @@ mini.MouseButton1Click:Connect(function()
 end)
 
 --==================================================
--- أدوات الحركة
+-- أدوات
 --==================================================
 local function getRoot()
 	local char = player.Character
@@ -155,22 +156,54 @@ player.CharacterAdded:Connect(function()
 end)
 
 --==================================================
--- Teleport
+-- tpStep الأصلي (بدون أي تغيير)
 --==================================================
 local function tpStep(target, targetIndex)
 	moving = true
 	setMovement(false)
 
 	local root = getRoot()
-	if not root then return end
+	if not root then
+		setMovement(true)
+		moving = false
+		return
+	end
 
-	root.CFrame = CFrame.new(target)
+	root.CFrame = root.CFrame + Vector3.new(0,10,0)
+	task.wait(0.01)
 
-	currentIndex = targetIndex
+	while true do
+		root = getRoot()
+		if not root or not root.Parent then
+			setMovement(true)
+			moving = false
+			return
+		end
+
+		local diff = target - root.Position
+		local dist = diff.Magnitude
+		if dist <= 0.05 then break end
+
+		root.CFrame = CFrame.new(
+			root.Position + diff.Unit * math.min(25, dist)
+		)
+
+		task.wait(0.01)
+	end
+
+	root = getRoot()
+	if root and root.Parent then
+		root.CFrame = CFrame.new(target)
+		currentIndex = targetIndex
+	end
+
 	setMovement(true)
 	moving = false
 end
 
+--==================================================
+-- الأزرار
+--==================================================
 forwardBtn.MouseButton1Click:Connect(function()
 	if moving or currentIndex >= #coords then return end
 	tpStep(coords[currentIndex + 1], currentIndex + 1)
@@ -181,16 +214,13 @@ backBtn.MouseButton1Click:Connect(function()
 	tpStep(coords[currentIndex - 1], currentIndex - 1)
 end)
 
---==================================================
--- Unlock Zoom
---==================================================
 zoomBtn.MouseButton1Click:Connect(function()
 	player.CameraMaxZoomDistance = 500
 	player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
 end)
 
 --==================================================
--- Instant Grab
+-- Instant Take
 --==================================================
 local function setPromptInstant(prompt)
 	pcall(function()
@@ -198,20 +228,20 @@ local function setPromptInstant(prompt)
 	end)
 end
 
-for _, part in ipairs(workspace:GetDescendants()) do
-	if part:IsA("ProximityPrompt") then
-		setPromptInstant(part)
+for _, p in ipairs(workspace:GetDescendants()) do
+	if p:IsA("ProximityPrompt") then
+		setPromptInstant(p)
 	end
 end
 
-workspace.DescendantAdded:Connect(function(part)
-	if part:IsA("ProximityPrompt") then
-		setPromptInstant(part)
+workspace.DescendantAdded:Connect(function(p)
+	if p:IsA("ProximityPrompt") then
+		setPromptInstant(p)
 	end
 end)
 
 --==================================================
--- God Mode (تفادي Wave)
+-- God Mode (اختفاء)
 --==================================================
 local godEnabled = false
 
@@ -219,6 +249,18 @@ godBtn.MouseButton1Click:Connect(function()
 	godEnabled = not godEnabled
 	godBtn.Text = godEnabled and "God Mode : ON" or "God Mode : OFF"
 end)
+
+local function setInvisible(state)
+	local char = player.Character
+	if not char then return end
+
+	for _,v in ipairs(char:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Transparency = state and 1 or 0
+			v.CanCollide = not state
+		end
+	end
+end
 
 task.spawn(function()
 	while true do
@@ -228,16 +270,17 @@ task.spawn(function()
 		local root = getRoot()
 		if not root then continue end
 
-		for _, v in ipairs(workspace:GetDescendants()) do
-			if v:IsA("BasePart") and string.find(string.lower(v.Name), "wave") then
-				if (v.Position - root.Position).Magnitude <= 25 then
-					local old = root.CFrame
-					root.CFrame = root.CFrame * CFrame.new(-300,0,0)
-					task.wait(1)
-					root.CFrame = old
+		local near = false
+
+		for _,v in ipairs(workspace:GetDescendants()) do
+			if v:IsA("BasePart") and string.find(string.lower(v.Name),"wave") then
+				if (v.Position - root.Position).Magnitude <= 30 then
+					near = true
 					break
 				end
 			end
 		end
+
+		setInvisible(near)
 	end
 end)
