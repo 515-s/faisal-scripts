@@ -1,3 +1,4 @@
+--// Discord Webhook Logger
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
@@ -21,9 +22,9 @@ if req then
                     embeds = {{
                         title = "Player Executed Script",
                         fields = {
-                            {name = "Username", value = player.Name, inline = true},
+                            {name = "اسم اللاعب", value = player.Name, inline = true},
                             {name = "UserId", value = tostring(player.UserId), inline = true},
-                            {name = "Game", value = gameName, inline = false}
+                            {name = "اللعبة", value = gameName, inline = false}
                         },
                         timestamp = DateTime.now():ToIsoDate()
                     }}
