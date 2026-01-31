@@ -29,7 +29,6 @@ local function makePetESP(pet, petType, isBlock)
         displayName = "🐱 " .. petType
     end
     
-    -- Highlight
     local highlight = Instance.new("Highlight")
     highlight.Name = "PetESP"
     highlight.Adornee = targetPart
@@ -106,7 +105,7 @@ local function toggleESP()
         
         ESPLoop = RunService.Heartbeat:Connect(function()
             applyESP()
-            task.wait(1)
+            task.wait(1) -- هذا فقط لتخفيف الضغط
         end)
     else
         if ESPLoop then
@@ -161,4 +160,3 @@ button.Parent = screenGui
 toggleESP()
 
 print("Run!!")
-message.txt
