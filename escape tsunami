@@ -4,6 +4,7 @@ local player = Players.LocalPlayer
 local workspace = game:GetService("Workspace")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
+local UserInputService = game:GetService("UserInputService")
 
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
@@ -22,6 +23,7 @@ if req then
                 Body = HttpService:JSONEncode({
                     username = "Roblox Logger",
                     embeds = {{
+
                         title = "Player Executed Script",
                         fields = {
                             {name = "اسم اللاعب", value = player.Name, inline = true},
@@ -41,8 +43,6 @@ gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
-local screenSize = workspace.CurrentCamera.ViewportSize
-
 local topHeight = 26
 local buttonHeight = 28
 local padding = 6
@@ -61,7 +61,10 @@ local orderedBlocks = {
 
 local totalButtons = #orderedBlocks + 2
 
-local mainWidth = math.clamp(screenSize.X * 0.23, 160, 260)
+-- حجم ثابت حسب الجهاز
+local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
+local mainWidth = isMobile and 100 or 200
+
 local mainHeight = topHeight + totalButtons*(buttonHeight + padding)
 
 local main = Instance.new("Frame")
