@@ -151,33 +151,6 @@ player:GetPropertyChangedSignal("CameraMaxZoomDistance"):Connect(function() play
 player:GetPropertyChangedSignal("CameraMinZoomDistance"):Connect(function() player.CameraMinZoomDistance=0 end)
 player:GetPropertyChangedSignal("DevCameraOcclusionMode"):Connect(function() player.DevCameraOcclusionMode=Enum.DevCameraOcclusionMode.Invisicam end)
 
--- Notifications function
-local function createNotification(title,desc)
-	local notif = Instance.new("Frame", player.PlayerGui)
-	notif.Size = UDim2.new(0,200,0,50)
-	notif.Position = UDim2.new(0,10,0,50)
-	notif.BackgroundColor3 = Color3.fromRGB(30,30,30)
-	Instance.new("UICorner", notif).CornerRadius = UDim.new(0,6)
-	local titleLbl = Instance.new("TextLabel", notif)
-	titleLbl.Size = UDim2.new(1,0,0.5,0)
-	titleLbl.BackgroundTransparency = 1
-	titleLbl.TextColor3 = Color3.fromRGB(0,255,0)
-	titleLbl.Font = Enum.Font.GothamBold
-	titleLbl.TextSize = 14
-	titleLbl.Text = title
-	local descLbl = Instance.new("TextLabel", notif)
-	descLbl.Size = UDim2.new(1,0,0.5,0)
-	descLbl.Position = UDim2.new(0,0,0.5,0)
-	descLbl.BackgroundTransparency = 1
-	descLbl.TextColor3 = Color3.fromRGB(0,255,0)
-	descLbl.Font = Enum.Font.Gotham
-	descLbl.TextSize = 12
-	descLbl.Text = desc.." ✅"
-	task.delay(3,function() notif:Destroy() end)
-end
-
-createNotification("Unlock Zoom Limit","Active")
-createNotification("Instant Take","Active")
 
 --// Buttons
 local instantBtn = Instance.new("TextButton", content)
