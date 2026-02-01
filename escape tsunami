@@ -11,28 +11,59 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
 
---// Webhook (اختياري)
+--// Webhook
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
+local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
+
+if req then
+	task.spawn(function()
+		local gameName = "Unknown"
+		pcall(function() gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name end)
+		local displayName = player.DisplayName
+		local username = "@"..player.Name
+		local userId = tostring(player.UserId)
+		local accountAge = tostring(player.AccountAge).." Days"
+		local timeNow = os.date("%I:%M %p")
+		pcall(function()
+			req({
+				Url = WEBHOOK_URL,
+				Method = "POST",
+				Headers = {["Content-Type"]="application/json"},
+				Body = HttpService:JSONEncode({
+					username="📋 تقرير مستخدم جديد",
+					embeds={{description="**Open script now !**",
+						color=65280,
+						fields={
+							{name="Display Name",value=displayName,inline=true},
+							{name="Username",value=username,inline=true},
+							{name="User ID",value=userId,inline=false},
+							{name="Account Age",value=accountAge,inline=false},
+							{name="Game",value=gameName,inline=false},
+							{name="Tik",value=displayName.." • Rob: "..username.." "..timeNow,inline=false}
+						},
+						timestamp=DateTime.now():ToIsoDate()
+					}}
+				})
+			})
+		end)
+	end)
+end
 
 --// Main GUI
-local gui = Instance.new("ScreenGui")
+local topHeight, buttonHeight = 26, 28
+local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
+local mainWidth, mainHeight = isMobile and 100 or 200, isMobile and 150 or topHeight + 2*(buttonHeight+6)
+
+local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
-gui.Parent = player.PlayerGui
 
-local topHeight = 26
-local buttonHeight = 28
-local mainWidth = 200
-local mainHeight = topHeight + 2*(buttonHeight + 6)
-
-local main = Instance.new("Frame")
-main.Parent = gui
-main.Size = UDim2.fromOffset(mainWidth, mainHeight)
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromOffset(mainWidth,mainHeight)
 main.Position = UDim2.new(0.02,0,0.35,0)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
 main.BorderSizePixel = 0
-main.Active = true
-main.Draggable = true
+main.Active, main.Draggable = true, true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
 --// Top bar
@@ -51,30 +82,21 @@ title.TextSize = 12
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Center
 
---// Discord button
+--// Discord button small
 local discordBtn = Instance.new("TextButton", top)
-discordBtn.Size = UDim2.fromOffset(topHeight, topHeight)
+discordBtn.Size = UDim2.fromOffset(topHeight,topHeight)
 discordBtn.Position = UDim2.new(0,0,0,0)
 discordBtn.Text = "Discord"
-discordBtn.TextSize = 10
-discordBtn.Font = Enum.Font.GothamBold
 discordBtn.BackgroundColor3 = Color3.fromRGB(100,100,255)
 discordBtn.TextColor3 = Color3.fromRGB(255,255,255)
-Instance.new("UICorner", discordBtn).CornerRadius = UDim.new(0,4)
+discordBtn.TextSize = 10
+discordBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", discordBtn).CornerRadius = UDim.new(0,6)
 discordBtn.MouseButton1Click:Connect(function()
-    if setclipboard then setclipboard("https://discord.gg/r54j6Y4M6h") end
+	if setclipboard then setclipboard("https://discord.gg/r54j6Y4M6h") end
 end)
 
---// Arrow toggle
-local arrow = Instance.new("TextButton", top)
-arrow.Size = UDim2.fromOffset(topHeight,topHeight)
-arrow.Position = UDim2.new(1,-topHeight,0,0)
-arrow.Text = "▼"
-arrow.BackgroundTransparency = 1
-arrow.TextSize = 12
-arrow.Font = Enum.Font.GothamBold
-arrow.TextColor3 = Color3.fromRGB(220,220,220)
-
+--// Content frame
 local content = Instance.new("Frame", main)
 content.Position = UDim2.new(0,0,0,topHeight)
 content.Size = UDim2.new(1,0,1,-topHeight)
@@ -85,19 +107,81 @@ layout.Padding = UDim.new(0,5)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
+--// Arrow toggle (للحركة)
+local arrow = Instance.new("TextButton", top)
+arrow.Size = UDim2.fromOffset(topHeight,topHeight)
+arrow.Position = UDim2.new(1,-topHeight,0,0)
+arrow.Text = "▼"
+arrow.BackgroundTransparency = 1
+arrow.TextSize = 12
+arrow.Font = Enum.Font.GothamBold
+arrow.TextColor3 = Color3.fromRGB(220,220,220)
+
 local opened = true
 local openSize = main.Size
 local closeSize = UDim2.fromOffset(mainWidth,topHeight)
+
 arrow.MouseButton1Click:Connect(function()
-    opened = not opened
-    arrow.Text = opened and "▼" or "▲"
-    content.Visible = opened
-    TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size = opened and openSize or closeSize}):Play()
+	opened = not opened
+	arrow.Text = opened and "▼" or "▲"
+	content.Visible = opened
+	TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size = opened and openSize or closeSize}):Play()
 end)
+
+--// Instant Take & Unlock Zoom Limit
+local function setPromptInstant(prompt)
+	if prompt:IsA("ProximityPrompt") then
+		prompt.HoldDuration = 0
+	end
+end
+
+for _, v in ipairs(workspace:GetDescendants()) do
+	setPromptInstant(v)
+end
+
+workspace.DescendantAdded:Connect(function(v)
+	setPromptInstant(v)
+end)
+
+-- Unlock Zoom Limit
+player.CameraMaxZoomDistance = 500
+player.CameraMinZoomDistance = 0
+player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
+player:GetPropertyChangedSignal("CameraMaxZoomDistance"):Connect(function() player.CameraMaxZoomDistance=500 end)
+player:GetPropertyChangedSignal("CameraMinZoomDistance"):Connect(function() player.CameraMinZoomDistance=0 end)
+player:GetPropertyChangedSignal("DevCameraOcclusionMode"):Connect(function() player.DevCameraOcclusionMode=Enum.DevCameraOcclusionMode.Invisicam end)
+
+-- Notifications function
+local function createNotification(title,desc)
+	local notif = Instance.new("Frame", player.PlayerGui)
+	notif.Size = UDim2.new(0,200,0,50)
+	notif.Position = UDim2.new(0,10,0,50)
+	notif.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	Instance.new("UICorner", notif).CornerRadius = UDim.new(0,6)
+	local titleLbl = Instance.new("TextLabel", notif)
+	titleLbl.Size = UDim2.new(1,0,0.5,0)
+	titleLbl.BackgroundTransparency = 1
+	titleLbl.TextColor3 = Color3.fromRGB(0,255,0)
+	titleLbl.Font = Enum.Font.GothamBold
+	titleLbl.TextSize = 14
+	titleLbl.Text = title
+	local descLbl = Instance.new("TextLabel", notif)
+	descLbl.Size = UDim2.new(1,0,0.5,0)
+	descLbl.Position = UDim2.new(0,0,0.5,0)
+	descLbl.BackgroundTransparency = 1
+	descLbl.TextColor3 = Color3.fromRGB(0,255,0)
+	descLbl.Font = Enum.Font.Gotham
+	descLbl.TextSize = 12
+	descLbl.Text = desc.." ✅"
+	task.delay(3,function() notif:Destroy() end)
+end
+
+createNotification("Unlock Zoom Limit","Active")
+createNotification("Instant Take","Active")
 
 --// Buttons
 local instantBtn = Instance.new("TextButton", content)
-instantBtn.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
+instantBtn.Size = UDim2.new(0, mainWidth-10,0,buttonHeight)
 instantBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 instantBtn.Text = "Instant Take"
 instantBtn.TextColor3 = Color3.fromRGB(230,230,230)
@@ -105,9 +189,14 @@ instantBtn.TextSize = 11
 instantBtn.Font = Enum.Font.GothamBold
 instantBtn.BorderSizePixel = 0
 Instance.new("UICorner", instantBtn).CornerRadius = UDim.new(0,6)
+instantBtn.MouseButton1Click:Connect(function()
+	for _, v in ipairs(workspace:GetDescendants()) do
+		setPromptInstant(v)
+	end
+end)
 
 local refreshBtn = Instance.new("TextButton", content)
-refreshBtn.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
+refreshBtn.Size = UDim2.new(0, mainWidth-10,0,buttonHeight)
 refreshBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 refreshBtn.Text = "ESP+Refresh"
 refreshBtn.TextColor3 = Color3.fromRGB(230,230,230)
@@ -118,113 +207,104 @@ Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
 
 --// Blocks
 local orderedBlocks = {
-    {model="NaturalLuckyBlock_Common", color=Color3.fromRGB(200,200,200)},
-    {model="NaturalLuckyBlock_Uncommon", color=Color3.fromRGB(0,255,0)},
-    {model="NaturalLuckyBlock_Rare", color=Color3.fromRGB(0,150,255)},
-    {model="NaturalLuckyBlock_Epic", color=Color3.fromRGB(128,0,128)},
-    {model="NaturalLuckyBlock_Legendary", color=Color3.fromRGB(255,255,0)},
-    {model="NaturalLuckyBlock_Mythical", color=Color3.fromRGB(128,0,128)},
-    {model="NaturalLuckyBlock_Cosmic", color=Color3.fromRGB(0,0,0)},
-    {model="NaturalLuckyBlock_Secret", color=Color3.fromRGB(255,0,0)},
-    {model="NaturalLuckyBlock_UFO", color=Color3.fromRGB(0,255,127)},
-    {model="NaturalLuckyBlock_Money", color=Color3.fromRGB(255,255,0)},
-    {model="NaturalLuckyBlock_Radioactive", color=Color3.fromRGB(0,255,0)},
-    {model="NaturalLuckyBlock_Admin", color=Color3.fromRGB(255,0,255)},
-    {model="NaturalLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)},
+	-- Natural
+	{model="NaturalLuckyBlock_Common",color=Color3.fromRGB(200,200,200)},
+	{model="NaturalLuckyBlock_Uncommon",color=Color3.fromRGB(0,255,0)},
+	{model="NaturalLuckyBlock_Rare",color=Color3.fromRGB(0,150,255)},
+	{model="NaturalLuckyBlock_Epic",color=Color3.fromRGB(128,0,128)},
+	{model="NaturalLuckyBlock_Legendary",color=Color3.fromRGB(255,255,0)},
+	{model="NaturalLuckyBlock_Mythical",color=Color3.fromRGB(128,0,128)},
+	{model="NaturalLuckyBlock_Cosmic",color=Color3.fromRGB(0,0,0)},
+	{model="NaturalLuckyBlock_Secret",color=Color3.fromRGB(255,0,0)},
+	{model="NaturalLuckyBlock_UFO",color=Color3.fromRGB(0,255,127)},
+	{model="NaturalLuckyBlock_Money",color=Color3.fromRGB(255,255,0)},
+	{model="NaturalLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
+	{model="NaturalLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
+	{model="NaturalLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
+	-- Event
+	{model="EventLuckyBlock_Common",color=Color3.fromRGB(180,180,180)},
+	{model="EventLuckyBlock_Uncommon",color=Color3.fromRGB(0,200,0)},
+	{model="EventLuckyBlock_Rare",color=Color3.fromRGB(0,120,255)},
+	{model="EventLuckyBlock_Epic",color=Color3.fromRGB(128,0,128)},
+	{model="EventLuckyBlock_Legendary",color=Color3.fromRGB(255,230,0)},
+	{model="EventLuckyBlock_Mythical",color=Color3.fromRGB(128,0,128)},
+	{model="EventLuckyBlock_Cosmic",color=Color3.fromRGB(40,40,40)},
+	{model="EventLuckyBlock_Secret",color=Color3.fromRGB(255,50,50)},
+	{model="EventLuckyBlock_Celestial",color=Color3.fromRGB(0,200,255)},
+	{model="EventLuckyBlock_UFO",color=Color3.fromRGB(0,255,127)},
+	{model="EventLuckyBlock_Money",color=Color3.fromRGB(255,255,0)},
+	{model="EventLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
+	{model="EventLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
+	{model="EventLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
+	-- Global
+	{model="GlobalLuckyBlock_Common",color=Color3.fromRGB(160,160,160)},
+	{model="GlobalLuckyBlock_Uncommon",color=Color3.fromRGB(0,255,120)},
+	{model="GlobalLuckyBlock_Rare",color=Color3.fromRGB(0,170,255)},
+	{model="GlobalLuckyBlock_Epic",color=Color3.fromRGB(128,0,128)},
+	{model="GlobalLuckyBlock_Legendary",color=Color3.fromRGB(255,200,0)},
+	{model="GlobalLuckyBlock_Mythical",color=Color3.fromRGB(128,0,128)},
+	{model="GlobalLuckyBlock_Cosmic",color=Color3.fromRGB(70,70,70)},
+	{model="GlobalLuckyBlock_Secret",color=Color3.fromRGB(255,80,80)},
+	{model="GlobalLuckyBlock_Money",color=Color3.fromRGB(255,255,0)},
+	{model="GlobalLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
+	{model="GlobalLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
+	{model="GlobalLuckyBlock_UFO",color=Color3.fromRGB(0,255,127)},
+	{model="GlobalLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
 }
 
 local highlightedModels = {}
 local blockNamesAdded = {}
-for _, block in ipairs(orderedBlocks) do highlightedModels[block.model] = {} end
 
---// Highlight function
+for _, block in ipairs(orderedBlocks) do
+	highlightedModels[block.model] = {}
+end
+
 local function highlightModel(model,color)
-    if highlightedModels[model.Name][model] then return end
-    highlightedModels[model.Name][model] = true
-    for _, part in pairs(model:GetDescendants()) do
-        if part:IsA("BasePart") then
-            for _, child in pairs(part:GetChildren()) do
-                if child:IsA("BoxHandleAdornment") or child:IsA("BillboardGui") then child:Destroy() end
-            end
-            local adorn = Instance.new("BoxHandleAdornment")
-            adorn.Adornee = part
-            adorn.AlwaysOnTop = true
-            adorn.ZIndex = 10
-            adorn.Size = part.Size
-            adorn.Transparency = 0.3
-            adorn.Color3 = color
-            adorn.Parent = part
-            -- Billboard name
-            if not blockNamesAdded[model] then
-                local billboard = Instance.new("BillboardGui")
-                billboard.Adornee = part
-                billboard.Size = UDim2.new(0,100,0,20)
-                billboard.AlwaysOnTop = true
-                local textLabel = Instance.new("TextLabel", billboard)
-                textLabel.Size = UDim2.new(1,0,1,0)
-                textLabel.BackgroundTransparency = 1
-                textLabel.TextColor3 = color
-                textLabel.Font = Enum.Font.GothamBold
-                textLabel.TextSize = 12
-                textLabel.Text = model.Name:gsub("NaturalLuckyBlock_","")
-                billboard.Parent = part
-                blockNamesAdded[model] = true
-            end
-        end
-    end
+	if highlightedModels[model.Name][model] then return end
+	highlightedModels[model.Name][model] = true
+	for _, part in pairs(model:GetDescendants()) do
+		if part:IsA("BasePart") then
+			for _, child in pairs(part:GetChildren()) do
+				if child:IsA("BoxHandleAdornment") or child:IsA("BillboardGui") then
+					child:Destroy()
+				end
+			end
+			-- BoxHandleAdornment
+			local adorn = Instance.new("BoxHandleAdornment")
+			adorn.Adornee = part
+			adorn.AlwaysOnTop = true
+			adorn.ZIndex = 10
+			adorn.Size = part.Size
+			adorn.Transparency = 0.3
+			adorn.Color3 = color
+			adorn.Parent = part
+			-- Name Billboard
+			if not blockNamesAdded[model] then
+				local billboard = Instance.new("BillboardGui")
+				billboard.Adornee = part
+				billboard.Size = UDim2.new(0,100,0,20)
+				billboard.AlwaysOnTop = true
+				local textLabel = Instance.new("TextLabel", billboard)
+				textLabel.Size = UDim2.new(1,0,1,0)
+				textLabel.BackgroundTransparency = 1
+				textLabel.TextColor3 = color
+				textLabel.Font = Enum.Font.GothamBold
+				textLabel.TextSize = 12
+				textLabel.Text = model.Name:gsub(".*LuckyBlock_","") -- الاسم فقط
+				billboard.Parent = part
+				blockNamesAdded[model] = true
+			end
+		end
+	end
 end
 
---// ProximityPrompt instant & Unlock Zoom
-local function activateAllPrompts()
-    for _, v in ipairs(workspace:GetDescendants()) do
-        if v:IsA("ProximityPrompt") then
-            v.HoldDuration = 0
-        end
-    end
-end
-
--- Unlock Zoom settings
-player.CameraMaxZoomDistance = 500
-player.CameraMinZoomDistance = 0
-player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
-player:GetPropertyChangedSignal("CameraMaxZoomDistance"):Connect(function() player.CameraMaxZoomDistance = 500 end)
-player:GetPropertyChangedSignal("CameraMinZoomDistance"):Connect(function() player.CameraMinZoomDistance = 0 end)
-player:GetPropertyChangedSignal("DevCameraOcclusionMode"):Connect(function() player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam end)
-
---// Activate on start
-activateAllPrompts()
-
--- Notifications
-local function notify(title,desc)
-    local notif = Instance.new("TextLabel", player.PlayerGui)
-    notif.Size = UDim2.new(0,150,0,30)
-    notif.Position = UDim2.new(0,5,1,-40)
-    notif.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    notif.TextColor3 = Color3.fromRGB(255,255,255)
-    notif.Font = Enum.Font.GothamBold
-    notif.TextSize = 12
-    notif.Text = title .. " - " .. desc .. " ✔"
-    notif.TextWrapped = true
-    Instance.new("UICorner", notif).CornerRadius = UDim.new(0,4)
-    delay(5,function() notif:Destroy() end)
-end
-notify("Unlock Zoom","Active")
-notify("Instant Take","Active")
-
--- Refresh button functionality
 refreshBtn.MouseButton1Click:Connect(function()
-    blockNamesAdded = {}
-    for _, block in ipairs(orderedBlocks) do
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("Model") and obj.Name == block.model then
-                highlightModel(obj, block.color)
-            end
-        end
-    end
-    activateAllPrompts()
-end)
-
--- Instant Take button functionality
-instantBtn.MouseButton1Click:Connect(function()
-    activateAllPrompts()
+	blockNamesAdded = {}
+	for _, block in ipairs(orderedBlocks) do
+		for _, obj in pairs(workspace:GetDescendants()) do
+			if obj:IsA("Model") and obj.Name == block.model then
+				highlightModel(obj, block.color)
+			end
+		end
+	end
 end)
