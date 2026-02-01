@@ -1,15 +1,11 @@
---// Services
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local workspace = game:GetService("Workspace")
-local HttpService = game:GetService("HttpService")
-local MarketplaceService = game:GetService("MarketplaceService")
-local UserInputService = game:GetService("UserInputService")
-
 --// Webhook
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
+
+-- ✅ يمنع السكربت من العمل خارج التجربة
+if game.PlaceId ~= 131623223084840 then
+    return
+end
 
 if req then
     task.spawn(function()
@@ -19,15 +15,13 @@ if req then
             gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
         end)
 
-        ------------------------------------------------------------------
-        -- ✅ الإضافة الجديدة (تنسيق صورة الدسكورد)
-        ------------------------------------------------------------------
         local displayName = player.DisplayName
         local username = "@" .. player.Name
         local userId = tostring(player.UserId)
         local accountAge = tostring(player.AccountAge) .. " Days"
         local timeNow = os.date("%I:%M %p")
 
+        -- ✅ رسالة واحدة فقط (شكل الصورة)
         pcall(function()
             req({
                 Url = WEBHOOK_URL,
@@ -45,30 +39,6 @@ if req then
                             {name = "Account Age", value = accountAge, inline = false},
                             {name = "Game", value = gameName, inline = false},
                             {name = "Tik", value = displayName .. " • Rob: " .. username .. " " .. timeNow, inline = false}
-                        },
-                        timestamp = DateTime.now():ToIsoDate()
-                    }}
-                })
-            })
-        end)
-        ------------------------------------------------------------------
-        -- نهاية الإضافة
-        ------------------------------------------------------------------
-
-        -- (الويبهوك الأصلي حقك — ما تم لمسه)
-        pcall(function()
-            req({
-                Url = WEBHOOK_URL,
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = HttpService:JSONEncode({
-                    username = "Roblox Logger",
-                    embeds = {{
-                        title = "Player Executed Script",
-                        fields = {
-                            {name = "اسم اللاعب", value = player.Name, inline = true},
-                            {name = "UserId", value = tostring(player.UserId), inline = true},
-                            {name = "اللعبة", value = gameName, inline = false}
                         },
                         timestamp = DateTime.now():ToIsoDate()
                     }}
