@@ -152,11 +152,12 @@ player:GetPropertyChangedSignal("DevCameraOcclusionMode"):Connect(function() pla
 
 -- Notifications function
 local function createNotification(title,desc,duration)
-	local notif = Instance.new("Frame", player.PlayerGui)
+	local notif = Instance.new("Frame")
 	notif.Size = UDim2.new(0,200,0,50)
 	notif.Position = UDim2.new(0,10,0,50)
 	notif.BackgroundColor3 = Color3.fromRGB(30,30,30)
 	Instance.new("UICorner", notif).CornerRadius = UDim.new(0,6)
+	notif.Parent = player.PlayerGui
 	local titleLbl = Instance.new("TextLabel", notif)
 	titleLbl.Size = UDim2.new(1,0,0.5,0)
 	titleLbl.BackgroundTransparency = 1
