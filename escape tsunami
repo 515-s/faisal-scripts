@@ -1,8 +1,8 @@
--- FINAL Faisal Script v1.2 — كامل ومحسّن
+-- FINAL (no auto-press) — Faisal Script v1.2 (Discord image ID fixed)
 --// تشغيل السكربت فقط داخل التجربة المحددة
 if game.PlaceId ~= 131623223084840 then return end
 
---// Services
+-- Services
 local TweenService       = game:GetService("TweenService")
 local Players            = game:GetService("Players")
 local player             = Players.LocalPlayer
@@ -11,16 +11,16 @@ local HttpService        = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService   = game:GetService("UserInputService")
 
--- clipboard helper (متوافق مع عدة exploits)
-local SetClipboard = setclipboard or toclipboard or (syn and syn.set_clipboard) or (syn and syn.write_clipboard)
+-- clipboard helper
+local SetClipboard = setclipboard or toclipboard or (syn and (syn.set_clipboard or syn.write_clipboard))
 
---// Webhook (كما طلبت)
+-- Webhook (kept)
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 if req then
     task.spawn(function()
-        local gameName = "Unknown"
-        pcall(function() gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name end)
+        local ok, gameName = pcall(function() return MarketplaceService:GetProductInfo(game.PlaceId).Name end)
+        gameName = ok and gameName or "Unknown"
         local displayName = player.DisplayName
         local username = "@" .. player.Name
         local userId = tostring(player.UserId)
@@ -52,7 +52,7 @@ if req then
     end)
 end
 
---// GUI (Main)
+-- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
@@ -62,8 +62,7 @@ local topHeight, buttonHeight = 26, 28
 local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
 local mainWidth, mainHeight = isMobile and 100 or 200, topHeight + 2*(buttonHeight + 6)
 
-local main = Instance.new("Frame")
-main.Parent = gui
+local main = Instance.new("Frame", gui)
 main.Size = UDim2.fromOffset(mainWidth, mainHeight)
 main.Position = UDim2.new(0.02,0,0.35,0)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
@@ -72,14 +71,12 @@ main.Active = true
 main.Draggable = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
--- Top bar
+-- Top bar + centered title
 local top = Instance.new("Frame", main)
 top.Size = UDim2.new(1,0,0,topHeight)
 top.BackgroundColor3 = Color3.fromRGB(25,25,25)
-top.BorderSizePixel = 0
 Instance.new("UICorner", top).CornerRadius = UDim.new(0,10)
 
--- Title centered
 local title = Instance.new("TextLabel", top)
 title.Size = UDim2.new(1,0,1,0)
 title.BackgroundTransparency = 1
@@ -91,7 +88,7 @@ title.AnchorPoint = Vector2.new(0.5,0.5)
 title.Position = UDim2.new(0.5,0,0.5,0)
 title.TextXAlignment = Enum.TextXAlignment.Center
 
--- Discord image button (replace with asset id you provided)
+-- Discord Image Button (LEFT side) — your asset id:
 local DISCORD_ASSET = "rbxassetid://106638665125185"
 local DISCORD_LINK  = "https://discord.gg/r54j6Y4M6h"
 
@@ -102,15 +99,15 @@ discordBtn.BackgroundColor3 = Color3.fromRGB(35,39,43)
 discordBtn.ScaleType = Enum.ScaleType.Fit
 discordBtn.Image = DISCORD_ASSET
 local discordCorner = Instance.new("UICorner", discordBtn)
-discordCorner.CornerRadius = UDim.new(1,0) -- circular
+discordCorner.CornerRadius = UDim.new(1,0)
 
 discordBtn.MouseButton1Click:Connect(function()
     if SetClipboard then SetClipboard(DISCORD_LINK) end
 end)
 
--- Toggle arrow (kept)
+-- Toggle arrow (right)
 local arrow = Instance.new("TextButton", top)
-arrow.Size = UDim2.fromOffset(topHeight, topHeight)
+arrow.Size = UDim2.fromOffset(topHeight,topHeight)
 arrow.Position = UDim2.new(1,-topHeight,0,0)
 arrow.Text = "▼"
 arrow.BackgroundTransparency = 1
@@ -122,7 +119,6 @@ local content = Instance.new("Frame", main)
 content.Position = UDim2.new(0,0,0,topHeight)
 content.Size = UDim2.new(1,0,1,-topHeight)
 content.BackgroundTransparency = 1
-
 local layout = Instance.new("UIListLayout", content)
 layout.Padding = UDim.new(0,5)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -159,7 +155,7 @@ instantBtn.MouseButton1Click:Connect(function()
     end
 end)
 
---// Ordered blocks (Natural, Event, Global) - full list you provided
+-- Ordered blocks (full list)
 local orderedBlocks = {
     -- Natural
     {model="NaturalLuckyBlock_Common", color=Color3.fromRGB(200,200,200)},
@@ -208,7 +204,7 @@ local orderedBlocks = {
     {model="GlobalLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)},
 }
 
--- helper: last segment extraction & label/color decision
+-- helpers
 local function lastSegment(s)
     local parts = {}
     for part in string.gmatch(s, "[^_]+") do parts[#parts+1] = part end
@@ -234,29 +230,26 @@ local function getLabelAndTextColorFromModelName(modelName)
     return lastSegment(modelName), Color3.fromRGB(255,255,255)
 end
 
--- keep track
-local highlightedModels = {}  -- keys: model (instance) -> true
-local namesAdded = {}         -- keys: model -> true
+local highlightedModels = {}
+local namesAdded = {}
 
--- rainbow helper
 local function startRainbowLoop(obj, prop)
     task.spawn(function()
-        local t = 0
         while obj and obj.Parent do
-            obj[prop] = Color3.fromHSV((tick() % 2) / 2, 1, 1)
-            task.wait(0.06)
+            for h=0,1,0.02 do
+                obj[prop] = Color3.fromHSV(h,1,1)
+                task.wait(0.03)
+            end
         end
     end)
 end
 
--- highlight + name function
 local function highlightModel(model, color)
     if highlightedModels[model] then return end
     highlightedModels[model] = true
 
     local labelText, textColor = getLabelAndTextColorFromModelName(model.Name)
 
-    -- add billboard once per model
     if not namesAdded[model] then
         local primaryPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
         if primaryPart then
@@ -276,22 +269,14 @@ local function highlightModel(model, color)
             txt.Font = Enum.Font.GothamBold
             txt.TextColor3 = textColor
 
-            if labelText == "Admin" then
-                startRainbowLoop(txt, "TextColor3")
-            end
-
+            if labelText == "Admin" then startRainbowLoop(txt, "TextColor3") end
             namesAdded[model] = true
         end
     end
 
-    -- add adorn to every basepart
     for _, part in pairs(model:GetDescendants()) do
         if part:IsA("BasePart") then
-            -- remove previous adorns attached to this part (safety)
-            for _,c in pairs(part:GetChildren()) do
-                if c:IsA("BoxHandleAdornment") then c:Destroy() end
-            end
-
+            for _,c in pairs(part:GetChildren()) do if c:IsA("BoxHandleAdornment") then c:Destroy() end end
             local adorn = Instance.new("BoxHandleAdornment")
             adorn.Adornee = part
             adorn.AlwaysOnTop = true
@@ -309,31 +294,26 @@ local function highlightModel(model, color)
     end
 end
 
--- helper: compare by last segment to be robust if game uses different prefixes
-local function matchesBlockModel(modelName, blockModelName)
-    return lastSegment(modelName):lower() == lastSegment(blockModelName):lower()
+local function matchesBlockModel(nameA, nameB)
+    return lastSegment(nameA):lower() == lastSegment(nameB):lower()
 end
 
--- refresh all highlights
+-- refresh function (ONLY runs when button clicked)
 local function refreshAll()
     namesAdded = {}
     highlightedModels = {}
     for _, block in ipairs(orderedBlocks) do
         for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj:IsA("Model") then
-                if matchesBlockModel(obj.Name, block.model) then
-                    highlightModel(obj, block.color)
-                end
+            if obj:IsA("Model") and matchesBlockModel(obj.Name, block.model) then
+                highlightModel(obj, block.color)
             end
         end
     end
 end
 
 refreshBtn.MouseButton1Click:Connect(refreshAll)
--- run once at start
-task.defer(refreshAll)
 
--- watch for new models and apply highlighting
+-- watch for new models and apply highlight (without pressing buttons)
 workspace.DescendantAdded:Connect(function(desc)
     task.wait(0.08)
     for _, block in ipairs(orderedBlocks) do
@@ -345,16 +325,13 @@ workspace.DescendantAdded:Connect(function(desc)
     end
 end)
 
--- adapt UI sizing on mobile
+-- mobile adapt sizing
 if isMobile then
-    local padding = 5
-    local totalHeight = 0
-    for _, btn in pairs(content:GetChildren()) do
-        if btn:IsA("TextButton") then
-            totalHeight = totalHeight + (btn.Size.Y.Offset or 0) + padding
-        end
+    local padding,total = 5,0
+    for _,btn in pairs(content:GetChildren()) do
+        if btn:IsA("TextButton") then total = total + (btn.Size.Y.Offset or 0) + padding end
     end
-    main.Size = UDim2.fromOffset(mainWidth, topHeight + totalHeight)
+    main.Size = UDim2.fromOffset(mainWidth, topHeight + total)
 end
 
--- end of script
+-- end
