@@ -82,14 +82,14 @@ title.TextSize = 12
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Center
 
---// Discord button small
+--// Discord button bigger & to the right
 local discordBtn = Instance.new("TextButton", top)
-discordBtn.Size = UDim2.fromOffset(topHeight,topHeight)
-discordBtn.Position = UDim2.new(0,0,0,0)
+discordBtn.Size = UDim2.fromOffset(70,topHeight) -- كبر العرض
+discordBtn.Position = UDim2.new(1,-75,0,0) -- حركه لليمين
 discordBtn.Text = "Discord"
 discordBtn.BackgroundColor3 = Color3.fromRGB(100,100,255)
 discordBtn.TextColor3 = Color3.fromRGB(255,255,255)
-discordBtn.TextSize = 10
+discordBtn.TextSize = 11
 discordBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", discordBtn).CornerRadius = UDim.new(0,6)
 discordBtn.MouseButton1Click:Connect(function()
@@ -107,10 +107,10 @@ layout.Padding = UDim.new(0,5)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
---// Arrow toggle (للحركة)
+--// Arrow toggle
 local arrow = Instance.new("TextButton", top)
 arrow.Size = UDim2.fromOffset(topHeight,topHeight)
-arrow.Position = UDim2.new(1,-topHeight,0,0)
+arrow.Position = UDim2.new(0.5,0,0,0)
 arrow.Text = "▼"
 arrow.BackgroundTransparency = 1
 arrow.TextSize = 12
@@ -128,7 +128,7 @@ arrow.MouseButton1Click:Connect(function()
 	TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size = opened and openSize or closeSize}):Play()
 end)
 
---// Instant Take & Unlock Zoom Limit
+--// Unlock Zoom Limit & Instant Take auto
 local function setPromptInstant(prompt)
 	if prompt:IsA("ProximityPrompt") then
 		prompt.HoldDuration = 0
@@ -143,7 +143,6 @@ workspace.DescendantAdded:Connect(function(v)
 	setPromptInstant(v)
 end)
 
--- Unlock Zoom Limit
 player.CameraMaxZoomDistance = 500
 player.CameraMinZoomDistance = 0
 player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
@@ -151,7 +150,7 @@ player:GetPropertyChangedSignal("CameraMaxZoomDistance"):Connect(function() play
 player:GetPropertyChangedSignal("CameraMinZoomDistance"):Connect(function() player.CameraMinZoomDistance=0 end)
 player:GetPropertyChangedSignal("DevCameraOcclusionMode"):Connect(function() player.DevCameraOcclusionMode=Enum.DevCameraOcclusionMode.Invisicam end)
 
--- Notifications function
+--// Notifications function
 local function createNotification(title,desc)
 	local notif = Instance.new("Frame", player.PlayerGui)
 	notif.Size = UDim2.new(0,200,0,50)
@@ -180,21 +179,6 @@ createNotification("Unlock Zoom Limit","Active")
 createNotification("Instant Take","Active")
 
 --// Buttons
-local instantBtn = Instance.new("TextButton", content)
-instantBtn.Size = UDim2.new(0, mainWidth-10,0,buttonHeight)
-instantBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-instantBtn.Text = "Instant Take"
-instantBtn.TextColor3 = Color3.fromRGB(230,230,230)
-instantBtn.TextSize = 11
-instantBtn.Font = Enum.Font.GothamBold
-instantBtn.BorderSizePixel = 0
-Instance.new("UICorner", instantBtn).CornerRadius = UDim.new(0,6)
-instantBtn.MouseButton1Click:Connect(function()
-	for _, v in ipairs(workspace:GetDescendants()) do
-		setPromptInstant(v)
-	end
-end)
-
 local refreshBtn = Instance.new("TextButton", content)
 refreshBtn.Size = UDim2.new(0, mainWidth-10,0,buttonHeight)
 refreshBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
@@ -205,101 +189,7 @@ refreshBtn.Font = Enum.Font.GothamBold
 refreshBtn.BorderSizePixel = 0
 Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
 
---// Blocks
-local orderedBlocks = {
-	-- Natural
-	{model="NaturalLuckyBlock_Common",color=Color3.fromRGB(200,200,200)},
-	{model="NaturalLuckyBlock_Uncommon",color=Color3.fromRGB(0,255,0)},
-	{model="NaturalLuckyBlock_Rare",color=Color3.fromRGB(0,150,255)},
-	{model="NaturalLuckyBlock_Epic",color=Color3.fromRGB(128,0,128)},
-	{model="NaturalLuckyBlock_Legendary",color=Color3.fromRGB(255,255,0)},
-	{model="NaturalLuckyBlock_Mythical",color=Color3.fromRGB(128,0,128)},
-	{model="NaturalLuckyBlock_Cosmic",color=Color3.fromRGB(0,0,0)},
-	{model="NaturalLuckyBlock_Secret",color=Color3.fromRGB(255,0,0)},
-	{model="NaturalLuckyBlock_UFO",color=Color3.fromRGB(0,255,127)},
-	{model="NaturalLuckyBlock_Money",color=Color3.fromRGB(255,255,0)},
-	{model="NaturalLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
-	{model="NaturalLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
-	{model="NaturalLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
-	-- Event
-	{model="EventLuckyBlock_Common",color=Color3.fromRGB(180,180,180)},
-	{model="EventLuckyBlock_Uncommon",color=Color3.fromRGB(0,200,0)},
-	{model="EventLuckyBlock_Rare",color=Color3.fromRGB(0,120,255)},
-	{model="EventLuckyBlock_Epic",color=Color3.fromRGB(128,0,128)},
-	{model="EventLuckyBlock_Legendary",color=Color3.fromRGB(255,230,0)},
-	{model="EventLuckyBlock_Mythical",color=Color3.fromRGB(128,0,128)},
-	{model="EventLuckyBlock_Cosmic",color=Color3.fromRGB(40,40,40)},
-	{model="EventLuckyBlock_Secret",color=Color3.fromRGB(255,50,50)},
-	{model="EventLuckyBlock_Celestial",color=Color3.fromRGB(0,200,255)},
-	{model="EventLuckyBlock_UFO",color=Color3.fromRGB(0,255,127)},
-	{model="EventLuckyBlock_Money",color=Color3.fromRGB(255,255,0)},
-	{model="EventLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
-	{model="EventLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
-	{model="EventLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
-	-- Global
-	{model="GlobalLuckyBlock_Common",color=Color3.fromRGB(160,160,160)},
-	{model="GlobalLuckyBlock_Uncommon",color=Color3.fromRGB(0,255,120)},
-	{model="GlobalLuckyBlock_Rare",color=Color3.fromRGB(0,170,255)},
-	{model="GlobalLuckyBlock_Epic",color=Color3.fromRGB(128,0,128)},
-	{model="GlobalLuckyBlock_Legendary",color=Color3.fromRGB(255,200,0)},
-	{model="GlobalLuckyBlock_Mythical",color=Color3.fromRGB(128,0,128)},
-	{model="GlobalLuckyBlock_Cosmic",color=Color3.fromRGB(70,70,70)},
-	{model="GlobalLuckyBlock_Secret",color=Color3.fromRGB(255,80,80)},
-	{model="GlobalLuckyBlock_Money",color=Color3.fromRGB(255,255,0)},
-	{model="GlobalLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
-	{model="GlobalLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
-	{model="GlobalLuckyBlock_UFO",color=Color3.fromRGB(0,255,127)},
-	{model="GlobalLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
-}
-
-local highlightedModels = {}
-local blockNamesAdded = {}
-
-for _, block in ipairs(orderedBlocks) do
-	highlightedModels[block.model] = {}
-end
-
-local function highlightModel(model,color)
-	if highlightedModels[model.Name][model] then return end
-	highlightedModels[model.Name][model] = true
-	for _, part in pairs(model:GetDescendants()) do
-		if part:IsA("BasePart") then
-			for _, child in pairs(part:GetChildren()) do
-				if child:IsA("BoxHandleAdornment") or child:IsA("BillboardGui") then
-					child:Destroy()
-				end
-			end
-			-- BoxHandleAdornment
-			local adorn = Instance.new("BoxHandleAdornment")
-			adorn.Adornee = part
-			adorn.AlwaysOnTop = true
-			adorn.ZIndex = 10
-			adorn.Size = part.Size
-			adorn.Transparency = 0.3
-			adorn.Color3 = color
-			adorn.Parent = part
-			-- Name Billboard
-			if not blockNamesAdded[model] then
-				local billboard = Instance.new("BillboardGui")
-				billboard.Adornee = part
-				billboard.Size = UDim2.new(0,100,0,20)
-				billboard.AlwaysOnTop = true
-				local textLabel = Instance.new("TextLabel", billboard)
-				textLabel.Size = UDim2.new(1,0,1,0)
-				textLabel.BackgroundTransparency = 1
-				textLabel.TextColor3 = color
-				textLabel.Font = Enum.Font.GothamBold
-				textLabel.TextSize = 12
-				textLabel.Text = model.Name:gsub(".*LuckyBlock_","") -- الاسم فقط
-				billboard.Parent = part
-				blockNamesAdded[model] = true
-			end
-		end
-	end
-end
-
 refreshBtn.MouseButton1Click:Connect(function()
-	blockNamesAdded = {}
 	for _, block in ipairs(orderedBlocks) do
 		for _, obj in pairs(workspace:GetDescendants()) do
 			if obj:IsA("Model") and obj.Name == block.model then
