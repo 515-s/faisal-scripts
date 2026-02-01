@@ -1,8 +1,5 @@
--- FINAL (no auto-press) — Faisal Script v1.2 (Discord image ID fixed)
---// تشغيل السكربت فقط داخل التجربة المحددة
 if game.PlaceId ~= 131623223084840 then return end
 
--- Services
 local TweenService       = game:GetService("TweenService")
 local Players            = game:GetService("Players")
 local player             = Players.LocalPlayer
@@ -14,7 +11,6 @@ local UserInputService   = game:GetService("UserInputService")
 -- clipboard helper
 local SetClipboard = setclipboard or toclipboard or (syn and (syn.set_clipboard or syn.write_clipboard))
 
--- Webhook (kept)
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 if req then
@@ -52,7 +48,6 @@ if req then
     end)
 end
 
--- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
@@ -71,7 +66,6 @@ main.Active = true
 main.Draggable = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
--- Top bar + centered title
 local top = Instance.new("Frame", main)
 top.Size = UDim2.new(1,0,0,topHeight)
 top.BackgroundColor3 = Color3.fromRGB(25,25,25)
@@ -88,24 +82,27 @@ title.AnchorPoint = Vector2.new(0.5,0.5)
 title.Position = UDim2.new(0.5,0,0.5,0)
 title.TextXAlignment = Enum.TextXAlignment.Center
 
--- Discord Image Button (LEFT side) — your asset id:
-local DISCORD_ASSET = "rbxassetid://106638665125185"
 local DISCORD_LINK  = "https://discord.gg/r54j6Y4M6h"
 
-local discordBtn = Instance.new("ImageButton", top)
-discordBtn.Size = UDim2.fromOffset(topHeight-4, topHeight-4)
-discordBtn.Position = UDim2.new(0,4,0.5,-(topHeight-4)/2)
-discordBtn.BackgroundColor3 = Color3.fromRGB(35,39,43)
-discordBtn.ScaleType = Enum.ScaleType.Fit
-discordBtn.Image = DISCORD_ASSET
-local discordCorner = Instance.new("UICorner", discordBtn)
-discordCorner.CornerRadius = UDim.new(1,0)
+local discordBtn = Instance.new("TextButton", top)
+discordBtn.Size = UDim2.fromOffset(topHeight+2, topHeight-6)
+discordBtn.Position = UDim2.new(0,4,0.5,-(topHeight-6)/2)
+discordBtn.BackgroundColor3 = Color3.fromRGB(57, 62, 67)
+discordBtn.Text = "Discord"
+discordBtn.TextColor3 = Color3.fromRGB(255,255,255)
+discordBtn.Font = Enum.Font.GothamBold
+discordBtn.TextSize = 11
+discordBtn.AutoButtonColor = true
+Instance.new("UICorner", discordBtn).CornerRadius = UDim.new(0,6)
 
 discordBtn.MouseButton1Click:Connect(function()
     if SetClipboard then SetClipboard(DISCORD_LINK) end
+    -- small visual feedback (flash)
+    local orig = discordBtn.BackgroundColor3
+    discordBtn.BackgroundColor3 = Color3.fromRGB(80,80,80)
+    delay(0.12, function() if discordBtn and discordBtn.Parent then discordBtn.BackgroundColor3 = orig end end)
 end)
 
--- Toggle arrow (right)
 local arrow = Instance.new("TextButton", top)
 arrow.Size = UDim2.fromOffset(topHeight,topHeight)
 arrow.Position = UDim2.new(1,-topHeight,0,0)
@@ -133,7 +130,6 @@ arrow.MouseButton1Click:Connect(function()
     TweenService:Create(main, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = opened and openSize or closeSize}):Play()
 end)
 
--- Buttons
 local function makeButton(text)
     local b = Instance.new("TextButton", content)
     b.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
@@ -155,9 +151,7 @@ instantBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Ordered blocks (full list)
 local orderedBlocks = {
-    -- Natural
     {model="NaturalLuckyBlock_Common", color=Color3.fromRGB(200,200,200)},
     {model="NaturalLuckyBlock_Uncommon", color=Color3.fromRGB(0,255,0)},
     {model="NaturalLuckyBlock_Rare", color=Color3.fromRGB(0,150,255)},
@@ -172,7 +166,6 @@ local orderedBlocks = {
     {model="NaturalLuckyBlock_Admin", color="RAINBOW"},
     {model="NaturalLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)},
 
-    -- Event
     {model="EventLuckyBlock_Common", color=Color3.fromRGB(180,180,180)},
     {model="EventLuckyBlock_Uncommon", color=Color3.fromRGB(0,200,0)},
     {model="EventLuckyBlock_Rare", color=Color3.fromRGB(0,120,255)},
@@ -188,7 +181,6 @@ local orderedBlocks = {
     {model="EventLuckyBlock_Admin", color="RAINBOW"},
     {model="EventLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)},
 
-    -- Global
     {model="GlobalLuckyBlock_Common", color=Color3.fromRGB(160,160,160)},
     {model="GlobalLuckyBlock_Uncommon", color=Color3.fromRGB(0,255,120)},
     {model="GlobalLuckyBlock_Rare", color=Color3.fromRGB(0,170,255)},
@@ -204,7 +196,6 @@ local orderedBlocks = {
     {model="GlobalLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)},
 }
 
--- helpers
 local function lastSegment(s)
     local parts = {}
     for part in string.gmatch(s, "[^_]+") do parts[#parts+1] = part end
@@ -298,7 +289,6 @@ local function matchesBlockModel(nameA, nameB)
     return lastSegment(nameA):lower() == lastSegment(nameB):lower()
 end
 
--- refresh function (ONLY runs when button clicked)
 local function refreshAll()
     namesAdded = {}
     highlightedModels = {}
@@ -313,7 +303,6 @@ end
 
 refreshBtn.MouseButton1Click:Connect(refreshAll)
 
--- watch for new models and apply highlight (without pressing buttons)
 workspace.DescendantAdded:Connect(function(desc)
     task.wait(0.08)
     for _, block in ipairs(orderedBlocks) do
@@ -325,7 +314,6 @@ workspace.DescendantAdded:Connect(function(desc)
     end
 end)
 
--- mobile adapt sizing
 if isMobile then
     local padding,total = 5,0
     for _,btn in pairs(content:GetChildren()) do
