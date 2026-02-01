@@ -11,6 +11,7 @@ local workspace = game:GetService("Workspace")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
 
 --// Webhook
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
@@ -18,19 +19,15 @@ local req = (syn and syn.request) or http_request or request or (fluxus and flux
 
 if req then
     task.spawn(function()
-
         local gameName = "Unknown"
         pcall(function()
             gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
         end)
-
         local displayName = player.DisplayName
         local username = "@" .. player.Name
         local userId = tostring(player.UserId)
         local accountAge = tostring(player.AccountAge) .. " Days"
         local timeNow = os.date("%I:%M %p")
-
-        -- ✅ رسالة واحدة فقط (زي الصورة)
         pcall(function()
             req({
                 Url = WEBHOOK_URL,
@@ -54,10 +51,8 @@ if req then
                 })
             })
         end)
-
     end)
 end
-
 
 --// Main GUI
 local gui = Instance.new("ScreenGui")
@@ -67,7 +62,6 @@ gui.Parent = player.PlayerGui
 
 local topHeight = 26
 local buttonHeight = 28
-
 local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
 local mainWidth, mainHeight
 if isMobile then
@@ -114,7 +108,7 @@ versionBtn.TextColor3 = Color3.fromRGB(255,255,255)
 versionBtn.Font = Enum.Font.GothamBold
 versionBtn.TextSize = 14
 
---// Version window
+--// Version window with ScrollFrame
 local versionWindow = Instance.new("Frame")
 versionWindow.Parent = gui
 versionWindow.Size = UDim2.fromOffset(mainWidth,160)
@@ -125,6 +119,7 @@ versionWindow.Active = true
 versionWindow.Draggable = true
 Instance.new("UICorner", versionWindow).CornerRadius = UDim.new(0,10)
 
+-- Close button
 local closeBtn = Instance.new("TextButton", versionWindow)
 closeBtn.Text = "×"
 closeBtn.Size = UDim2.fromOffset(18,18)
@@ -141,13 +136,23 @@ versionBtn.MouseButton1Click:Connect(function()
     versionWindow.Visible = not versionWindow.Visible
 end)
 
-local versionLayout = Instance.new("UIListLayout", versionWindow)
+-- ScrollFrame for version list
+local scrollFrame = Instance.new("ScrollingFrame", versionWindow)
+scrollFrame.Size = UDim2.new(0.8,0,1,0)
+scrollFrame.Position = UDim2.new(0,0,0,0)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.CanvasSize = UDim2.new(0,0,1,0)
+scrollFrame.ScrollBarThickness = 6
+scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+
+local versionLayout = Instance.new("UIListLayout", scrollFrame)
 versionLayout.Padding = UDim.new(0,4)
 versionLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 versionLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 
 local function addLabel(txt,bold)
-    local lbl = Instance.new("TextLabel", versionWindow)
+    local lbl = Instance.new("TextLabel", scrollFrame)
     lbl.BackgroundTransparency = 1
     lbl.Size = UDim2.new(1,0,0,18)
     lbl.Text = txt
@@ -162,6 +167,26 @@ addLabel("Added LuckyBlock UFO")
 addLabel("Added LuckyBlock Money")
 addLabel("Added LuckyBlock Radioactive")
 addLabel("Added LuckyBlock Divine")
+addLabel("v1.2",true)
+addLabel("Added unique names above LuckyBlocks")
+addLabel("Updated colors for Mythical, Admin, Divine, Radioactive, Money")
+addLabel("Names now work with Refresh")
+
+-- Discord Button
+local discordBtn = Instance.new("TextButton", versionWindow)
+discordBtn.Text = "Discord"
+discordBtn.Size = UDim2.new(0.2,0,1,0)
+discordBtn.Position = UDim2.new(0.8,0,0,0)
+discordBtn.BackgroundColor3 = Color3.fromRGB(100,100,255)
+discordBtn.TextColor3 = Color3.fromRGB(255,255,255)
+discordBtn.TextSize = 12
+discordBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", discordBtn).CornerRadius = UDim.new(0,6)
+discordBtn.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard("https://discord.gg/r54j6Y4M6h")
+    end
+end)
 
 --// Toggle arrow
 local arrow = Instance.new("TextButton", top)
@@ -237,57 +262,58 @@ refreshBtn.Font = Enum.Font.GothamBold
 refreshBtn.BorderSizePixel = 0
 Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
 
---// Blocks
+--// Blocks with updated colors and name display
 local orderedBlocks = {
+    -- Natural
+    {model="NaturalLuckyBlock_Common", color=Color3.fromRGB(200,200,200)},
+    {model="NaturalLuckyBlock_Uncommon", color=Color3.fromRGB(0,255,0)},
+    {model="NaturalLuckyBlock_Rare", color=Color3.fromRGB(0,150,255)},
+    {model="NaturalLuckyBlock_Epic", color=Color3.fromRGB(128,0,128)}, -- Purple Mythical
+    {model="NaturalLuckyBlock_Legendary", color=Color3.fromRGB(255,255,0)},
+    {model="NaturalLuckyBlock_Mythical", color=Color3.fromRGB(128,0,128)}, -- Purple
+    {model="NaturalLuckyBlock_Cosmic", color=Color3.fromRGB(0,0,0)},
+    {model="NaturalLuckyBlock_Secret", color=Color3.fromRGB(255,0,0)},
+    {model="NaturalLuckyBlock_UFO", color=Color3.fromRGB(0,255,127)},
+    {model="NaturalLuckyBlock_Money", color=Color3.fromRGB(255,255,0)}, -- yellow/green
+    {model="NaturalLuckyBlock_Radioactive", color=Color3.fromRGB(0,255,0)}, -- green
+    {model="NaturalLuckyBlock_Admin", color=Color3.fromRGB(255,0,255)}, -- rainbow effect optional
+    {model="NaturalLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)}, -- glowing yellow
 
-    -- ===== Natural =====
-    {model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(200,200,200)},
-    {model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)},
-    {model = "NaturalLuckyBlock_Rare", color = Color3.fromRGB(0,150,255)},
-    {model = "NaturalLuckyBlock_Epic", color = Color3.fromRGB(128,0,128)},
-    {model = "NaturalLuckyBlock_Legendary", color = Color3.fromRGB(255,255,0)},
-    {model = "NaturalLuckyBlock_Mythical", color = Color3.fromRGB(255,215,0)},
-    {model = "NaturalLuckyBlock_Cosmic", color = Color3.fromRGB(0,0,0)},
-    {model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,0,0)},
-    {model = "NaturalLuckyBlock_UFO", color = Color3.fromRGB(0,255,127)},
-    {model = "NaturalLuckyBlock_Money", color = Color3.fromRGB(0,255,0)},
-    {model = "NaturalLuckyBlock_Radioactive", color = Color3.fromRGB(57,255,20)},
-    {model = "NaturalLuckyBlock_Admin", color = Color3.fromRGB(255,0,255)},
-    {model = "NaturalLuckyBlock_Divine", color = Color3.fromRGB(255,255,255)},
+    -- Event
+    {model="EventLuckyBlock_Common", color=Color3.fromRGB(180,180,180)},
+    {model="EventLuckyBlock_Uncommon", color=Color3.fromRGB(0,200,0)},
+    {model="EventLuckyBlock_Rare", color=Color3.fromRGB(0,120,255)},
+    {model="EventLuckyBlock_Epic", color=Color3.fromRGB(128,0,128)},
+    {model="EventLuckyBlock_Legendary", color=Color3.fromRGB(255,230,0)},
+    {model="EventLuckyBlock_Mythical", color=Color3.fromRGB(128,0,128)},
+    {model="EventLuckyBlock_Cosmic", color=Color3.fromRGB(40,40,40)},
+    {model="EventLuckyBlock_Secret", color=Color3.fromRGB(255,50,50)},
+    {model="EventLuckyBlock_Celestial", color=Color3.fromRGB(0,200,255)},
+    {model="EventLuckyBlock_UFO", color=Color3.fromRGB(0,255,127)},
+    {model="EventLuckyBlock_Money", color=Color3.fromRGB(255,255,0)},
+    {model="EventLuckyBlock_Radioactive", color=Color3.fromRGB(0,255,0)},
+    {model="EventLuckyBlock_Admin", color=Color3.fromRGB(255,0,255)},
+    {model="EventLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)},
 
-    -- ===== Event =====
-    {model = "EventLuckyBlock_Common", color = Color3.fromRGB(180,180,180)},
-    {model = "EventLuckyBlock_Uncommon", color = Color3.fromRGB(0,200,0)},
-    {model = "EventLuckyBlock_Rare", color = Color3.fromRGB(0,120,255)},
-    {model = "EventLuckyBlock_Epic", color = Color3.fromRGB(150,0,200)},
-    {model = "EventLuckyBlock_Legendary", color = Color3.fromRGB(255,230,0)},
-    {model = "EventLuckyBlock_Mythical", color = Color3.fromRGB(255,180,0)},
-    {model = "EventLuckyBlock_Cosmic", color = Color3.fromRGB(40,40,40)},
-    {model = "EventLuckyBlock_Secret", color = Color3.fromRGB(255,50,50)},
-    {model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)},
-    {model = "EventLuckyBlock_UFO", color = Color3.fromRGB(0,255,127)},
-    {model = "EventLuckyBlock_Money", color = Color3.fromRGB(0,255,0)},
-    {model = "EventLuckyBlock_Radioactive", color = Color3.fromRGB(57,255,20)},
-    {model = "EventLuckyBlock_Admin", color = Color3.fromRGB(255,0,255)},
-    {model = "EventLuckyBlock_Divine", color = Color3.fromRGB(255,255,255)},
-
-    -- ===== Global =====
-    {model = "GlobalLuckyBlock_Common", color = Color3.fromRGB(160,160,160)},
-    {model = "GlobalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,120)},
-    {model = "GlobalLuckyBlock_Rare", color = Color3.fromRGB(0,170,255)},
-    {model = "GlobalLuckyBlock_Epic", color = Color3.fromRGB(180,0,255)},
-    {model = "GlobalLuckyBlock_Legendary", color = Color3.fromRGB(255,200,0)},
-    {model = "GlobalLuckyBlock_Mythical", color = Color3.fromRGB(255,140,0)},
-    {model = "GlobalLuckyBlock_Cosmic", color = Color3.fromRGB(70,70,70)},
-    {model = "GlobalLuckyBlock_Secret", color = Color3.fromRGB(255,80,80)},
-    {model = "GlobalLuckyBlock_Money", color = Color3.fromRGB(0,255,0)},
-    {model = "GlobalLuckyBlock_Radioactive", color = Color3.fromRGB(57,255,20)},
-    {model = "GlobalLuckyBlock_Admin", color = Color3.fromRGB(255,0,255)},
-    {model = "GlobalLuckyBlock_UFO", color = Color3.fromRGB(0,255,127)},
-    {model = "GlobalLuckyBlock_Divine", color = Color3.fromRGB(255,255,255)}
+    -- Global
+    {model="GlobalLuckyBlock_Common", color=Color3.fromRGB(160,160,160)},
+    {model="GlobalLuckyBlock_Uncommon", color=Color3.fromRGB(0,255,120)},
+    {model="GlobalLuckyBlock_Rare", color=Color3.fromRGB(0,170,255)},
+    {model="GlobalLuckyBlock_Epic", color=Color3.fromRGB(128,0,128)},
+    {model="GlobalLuckyBlock_Legendary", color=Color3.fromRGB(255,200,0)},
+    {model="GlobalLuckyBlock_Mythical", color=Color3.fromRGB(128,0,128)},
+    {model="GlobalLuckyBlock_Cosmic", color=Color3.fromRGB(70,70,70)},
+    {model="GlobalLuckyBlock_Secret", color=Color3.fromRGB(255,80,80)},
+    {model="GlobalLuckyBlock_Money", color=Color3.fromRGB(255,255,0)},
+    {model="GlobalLuckyBlock_Radioactive", color=Color3.fromRGB(0,255,0)},
+    {model="GlobalLuckyBlock_Admin", color=Color3.fromRGB(255,0,255)},
+    {model="GlobalLuckyBlock_UFO", color=Color3.fromRGB(0,255,127)},
+    {model="GlobalLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)},
 }
 
 local highlightedModels = {}
+local blockNamesAdded = {}
+
 for _, block in ipairs(orderedBlocks) do
     highlightedModels[block.model] = {}
 end
@@ -298,10 +324,11 @@ local function highlightModel(model, color)
     for _, part in pairs(model:GetDescendants()) do
         if part:IsA("BasePart") then
             for _, child in pairs(part:GetChildren()) do
-                if child:IsA("BoxHandleAdornment") then
+                if child:IsA("BoxHandleAdornment") or child:IsA("BillboardGui") then
                     child:Destroy()
                 end
             end
+            -- BoxHandleAdornment
             local adorn = Instance.new("BoxHandleAdornment")
             adorn.Adornee = part
             adorn.AlwaysOnTop = true
@@ -310,11 +337,28 @@ local function highlightModel(model, color)
             adorn.Transparency = 0.3
             adorn.Color3 = color
             adorn.Parent = part
+            -- Name Billboard
+            if not blockNamesAdded[model] then
+                local billboard = Instance.new("BillboardGui")
+                billboard.Adornee = part
+                billboard.Size = UDim2.new(0,100,0,20)
+                billboard.AlwaysOnTop = true
+                local textLabel = Instance.new("TextLabel", billboard)
+                textLabel.Size = UDim2.new(1,0,1,0)
+                textLabel.BackgroundTransparency = 1
+                textLabel.TextColor3 = Color3.fromRGB(255,255,255)
+                textLabel.Font = Enum.Font.GothamBold
+                textLabel.TextSize = 12
+                textLabel.Text = model.Name
+                billboard.Parent = part
+                blockNamesAdded[model] = true
+            end
         end
     end
 end
 
 refreshBtn.MouseButton1Click:Connect(function()
+    blockNamesAdded = {}
     for _, block in ipairs(orderedBlocks) do
         for _, obj in pairs(workspace:GetDescendants()) do
             if obj:IsA("Model") and obj.Name == block.model then
