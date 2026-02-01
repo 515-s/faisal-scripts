@@ -1,3 +1,8 @@
+--// تشغيل السكربت فقط داخل التجربة المحددة
+if game.PlaceId ~= 131623223084840 then
+    return
+end
+
 --// Services
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
@@ -6,15 +11,9 @@ local workspace = game:GetService("Workspace")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
-local SetClipboard = setclipboard or toclipboard or (syn and syn.write_clipboard)
 
---// Discord
-local DISCORD_LINK = "https://discord.gg/r54j6Y4M6h"
-
---// =========================
---// Webhook Logger (نفس حقك)
---// =========================
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/XXXX"
+--// Webhook
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 
 if req then
@@ -23,21 +22,30 @@ if req then
         pcall(function()
             gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
         end)
-
+        local displayName = player.DisplayName
+        local username = "@" .. player.Name
+        local userId = tostring(player.UserId)
+        local accountAge = tostring(player.AccountAge) .. " Days"
+        local timeNow = os.date("%I:%M %p")
         pcall(function()
             req({
                 Url = WEBHOOK_URL,
                 Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
+                Headers = { ["Content-Type"] = "application/json" },
                 Body = HttpService:JSONEncode({
-                    username = "Roblox Logger",
+                    username = "📋 تقرير مستخدم جديد",
                     embeds = {{
-                        title = "Player Executed Script",
+                        description = "**Open script now !**",
+                        color = 65280,
                         fields = {
-                            {name = "اسم اللاعب", value = player.Name, inline = true},
-                            {name = "UserId", value = tostring(player.UserId), inline = true},
-                            {name = "اللعبة", value = gameName, inline = false}
-                        }
+                            {name = "Display Name", value = displayName, inline = true},
+                            {name = "Username", value = username, inline = true},
+                            {name = "User ID", value = userId, inline = false},
+                            {name = "Account Age", value = accountAge, inline = false},
+                            {name = "Game", value = gameName, inline = false},
+                            {name = "Tik", value = displayName .. " • Rob: " .. username .. " " .. timeNow, inline = false}
+                        },
+                        timestamp = DateTime.now():ToIsoDate()
                     }}
                 })
             })
@@ -45,159 +53,216 @@ if req then
     end)
 end
 
---// =========================
---// GUI
---// =========================
-local gui = Instance.new("ScreenGui", player.PlayerGui)
+--// Main GUI
+local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
+gui.Parent = player.PlayerGui
 
-local mainWidth = 200
-local topHeight = 28
+local topHeight = 26
+local buttonHeight = 28
+local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
+local mainWidth, mainHeight
+if isMobile then
+    mainWidth = 100
+    mainHeight = 150
+else
+    mainWidth = 200
+    mainHeight = topHeight + 2*(buttonHeight + 6)
+end
 
-local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromOffset(mainWidth, topHeight)
+local main = Instance.new("Frame")
+main.Parent = gui
+main.Size = UDim2.fromOffset(mainWidth, mainHeight)
 main.Position = UDim2.new(0.02,0,0.35,0)
-main.BackgroundColor3 = Color3.fromRGB(20,20,20)
+main.BackgroundColor3 = Color3.fromRGB(15,15,15)
 main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
---// Title
-local title = Instance.new("TextLabel", main)
+--// Top bar
+local top = Instance.new("Frame", main)
+top.Size = UDim2.new(1,0,0,topHeight)
+top.BackgroundColor3 = Color3.fromRGB(25,25,25)
+top.BorderSizePixel = 0
+Instance.new("UICorner", top).CornerRadius = UDim.new(0,10)
+
+local title = Instance.new("TextLabel", top)
 title.Size = UDim2.new(1,0,1,0)
 title.BackgroundTransparency = 1
 title.Text = "faisal-script"
-title.TextColor3 = Color3.fromRGB(235,235,235)
+title.TextColor3 = Color3.fromRGB(230,230,230)
 title.TextSize = 12
 title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Center
 
---// =========================
---// Discord Image Button
---// =========================
-local discordBtn = Instance.new("ImageButton", main)
-discordBtn.Size = UDim2.fromOffset(22,22)
-discordBtn.Position = UDim2.new(1,-26,0.5,-11)
-discordBtn.BackgroundTransparency = 1
-discordBtn.Image = "rbxassetid://12780970538" -- أيقونة دسكورد
-
--- نسخ الرابط
-discordBtn.MouseButton1Click:Connect(function()
-    if SetClipboard then
-        SetClipboard(DISCORD_LINK)
+--// Discord Image Button (replacing ≡)
+local discordImgBtn = Instance.new("ImageButton", top)
+discordImgBtn.Size = UDim2.fromOffset(topHeight, topHeight)
+discordImgBtn.Position = UDim2.new(0,0,0,0)
+discordImgBtn.BackgroundTransparency = 1
+discordImgBtn.Image = "rbxassetid://13758883121" -- ضع هنا صورة Discord الخاصة بك
+discordImgBtn.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard("https://discord.gg/r54j6Y4M6h")
     end
 end)
 
---// X hide
-local closeBtn = Instance.new("TextButton", discordBtn)
-closeBtn.Size = UDim2.fromOffset(12,12)
-closeBtn.Position = UDim2.new(1,-6,0,-6)
-closeBtn.Text = "✕"
-closeBtn.TextScaled = true
-closeBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-closeBtn.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", closeBtn)
+--// Toggle arrow
+local arrow = Instance.new("TextButton", top)
+arrow.Size = UDim2.fromOffset(topHeight,topHeight)
+arrow.Position = UDim2.new(1,-topHeight,0,0)
+arrow.Text = "▼"
+arrow.BackgroundTransparency = 1
+arrow.TextSize = 12
+arrow.Font = Enum.Font.GothamBold
+arrow.TextColor3 = Color3.fromRGB(220,220,220)
 
-closeBtn.MouseButton1Click:Connect(function()
-    discordBtn.Visible = false
+local content = Instance.new("Frame", main)
+content.Position = UDim2.new(0,0,0,topHeight)
+content.Size = UDim2.new(1,0,1,-topHeight)
+content.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout", content)
+layout.Padding = UDim.new(0,5)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Top
+
+local opened = true
+local openSize = main.Size
+local closeSize = UDim2.fromOffset(mainWidth,topHeight)
+
+arrow.MouseButton1Click:Connect(function()
+    opened = not opened
+    arrow.Text = opened and "▼" or "▲"
+    content.Visible = opened
+    TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+        {Size = opened and openSize or closeSize}):Play()
 end)
 
--- زر إرجاع صغير
-local restoreBtn = Instance.new("TextButton", main)
-restoreBtn.Size = UDim2.fromOffset(20,20)
-restoreBtn.Position = UDim2.new(1,-50,0.5,-10)
-restoreBtn.Text = "+"
-restoreBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-restoreBtn.TextColor3 = Color3.new(1,1,1)
-restoreBtn.TextScaled = true
-Instance.new("UICorner", restoreBtn)
-
-restoreBtn.MouseButton1Click:Connect(function()
-    discordBtn.Visible = true
-end)
-
---// =========================
---// Instant Take
---// =========================
+--// Instant ProximityPrompt
 local function setPromptInstant(prompt)
     if prompt:IsA("ProximityPrompt") then
         prompt.HoldDuration = 0
     end
 end
 
-for _,v in ipairs(workspace:GetDescendants()) do
+for _, v in ipairs(workspace:GetDescendants()) do
     setPromptInstant(v)
 end
 
-workspace.DescendantAdded:Connect(setPromptInstant)
+workspace.DescendantAdded:Connect(function(v)
+    setPromptInstant(v)
+end)
 
---// =========================
---// LuckyBlock ESP System
---// =========================
-local blocks = {
-    {name="Mythical", color=Color3.fromRGB(160,0,255)},
-    {name="Admin", color="RAINBOW"},
-    {name="Divine", color=Color3.fromRGB(255,255,120)},
-    {name="Radioactive", color=Color3.fromRGB(57,255,20)},
-    {name="Money", color=Color3.fromRGB(180,255,0)},
+local instantBtn = Instance.new("TextButton")
+instantBtn.Parent = content
+instantBtn.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
+instantBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+instantBtn.Text = "Instant Take"
+instantBtn.TextColor3 = Color3.fromRGB(230,230,230)
+instantBtn.TextSize = 11
+instantBtn.Font = Enum.Font.GothamBold
+instantBtn.BorderSizePixel = 0
+Instance.new("UICorner", instantBtn).CornerRadius = UDim.new(0,6)
+instantBtn.MouseButton1Click:Connect(function()
+    for _, v in ipairs(workspace:GetDescendants()) do
+        setPromptInstant(v)
+    end
+end)
+
+local refreshBtn = Instance.new("TextButton")
+refreshBtn.Parent = content
+refreshBtn.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
+refreshBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+refreshBtn.Text = "ESP+Refresh"
+refreshBtn.TextColor3 = Color3.fromRGB(230,230,230)
+refreshBtn.TextSize = 11
+refreshBtn.Font = Enum.Font.GothamBold
+refreshBtn.BorderSizePixel = 0
+Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
+
+--// Blocks with names and highlights
+local orderedBlocks = {
+    {model="NaturalLuckyBlock_Common", color=Color3.fromRGB(200,200,200)},
+    {model="NaturalLuckyBlock_Uncommon", color=Color3.fromRGB(0,255,0)},
+    {model="NaturalLuckyBlock_Rare", color=Color3.fromRGB(0,150,255)},
+    {model="NaturalLuckyBlock_Epic", color=Color3.fromRGB(128,0,128)},
+    {model="NaturalLuckyBlock_Legendary", color=Color3.fromRGB(255,255,0)},
+    {model="NaturalLuckyBlock_Mythical", color=Color3.fromRGB(128,0,128)},
+    {model="NaturalLuckyBlock_Cosmic", color=Color3.fromRGB(0,0,0)},
+    {model="NaturalLuckyBlock_Secret", color=Color3.fromRGB(255,0,0)},
+    {model="NaturalLuckyBlock_UFO", color=Color3.fromRGB(0,255,127)},
+    {model="NaturalLuckyBlock_Money", color=Color3.fromRGB(255,255,0)},
+    {model="NaturalLuckyBlock_Radioactive", color=Color3.fromRGB(0,255,0)},
+    {model="NaturalLuckyBlock_Admin", color=Color3.fromRGB(255,0,255)},
+    {model="NaturalLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)},
+    -- Event & Global blocks follow same pattern...
 }
 
-local labeled = {}
-
-local function rainbow(part)
-    task.spawn(function()
-        while part.Parent do
-            part.Color = Color3.fromHSV(tick()%5/5,1,1)
-            task.wait()
-        end
-    end)
+local highlightedModels = {}
+local blockNamesAdded = {}
+for _, block in ipairs(orderedBlocks) do
+    highlightedModels[block.model] = {}
 end
 
-local function highlight(model, color)
-    if labeled[model] then return end
-    labeled[model] = true
-
-    for _,p in pairs(model:GetDescendants()) do
-        if p:IsA("BasePart") then
-            local box = Instance.new("BoxHandleAdornment", p)
-            box.Adornee = p
-            box.Size = p.Size
-            box.AlwaysOnTop = true
-            box.Transparency = 0.3
-
-            if color == "RAINBOW" then
-                rainbow(p)
-            else
-                box.Color3 = color
-            end
-        end
-    end
-
-    local bill = Instance.new("BillboardGui", model)
-    bill.Size = UDim2.new(0,100,0,20)
-    bill.AlwaysOnTop = true
-    bill.StudsOffset = Vector3.new(0,4,0)
-
-    local txt = Instance.new("TextLabel", bill)
-    txt.Size = UDim2.new(1,0,1,0)
-    txt.BackgroundTransparency = 1
-    txt.Text = model.Name
-    txt.TextColor3 = Color3.new(1,1,1)
-    txt.TextScaled = true
-end
-
-local function refresh()
-    for _,obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") then
-            for _,b in ipairs(blocks) do
-                if string.find(obj.Name,b.name) then
-                    highlight(obj,b.color)
+local function highlightModel(model, color)
+    if highlightedModels[model.Name][model] then return end
+    highlightedModels[model.Name][model] = true
+    for _, part in pairs(model:GetDescendants()) do
+        if part:IsA("BasePart") then
+            for _, child in pairs(part:GetChildren()) do
+                if child:IsA("BoxHandleAdornment") or child:IsA("BillboardGui") then
+                    child:Destroy()
                 end
             end
+            local adorn = Instance.new("BoxHandleAdornment")
+            adorn.Adornee = part
+            adorn.AlwaysOnTop = true
+            adorn.ZIndex = 10
+            adorn.Size = part.Size
+            adorn.Transparency = 0.3
+            adorn.Color3 = color
+            adorn.Parent = part
+
+            if not blockNamesAdded[model] then
+                local billboard = Instance.new("BillboardGui")
+                billboard.Adornee = part
+                billboard.Size = UDim2.new(0,100,0,20)
+                billboard.AlwaysOnTop = true
+                local textLabel = Instance.new("TextLabel", billboard)
+                textLabel.Size = UDim2.new(1,0,1,0)
+                textLabel.BackgroundTransparency = 1
+                textLabel.TextColor3 = Color3.fromRGB(255,255,255)
+                textLabel.Font = Enum.Font.GothamBold
+                textLabel.TextSize = 12
+                textLabel.Text = model.Name
+                billboard.Parent = part
+                blockNamesAdded[model] = true
+            end
         end
     end
 end
 
-refresh()
-workspace.DescendantAdded:Connect(refresh)
+refreshBtn.MouseButton1Click:Connect(function()
+    blockNamesAdded = {}
+    for _, block in ipairs(orderedBlocks) do
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj.Name == block.model then
+                highlightModel(obj, block.color)
+            end
+        end
+    end
+end)
+
+if isMobile then
+    local padding = 5
+    local totalHeight = 0
+    for _, btn in pairs(content:GetChildren()) do
+        if btn:IsA("TextButton") then
+            totalHeight = totalHeight + btn.Size.Y.Offset + padding
+        end
+    end
+    main.Size = UDim2.fromOffset(mainWidth, topHeight + totalHeight)
+end
