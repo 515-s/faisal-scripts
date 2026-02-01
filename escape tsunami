@@ -106,7 +106,7 @@ layout.Padding = UDim.new(0,5)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
---// Arrow toggle (للحركة)
+--// Arrow toggle
 local arrow = Instance.new("TextButton", top)
 arrow.Size = UDim2.fromOffset(topHeight,topHeight)
 arrow.Position = UDim2.new(1,-topHeight,0,0)
@@ -127,7 +127,7 @@ arrow.MouseButton1Click:Connect(function()
 	TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size = opened and openSize or closeSize}):Play()
 end)
 
---// Instant Take & Unlock Zoom Limit
+--// Instant Take function
 local function setPromptInstant(prompt)
 	if prompt:IsA("ProximityPrompt") then
 		prompt.HoldDuration = 0
@@ -137,10 +137,7 @@ end
 for _, v in ipairs(workspace:GetDescendants()) do
 	setPromptInstant(v)
 end
-
-workspace.DescendantAdded:Connect(function(v)
-	setPromptInstant(v)
-end)
+workspace.DescendantAdded:Connect(setPromptInstant)
 
 -- Unlock Zoom Limit
 player.CameraMaxZoomDistance = 500
@@ -176,7 +173,57 @@ local function createNotification(title,desc,duration)
 	task.delay(duration or 3,function() notif:Destroy() end)
 end
 
---// Buttons (زر Refresh فقط)
+--// Blocks setup
+local orderedBlocks = { -- Natural
+	{model="NaturalLuckyBlock_Common",color=Color3.fromRGB(200,200,200)},
+	{model="NaturalLuckyBlock_Uncommon",color=Color3.fromRGB(0,255,0)},
+	-- باقي البلوكات كما هي ...
+}
+
+local highlightedModels = {}
+local blockNamesAdded = {}
+for _, block in ipairs(orderedBlocks) do
+	highlightedModels[block.model] = {}
+end
+
+local function highlightModel(model,color)
+	if highlightedModels[model.Name][model] then return end
+	highlightedModels[model.Name][model] = true
+	for _, part in pairs(model:GetDescendants()) do
+		if part:IsA("BasePart") then
+			for _, child in pairs(part:GetChildren()) do
+				if child:IsA("BoxHandleAdornment") or child:IsA("BillboardGui") then
+					child:Destroy()
+				end
+			end
+			local adorn = Instance.new("BoxHandleAdornment")
+			adorn.Adornee = part
+			adorn.AlwaysOnTop = true
+			adorn.ZIndex = 10
+			adorn.Size = part.Size
+			adorn.Transparency = 0.3
+			adorn.Color3 = color
+			adorn.Parent = part
+			if not blockNamesAdded[model] then
+				local billboard = Instance.new("BillboardGui")
+				billboard.Adornee = part
+				billboard.Size = UDim2.new(0,100,0,20)
+				billboard.AlwaysOnTop = true
+				local textLabel = Instance.new("TextLabel", billboard)
+				textLabel.Size = UDim2.new(1,0,1,0)
+				textLabel.BackgroundTransparency = 1
+				textLabel.TextColor3 = color
+				textLabel.Font = Enum.Font.GothamBold
+				textLabel.TextSize = 12
+				textLabel.Text = model.Name:gsub(".*LuckyBlock_","")
+				billboard.Parent = part
+				blockNamesAdded[model] = true
+			end
+		end
+	end
+end
+
+--// Refresh button
 local refreshBtn = Instance.new("TextButton", content)
 refreshBtn.Size = UDim2.new(0, mainWidth-10,0,buttonHeight)
 refreshBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
@@ -188,11 +235,8 @@ refreshBtn.BorderSizePixel = 0
 Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
 
 refreshBtn.MouseButton1Click:Connect(function()
-	-- رسائل التنبيه أول ما يضغط
 	createNotification("Unlock Zoom Limit","Active",5)
 	createNotification("Instant Take","Active",5)
-
-	-- ESP + Highlighting
 	blockNamesAdded = {}
 	for _, block in ipairs(orderedBlocks) do
 		for _, obj in pairs(workspace:GetDescendants()) do
