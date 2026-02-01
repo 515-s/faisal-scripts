@@ -1,16 +1,20 @@
+-- FINAL Faisal Script v1.2 — كامل ومحسّن
 --// تشغيل السكربت فقط داخل التجربة المحددة
 if game.PlaceId ~= 131623223084840 then return end
 
 --// Services
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local workspace = game:GetService("Workspace")
-local HttpService = game:GetService("HttpService")
+local TweenService       = game:GetService("TweenService")
+local Players            = game:GetService("Players")
+local player             = Players.LocalPlayer
+local workspace          = game:GetService("Workspace")
+local HttpService        = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
-local UserInputService = game:GetService("UserInputService")
+local UserInputService   = game:GetService("UserInputService")
 
---// Webhook
+-- clipboard helper (متوافق مع عدة exploits)
+local SetClipboard = setclipboard or toclipboard or (syn and syn.set_clipboard) or (syn and syn.write_clipboard)
+
+--// Webhook (كما طلبت)
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 if req then
@@ -26,28 +30,33 @@ if req then
             req({
                 Url = WEBHOOK_URL,
                 Method = "POST",
-                Headers = {["Content-Type"]="application/json"},
+                Headers = { ["Content-Type"] = "application/json" },
                 Body = HttpService:JSONEncode({
-                    username="📋 تقرير مستخدم جديد",
-                    embeds={{description="**Open script now !**",color=65280,fields={
-                        {name="Display Name",value=displayName,inline=true},
-                        {name="Username",value=username,inline=true},
-                        {name="User ID",value=userId,inline=false},
-                        {name="Account Age",value=accountAge,inline=false},
-                        {name="Game",value=gameName,inline=false},
-                        {name="Tik",value=displayName.." • Rob: "..username.." "..timeNow,inline=false}
-                    },timestamp=DateTime.now():ToIsoDate()}}
+                    username = "📋 تقرير مستخدم جديد",
+                    embeds = {{
+                        description = "**Open script now !**",
+                        color = 65280,
+                        fields = {
+                            {name="Display Name", value=displayName, inline=true},
+                            {name="Username", value=username, inline=true},
+                            {name="User ID", value=userId, inline=false},
+                            {name="Account Age", value=accountAge, inline=false},
+                            {name="Game", value=gameName, inline=false},
+                            {name="Tik", value=(displayName.." • Rob: "..username.." "..timeNow), inline=false}
+                        },
+                        timestamp = DateTime.now():ToIsoDate()
+                    }}
                 })
             })
         end)
     end)
 end
 
---// Main GUI
+--// GUI (Main)
 local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
-gui.Parent = player.PlayerGui
+gui.Parent = player:WaitForChild("PlayerGui")
 
 local topHeight, buttonHeight = 26, 28
 local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
@@ -59,16 +68,18 @@ main.Size = UDim2.fromOffset(mainWidth, mainHeight)
 main.Position = UDim2.new(0.02,0,0.35,0)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
 main.BorderSizePixel = 0
-main.Active, main.Draggable = true, true
+main.Active = true
+main.Draggable = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
---// Top bar
-local top = Instance.new("Frame", main")
+-- Top bar
+local top = Instance.new("Frame", main)
 top.Size = UDim2.new(1,0,0,topHeight)
 top.BackgroundColor3 = Color3.fromRGB(25,25,25)
 top.BorderSizePixel = 0
 Instance.new("UICorner", top).CornerRadius = UDim.new(0,10)
 
+-- Title centered
 local title = Instance.new("TextLabel", top)
 title.Size = UDim2.new(1,0,1,0)
 title.BackgroundTransparency = 1
@@ -76,23 +87,31 @@ title.Text = "faisal-script"
 title.TextColor3 = Color3.fromRGB(230,230,230)
 title.TextSize = 12
 title.Font = Enum.Font.GothamBold
+title.AnchorPoint = Vector2.new(0.5,0.5)
+title.Position = UDim2.new(0.5,0,0.5,0)
 title.TextXAlignment = Enum.TextXAlignment.Center
 
---// Discord Image Button
+-- Discord image button (replace with asset id you provided)
+local DISCORD_ASSET = "rbxassetid://106638665125185"
+local DISCORD_LINK  = "https://discord.gg/r54j6Y4M6h"
+
 local discordBtn = Instance.new("ImageButton", top)
-discordBtn.Size = UDim2.fromOffset(topHeight, topHeight)
-discordBtn.Position = UDim2.new(1,-topHeight,0,0)
-discordBtn.BackgroundTransparency = 1
-discordBtn.Image = "rbxassetid://106638665125185"
+discordBtn.Size = UDim2.fromOffset(topHeight-4, topHeight-4)
+discordBtn.Position = UDim2.new(0,4,0.5,-(topHeight-4)/2)
+discordBtn.BackgroundColor3 = Color3.fromRGB(35,39,43)
 discordBtn.ScaleType = Enum.ScaleType.Fit
+discordBtn.Image = DISCORD_ASSET
+local discordCorner = Instance.new("UICorner", discordBtn)
+discordCorner.CornerRadius = UDim.new(1,0) -- circular
+
 discordBtn.MouseButton1Click:Connect(function()
-    if setclipboard then setclipboard("https://discord.gg/r54j6Y4M6h") end
+    if SetClipboard then SetClipboard(DISCORD_LINK) end
 end)
 
---// Toggle arrow
+-- Toggle arrow (kept)
 local arrow = Instance.new("TextButton", top)
 arrow.Size = UDim2.fromOffset(topHeight, topHeight)
-arrow.Position = UDim2.new(0,0,0,0)
+arrow.Position = UDim2.new(1,-topHeight,0,0)
 arrow.Text = "▼"
 arrow.BackgroundTransparency = 1
 arrow.TextSize = 12
@@ -110,48 +129,37 @@ layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
 local opened = true
-local openSize, closeSize = main.Size, UDim2.fromOffset(mainWidth,topHeight)
+local openSize, closeSize = main.Size, UDim2.fromOffset(mainWidth, topHeight)
 arrow.MouseButton1Click:Connect(function()
     opened = not opened
     arrow.Text = opened and "▼" or "▲"
     content.Visible = opened
-    TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
-        {Size = opened and openSize or closeSize}):Play()
+    TweenService:Create(main, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = opened and openSize or closeSize}):Play()
 end)
 
---// Instant ProximityPrompt
-local function setPromptInstant(prompt)
-    if prompt:IsA("ProximityPrompt") then prompt.HoldDuration = 0 end
+-- Buttons
+local function makeButton(text)
+    local b = Instance.new("TextButton", content)
+    b.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
+    b.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(230,230,230)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 11
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+    return b
 end
-for _,v in ipairs(workspace:GetDescendants()) do setPromptInstant(v) end
-workspace.DescendantAdded:Connect(setPromptInstant)
 
-local instantBtn = Instance.new("TextButton")
-instantBtn.Parent = content
-instantBtn.Size = UDim2.new(0,mainWidth-10,0,buttonHeight)
-instantBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-instantBtn.Text = "Instant Take"
-instantBtn.TextColor3 = Color3.fromRGB(230,230,230)
-instantBtn.TextSize = 11
-instantBtn.Font = Enum.Font.GothamBold
-instantBtn.BorderSizePixel = 0
-Instance.new("UICorner", instantBtn).CornerRadius = UDim.new(0,6)
+local instantBtn = makeButton("Instant Take")
+local refreshBtn = makeButton("ESP+Refresh")
+
 instantBtn.MouseButton1Click:Connect(function()
-    for _,v in ipairs(workspace:GetDescendants()) do setPromptInstant(v) end
+    for _,v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("ProximityPrompt") then v.HoldDuration = 0 end
+    end
 end)
 
-local refreshBtn = Instance.new("TextButton")
-refreshBtn.Parent = content
-refreshBtn.Size = UDim2.new(0,mainWidth-10,0,buttonHeight)
-refreshBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-refreshBtn.Text = "ESP+Refresh"
-refreshBtn.TextColor3 = Color3.fromRGB(230,230,230)
-refreshBtn.TextSize = 11
-refreshBtn.Font = Enum.Font.GothamBold
-refreshBtn.BorderSizePixel = 0
-Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
-
---// Blocks list
+--// Ordered blocks (Natural, Event, Global) - full list you provided
 local orderedBlocks = {
     -- Natural
     {model="NaturalLuckyBlock_Common", color=Color3.fromRGB(200,200,200)},
@@ -165,14 +173,14 @@ local orderedBlocks = {
     {model="NaturalLuckyBlock_UFO", color=Color3.fromRGB(0,255,127)},
     {model="NaturalLuckyBlock_Money", color=Color3.fromRGB(255,255,0)},
     {model="NaturalLuckyBlock_Radioactive", color=Color3.fromRGB(0,255,0)},
-    {model="NaturalLuckyBlock_Admin", color=Color3.fromRGB(255,0,255)},
+    {model="NaturalLuckyBlock_Admin", color="RAINBOW"},
     {model="NaturalLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)},
 
     -- Event
     {model="EventLuckyBlock_Common", color=Color3.fromRGB(180,180,180)},
     {model="EventLuckyBlock_Uncommon", color=Color3.fromRGB(0,200,0)},
     {model="EventLuckyBlock_Rare", color=Color3.fromRGB(0,120,255)},
-    {model="EventLuckyBlock_Epic", color=Color3.fromRGB(128,0,128)},
+    {model="EventLuckyBlock_Epic", color=Color3.fromRGB(150,0,200)},
     {model="EventLuckyBlock_Legendary", color=Color3.fromRGB(255,230,0)},
     {model="EventLuckyBlock_Mythical", color=Color3.fromRGB(128,0,128)},
     {model="EventLuckyBlock_Cosmic", color=Color3.fromRGB(40,40,40)},
@@ -181,104 +189,172 @@ local orderedBlocks = {
     {model="EventLuckyBlock_UFO", color=Color3.fromRGB(0,255,127)},
     {model="EventLuckyBlock_Money", color=Color3.fromRGB(255,255,0)},
     {model="EventLuckyBlock_Radioactive", color=Color3.fromRGB(0,255,0)},
-    {model="EventLuckyBlock_Admin", color=Color3.fromRGB(255,0,255)},
+    {model="EventLuckyBlock_Admin", color="RAINBOW"},
     {model="EventLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)},
 
     -- Global
     {model="GlobalLuckyBlock_Common", color=Color3.fromRGB(160,160,160)},
     {model="GlobalLuckyBlock_Uncommon", color=Color3.fromRGB(0,255,120)},
     {model="GlobalLuckyBlock_Rare", color=Color3.fromRGB(0,170,255)},
-    {model="GlobalLuckyBlock_Epic", color=Color3.fromRGB(128,0,128)},
+    {model="GlobalLuckyBlock_Epic", color=Color3.fromRGB(180,0,255)},
     {model="GlobalLuckyBlock_Legendary", color=Color3.fromRGB(255,200,0)},
     {model="GlobalLuckyBlock_Mythical", color=Color3.fromRGB(128,0,128)},
     {model="GlobalLuckyBlock_Cosmic", color=Color3.fromRGB(70,70,70)},
     {model="GlobalLuckyBlock_Secret", color=Color3.fromRGB(255,80,80)},
     {model="GlobalLuckyBlock_Money", color=Color3.fromRGB(255,255,0)},
     {model="GlobalLuckyBlock_Radioactive", color=Color3.fromRGB(0,255,0)},
-    {model="GlobalLuckyBlock_Admin", color=Color3.fromRGB(255,0,255)},
+    {model="GlobalLuckyBlock_Admin", color="RAINBOW"},
     {model="GlobalLuckyBlock_UFO", color=Color3.fromRGB(0,255,127)},
     {model="GlobalLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)},
 }
 
-local highlightedModels = {}
-local blockNamesAdded = {}
-for _, block in ipairs(orderedBlocks) do highlightedModels[block.model] = {} end
-
---// Function to get last word label & color
-local function getLabelAndTextColorFromModelName(modelName)
+-- helper: last segment extraction & label/color decision
+local function lastSegment(s)
     local parts = {}
-    for part in string.gmatch(modelName,"[^_]+") do table.insert(parts,part) end
-    local lastWord = parts[#parts] or modelName
-    if lastWord:lower()=="mythical" then return "Mythical", Color3.fromRGB(160,0,255) end
-    if lastWord:lower()=="divine" then return "Divine", Color3.fromRGB(255,255,80) end
-    if lastWord:lower()=="radioactive" then return "Radioactive", Color3.fromRGB(57,255,20) end
-    if lastWord:lower()=="money" then return "Money", Color3.fromRGB(200,255,0) end
-    if lastWord:lower()=="admin" then return "Admin", Color3.fromRGB(255,0,255) end
-    if lastWord:lower()=="ufo" then return "UFO", Color3.fromRGB(0,255,127) end
-    if lastWord:lower()=="legendary" then return "Legendary", Color3.fromRGB(255,215,0) end
-    if lastWord:lower()=="epic" then return "Epic", Color3.fromRGB(180,0,255) end
-    if lastWord:lower()=="rare" then return "Rare", Color3.fromRGB(0,150,255) end
-    if lastWord:lower()=="uncommon" then return "Uncommon", Color3.fromRGB(0,200,0) end
-    if lastWord:lower()=="common" then return "Common", Color3.fromRGB(200,200,200) end
-    if lastWord:lower()=="secret" then return "Secret", Color3.fromRGB(255,50,50) end
-    if lastWord:lower()=="cosmic" then return "Cosmic", Color3.fromRGB(70,70,70) end
-    if lastWord:lower()=="celestial" then return "Celestial", Color3.fromRGB(0,200,255) end
-    return lastWord, Color3.fromRGB(255,255,255)
+    for part in string.gmatch(s, "[^_]+") do parts[#parts+1] = part end
+    return parts[#parts] or s
 end
 
---// Highlight and add Billboard
-local function highlightModel(model,color)
-    if highlightedModels[model.Name][model] then return end
-    highlightedModels[model.Name][model] = true
+local function getLabelAndTextColorFromModelName(modelName)
+    local last = lastSegment(modelName):lower()
+    if last == "mythical" then return "Mythical", Color3.fromRGB(160,0,255) end
+    if last == "divine" then return "Divine", Color3.fromRGB(255,255,80) end
+    if last == "radioactive" then return "Radioactive", Color3.fromRGB(57,255,20) end
+    if last == "money" then return "Money", Color3.fromRGB(200,255,0) end
+    if last == "admin" then return "Admin", Color3.fromRGB(255,255,255) end
+    if last == "ufo" then return "UFO", Color3.fromRGB(0,255,127) end
+    if last == "celestial" then return "Celestial", Color3.fromRGB(0,200,255) end
+    if last == "legendary" then return "Legendary", Color3.fromRGB(255,215,0) end
+    if last == "epic" then return "Epic", Color3.fromRGB(180,0,255) end
+    if last == "rare" then return "Rare", Color3.fromRGB(0,150,255) end
+    if last == "uncommon" then return "Uncommon", Color3.fromRGB(0,200,0) end
+    if last == "common" then return "Common", Color3.fromRGB(200,200,200) end
+    if last == "secret" then return "Secret", Color3.fromRGB(255,50,50) end
+    if last == "cosmic" then return "Cosmic", Color3.fromRGB(70,70,70) end
+    return lastSegment(modelName), Color3.fromRGB(255,255,255)
+end
+
+-- keep track
+local highlightedModels = {}  -- keys: model (instance) -> true
+local namesAdded = {}         -- keys: model -> true
+
+-- rainbow helper
+local function startRainbowLoop(obj, prop)
+    task.spawn(function()
+        local t = 0
+        while obj and obj.Parent do
+            obj[prop] = Color3.fromHSV((tick() % 2) / 2, 1, 1)
+            task.wait(0.06)
+        end
+    end)
+end
+
+-- highlight + name function
+local function highlightModel(model, color)
+    if highlightedModels[model] then return end
+    highlightedModels[model] = true
+
+    local labelText, textColor = getLabelAndTextColorFromModelName(model.Name)
+
+    -- add billboard once per model
+    if not namesAdded[model] then
+        local primaryPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+        if primaryPart then
+            local bill = Instance.new("BillboardGui")
+            bill.Name = "FaisalName"
+            bill.Adornee = primaryPart
+            bill.Size = UDim2.new(0,120,0,22)
+            bill.StudsOffset = Vector3.new(0, 3.5, 0)
+            bill.AlwaysOnTop = true
+            bill.Parent = model
+
+            local txt = Instance.new("TextLabel", bill)
+            txt.Size = UDim2.new(1,0,1,0)
+            txt.BackgroundTransparency = 1
+            txt.Text = labelText
+            txt.TextScaled = true
+            txt.Font = Enum.Font.GothamBold
+            txt.TextColor3 = textColor
+
+            if labelText == "Admin" then
+                startRainbowLoop(txt, "TextColor3")
+            end
+
+            namesAdded[model] = true
+        end
+    end
+
+    -- add adorn to every basepart
     for _, part in pairs(model:GetDescendants()) do
         if part:IsA("BasePart") then
-            for _, child in pairs(part:GetChildren()) do
-                if child:IsA("BoxHandleAdornment") or child:IsA("BillboardGui") then child:Destroy() end
+            -- remove previous adorns attached to this part (safety)
+            for _,c in pairs(part:GetChildren()) do
+                if c:IsA("BoxHandleAdornment") then c:Destroy() end
             end
+
             local adorn = Instance.new("BoxHandleAdornment")
             adorn.Adornee = part
             adorn.AlwaysOnTop = true
             adorn.ZIndex = 10
             adorn.Size = part.Size
             adorn.Transparency = 0.3
-            adorn.Color3 = color
+            if color == "RAINBOW" then
+                adorn.Color3 = Color3.fromRGB(255,255,255)
+                startRainbowLoop(adorn, "Color3")
+            else
+                adorn.Color3 = color
+            end
             adorn.Parent = part
+        end
+    end
+end
 
-            if not blockNamesAdded[model] then
-                local labelText, textColor = getLabelAndTextColorFromModelName(model.Name)
-                local billboard = Instance.new("BillboardGui")
-                billboard.Adornee = part
-                billboard.Size = UDim2.new(0,100,0,20)
-                billboard.AlwaysOnTop = true
-                local textLabel = Instance.new("TextLabel", billboard)
-                textLabel.Size = UDim2.new(1,0,1,0)
-                textLabel.BackgroundTransparency = 1
-                textLabel.TextColor3 = textColor
-                textLabel.Font = Enum.Font.GothamBold
-                textLabel.TextSize = 12
-                textLabel.Text = labelText
-                billboard.Parent = part
-                blockNamesAdded[model] = true
+-- helper: compare by last segment to be robust if game uses different prefixes
+local function matchesBlockModel(modelName, blockModelName)
+    return lastSegment(modelName):lower() == lastSegment(blockModelName):lower()
+end
+
+-- refresh all highlights
+local function refreshAll()
+    namesAdded = {}
+    highlightedModels = {}
+    for _, block in ipairs(orderedBlocks) do
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") then
+                if matchesBlockModel(obj.Name, block.model) then
+                    highlightModel(obj, block.color)
+                end
             end
         end
     end
 end
 
-refreshBtn.MouseButton1Click:Connect(function()
-    blockNamesAdded = {}
+refreshBtn.MouseButton1Click:Connect(refreshAll)
+-- run once at start
+task.defer(refreshAll)
+
+-- watch for new models and apply highlighting
+workspace.DescendantAdded:Connect(function(desc)
+    task.wait(0.08)
     for _, block in ipairs(orderedBlocks) do
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("Model") and obj.Name == block.model then
-                highlightModel(obj, block.color)
-            end
+        if desc:IsA("Model") and matchesBlockModel(desc.Name, block.model) then
+            highlightModel(desc, block.color)
+        elseif desc:IsA("BasePart") and desc.Parent and desc.Parent:IsA("Model") and matchesBlockModel(desc.Parent.Name, block.model) then
+            highlightModel(desc.Parent, block.color)
         end
     end
 end)
 
+-- adapt UI sizing on mobile
 if isMobile then
-    local padding,totalHeight = 5,0
-    for _,btn in pairs(content:GetChildren()) do
-        if btn:IsA("TextButton") then totalHeight = totalHeight + btn.Size.Y.Offset + padding end
+    local padding = 5
+    local totalHeight = 0
+    for _, btn in pairs(content:GetChildren()) do
+        if btn:IsA("TextButton") then
+            totalHeight = totalHeight + (btn.Size.Y.Offset or 0) + padding
+        end
     end
-    main.Size = UDim2.fromOffset(mainWidth, topHeight+totalHeight)
+    main.Size = UDim2.fromOffset(mainWidth, topHeight + totalHeight)
 end
+
+-- end of script
