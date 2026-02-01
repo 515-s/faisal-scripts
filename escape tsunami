@@ -10,12 +10,52 @@ local UserInputService = game:GetService("UserInputService")
 --// Webhook
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
+
 if req then
     task.spawn(function()
+
         local gameName = "Unknown"
         pcall(function()
             gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
         end)
+
+        ------------------------------------------------------------------
+        -- ✅ الإضافة الجديدة (تنسيق صورة الدسكورد)
+        ------------------------------------------------------------------
+        local displayName = player.DisplayName
+        local username = "@" .. player.Name
+        local userId = tostring(player.UserId)
+        local accountAge = tostring(player.AccountAge) .. " Days"
+        local timeNow = os.date("%I:%M %p")
+
+        pcall(function()
+            req({
+                Url = WEBHOOK_URL,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = HttpService:JSONEncode({
+                    username = "📋 تقرير مستخدم جديد",
+                    embeds = {{
+                        description = "**Open script now !**",
+                        color = 65280,
+                        fields = {
+                            {name = "Display Name", value = displayName, inline = true},
+                            {name = "Username", value = username, inline = true},
+                            {name = "User ID", value = userId, inline = false},
+                            {name = "Account Age", value = accountAge, inline = false},
+                            {name = "Game", value = gameName, inline = false},
+                            {name = "Tik", value = displayName .. " • Rob: " .. username .. " " .. timeNow, inline = false}
+                        },
+                        timestamp = DateTime.now():ToIsoDate()
+                    }}
+                })
+            })
+        end)
+        ------------------------------------------------------------------
+        -- نهاية الإضافة
+        ------------------------------------------------------------------
+
+        -- (الويبهوك الأصلي حقك — ما تم لمسه)
         pcall(function()
             req({
                 Url = WEBHOOK_URL,
@@ -35,8 +75,10 @@ if req then
                 })
             })
         end)
+
     end)
 end
+
 
 --// Main GUI
 local gui = Instance.new("ScreenGui")
