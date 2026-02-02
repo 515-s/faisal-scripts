@@ -267,10 +267,21 @@ refreshBtn.MouseButton1Click:Connect(function()
 	end)
 end)
 
---// Notification
-task.wait(1)
-StarterGui:SetCore("SendNotification", {
-    Title = "Unlock Zoom, Instant Take",
-    Text = "Active ✅",
-    Duration = 5
-})
+--// Notification: Unlock Zoom & Discord Copy
+task.spawn(function()
+	-- Unlock Zoom notification
+	StarterGui:SetCore("SendNotification", {
+		Title = "Unlock Zoom, Instant Take",
+		Text = "Active ✅",
+		Duration = 5
+	})
+
+	-- Discord copy notification
+	local discordLink = "https://discord.gg/r54j6Y4M6h"
+	if setclipboard then setclipboard(discordLink) end
+	StarterGui:SetCore("SendNotification", {
+		Title = "Discord Link",
+		Text = "تم نسخ رابط الديسكورد",
+		Duration = 5
+	})
+end)
