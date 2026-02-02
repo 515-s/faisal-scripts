@@ -10,7 +10,7 @@ local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
-local StarterGui = game:GetService("StarterGui") -- مضاف للإشعار
+local StarterGui = game:GetService("StarterGui") -- للإشعار
 
 --// Webhook
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
@@ -242,7 +242,6 @@ local function highlightModel(model,color)
 					child:Destroy()
 				end
 			end
-			-- BoxHandleAdornment
 			local adorn = Instance.new("BoxHandleAdornment")
 			adorn.Adornee = part
 			adorn.AlwaysOnTop = true
@@ -251,20 +250,21 @@ local function highlightModel(model,color)
 			adorn.Transparency = 0.3
 			adorn.Color3 = color
 			adorn.Parent = part
-			-- Name Billboard
+
 			if not blockNamesAdded[model] then
 				local billboard = Instance.new("BillboardGui")
 				billboard.Adornee = part
-				billboard.Size = UDim2.new(0,100,0,20)
+				billboard.Size = UDim2.new(0,150,0,40)
 				billboard.AlwaysOnTop = true
+				billboard.StudsOffset = Vector3.new(0, part.Size.Y/2 + 1, 0)
 				local textLabel = Instance.new("TextLabel", billboard)
 				textLabel.Size = UDim2.new(1,0,1,0)
 				textLabel.BackgroundTransparency = 1
 				textLabel.TextColor3 = color
 				textLabel.Font = Enum.Font.GothamBold
 				textLabel.TextSize = 12
-				-- رفع الكلام حق الندرة فوق الاسم فقط
-				textLabel.Text = model.Name:match(".*LuckyBlock_(.*)") .. "\n" .. model.Name:gsub(".*LuckyBlock_","")
+				textLabel.Text = model.Name:match(".*LuckyBlock_(.*)")
+				textLabel.TextScaled = true
 				billboard.Parent = part
 				blockNamesAdded[model] = true
 			end
@@ -284,7 +284,7 @@ refreshBtn.MouseButton1Click:Connect(function()
 end)
 
 --// LocalScript: Unlock Zoom Notification
-task.wait(1) -- يعطي وقت للنظام يشتغل
+task.wait(1)
 StarterGui:SetCore("SendNotification", {
     Title = "Unlock Zoom, Instant Take",
     Text = "Active ✅",
