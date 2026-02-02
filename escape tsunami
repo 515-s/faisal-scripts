@@ -263,7 +263,8 @@ local function highlightModel(model,color)
 				textLabel.TextColor3 = color
 				textLabel.Font = Enum.Font.GothamBold
 				textLabel.TextSize = 12
-				textLabel.Text = model.Name:gsub(".*LuckyBlock_","") -- الاسم فقط
+				-- رفع الكلام حق الندرة فوق الاسم فقط
+				textLabel.Text = model.Name:match(".*LuckyBlock_(.*)") .. "\n" .. model.Name:gsub(".*LuckyBlock_","")
 				billboard.Parent = part
 				blockNamesAdded[model] = true
 			end
