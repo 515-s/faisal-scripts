@@ -10,6 +10,7 @@ local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
+local StarterGui = game:GetService("StarterGui") -- مضاف للإشعار
 
 --// Webhook
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
@@ -107,7 +108,7 @@ layout.Padding = UDim.new(0,5)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
---// Arrow toggle (للحركة)
+--// Arrow toggle
 local arrow = Instance.new("TextButton", top)
 arrow.Size = UDim2.fromOffset(topHeight,topHeight)
 arrow.Position = UDim2.new(1,-topHeight,0,0)
@@ -150,7 +151,6 @@ player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
 player:GetPropertyChangedSignal("CameraMaxZoomDistance"):Connect(function() player.CameraMaxZoomDistance=500 end)
 player:GetPropertyChangedSignal("CameraMinZoomDistance"):Connect(function() player.CameraMinZoomDistance=0 end)
 player:GetPropertyChangedSignal("DevCameraOcclusionMode"):Connect(function() player.DevCameraOcclusionMode=Enum.DevCameraOcclusionMode.Invisicam end)
-
 
 --// Buttons
 local instantBtn = Instance.new("TextButton", content)
@@ -282,3 +282,11 @@ refreshBtn.MouseButton1Click:Connect(function()
 		end
 	end
 end)
+
+--// LocalScript: Unlock Zoom Notification
+task.wait(1) -- يعطي وقت للنظام يشتغل
+StarterGui:SetCore("SendNotification", {
+    Title = "Unlock Zoom, Instant Take",
+    Text = "Active ✅",
+    Duration = 3
+})
