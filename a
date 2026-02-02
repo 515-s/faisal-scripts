@@ -1,27 +1,20 @@
---// VIP WALLS UI (شكل فقط + سحب)
-
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
---========================
--- GUI
---========================
 local gui = Instance.new("ScreenGui")
-gui.Name = "VipWallsUI"
+gui.Parent = player.PlayerGui
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
 
---========================
--- الإطار الرئيسي
---========================
 local frame = Instance.new("Frame")
 frame.Parent = gui
 frame.Size = UDim2.fromOffset(260,150)
 frame.Position = UDim2.new(1,-280,0,30)
 frame.BackgroundColor3 = Color3.fromRGB(35,25,10)
 frame.BorderSizePixel = 0
+
+-- ⭐ هذا المهم
 frame.Active = true
-frame.Name = "Main"
+frame.Draggable = true
 
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0,14)
 
@@ -29,89 +22,34 @@ local stroke = Instance.new("UIStroke", frame)
 stroke.Color = Color3.fromRGB(255,200,60)
 stroke.Thickness = 2
 
---========================
--- العنوان (من هنا السحب)
---========================
-local title = Instance.new("TextLabel")
-title.Parent = frame
+local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1,0,0,30)
 title.BackgroundTransparency = 1
 title.Text = "🏆 VIP WALLS 🏆"
-title.TextColor3 = Color3.fromRGB(255,220,70)
-title.Font = Enum.Font.GothamBold
 title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.TextColor3 = Color3.fromRGB(255,220,70)
 
---========================
--- النص
---========================
-local wallLabel = Instance.new("TextLabel")
-wallLabel.Parent = frame
-wallLabel.Position = UDim2.new(0,0,0,30)
-wallLabel.Size = UDim2.new(1,0,0,25)
-wallLabel.BackgroundTransparency = 1
-wallLabel.Text = "VIP Wall 0"
-wallLabel.TextColor3 = Color3.white()
-wallLabel.Font = Enum.Font.Gotham
-wallLabel.TextScaled = true
+local wall = Instance.new("TextLabel", frame)
+wall.Position = UDim2.new(0,0,0,30)
+wall.Size = UDim2.new(1,0,0,25)
+wall.BackgroundTransparency = 1
+wall.Text = "VIP Wall 0"
+wall.TextScaled = true
+wall.Font = Enum.Font.Gotham
 
---========================
--- الأزرار
---========================
-local function makeButton(text, pos, color)
-	local btn = Instance.new("TextButton")
-	btn.Parent = frame
-	btn.Position = pos
-	btn.Size = UDim2.new(0.9,0,0,25)
-	btn.Text = text
-	btn.BackgroundColor3 = color
-	btn.TextColor3 = Color3.white()
-	btn.Font = Enum.Font.GothamBold
-	btn.TextScaled = true
-	btn.AutoButtonColor = true
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
-	return btn
+local function btn(text,pos,color,sizeX)
+	local b = Instance.new("TextButton", frame)
+	b.Position = pos
+	b.Size = sizeX or UDim2.new(0.9,0,0,25)
+	b.Text = text
+	b.BackgroundColor3 = color
+	b.TextScaled = true
+	b.Font = Enum.Font.GothamBold
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
 end
 
-local upBtn = makeButton("🔼 UP", UDim2.new(0.05,0,0,60), Color3.fromRGB(60,120,255))
-upBtn.Size = UDim2.new(0.4,0,0,25)
-
-local downBtn = makeButton("🔽 DOWN", UDim2.new(0.55,0,0,60), Color3.fromRGB(80,80,80))
-downBtn.Size = UDim2.new(0.4,0,0,25)
-
-local unlockBtn = makeButton("🔒 UNLOCK VIP DOORS", UDim2.new(0.05,0,0,95), Color3.fromRGB(200,30,30))
-local vipBtn = makeButton("VIP شراء", UDim2.new(0.05,0,0,125), Color3.fromRGB(180,120,30))
-
---========================
--- نظام السحب (Drag من العنوان فقط)
---========================
-local UserInputService = game:GetService("UserInputService")
-
-local dragging = false
-local dragStart
-local startPos
-
-title.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
-	end
-end)
-
-title.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local delta = input.Position - dragStart
-		frame.Position = UDim2.new(
-			startPos.X.Scale,
-			startPos.X.Offset + delta.X,
-			startPos.Y.Scale,
-			startPos.Y.Offset + delta.Y
-		)
-	end
-end)
+btn("🔼 UP", UDim2.new(0.05,0,0,60), Color3.fromRGB(60,120,255), UDim2.new(0.4,0,0,25))
+btn("🔽 DOWN", UDim2.new(0.55,0,0,60), Color3.fromRGB(80,80,80), UDim2.new(0.4,0,0,25))
+btn("🔒 UNLOCK VIP DOORS", UDim2.new(0.05,0,0,95), Color3.fromRGB(200,30,30))
+btn("VIP اغلاق", UDim2.new(0.05,0,0,125), Color3.fromRGB(180,120,30))
