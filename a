@@ -1,23 +1,11 @@
--- رسالة أسفل يسار الشاشة
+-- لازم LocalScript
 
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+local StarterGui = game:GetService("StarterGui")
 
--- إنشاء GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "MessageGui"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+task.wait(1) -- عشان يضمن أن النظام يشتغل
 
--- مربع النص
-local label = Instance.new("TextLabel")
-label.Parent = gui
-label.Size = UDim2.new(0, 300, 0, 50)
-label.Position = UDim2.new(0, 10, 1, -60) -- تحت يسار
-label.BackgroundTransparency = 0.2
-label.BackgroundColor3 = Color3.fromRGB(0,0,0)
-label.TextColor3 = Color3.fromRGB(255,255,255)
-label.TextScaled = true
-label.Text = "تم تشغيل السكربت ✅"
-label.Font = Enum.Font.GothamBold
-label.BorderSizePixel = 0
+StarterGui:SetCore("SendNotification", {
+    Title = "انلوك زوم",
+    Text = "اكتيف",
+    Duration = 5
+})
