@@ -168,6 +168,11 @@ instantBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
+-- <<< التعديل: اخفاء زر Instant Take بصريًا مع الاحتفاظ بالوظيفة
+instantBtn.Size = UDim2.new(0,0,0,0)
+instantBtn.Visible = false
+-- <<< نهاية التعديل
+
 local refreshBtn = Instance.new("TextButton", content)
 refreshBtn.Size = UDim2.new(0, mainWidth-10,0,buttonHeight)
 refreshBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
