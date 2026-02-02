@@ -1,7 +1,5 @@
---// تشغيل السكربت فقط داخل التجربة المحددة
 if game.PlaceId ~= 131623223084840 then return end
 
---// Services
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -11,7 +9,6 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
 
---// Webhook
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 
@@ -49,7 +46,6 @@ if req then
 	end)
 end
 
---// Main GUI
 local topHeight, buttonHeight = 26, 28
 local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
 local mainWidth = isMobile and 100 or 200
@@ -66,7 +62,6 @@ main.BorderSizePixel = 0
 main.Active, main.Draggable = true, true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
---// Top bar
 local top = Instance.new("Frame", main)
 top.Size = UDim2.new(1,0,0,topHeight)
 top.BackgroundColor3 = Color3.fromRGB(25,25,25)
@@ -82,7 +77,6 @@ title.TextSize = 12
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Center
 
---// Content frame
 local content = Instance.new("Frame", main)
 content.Position = UDim2.new(0,0,0,topHeight)
 content.Size = UDim2.new(1,0,0,0)
@@ -93,7 +87,6 @@ layout.Padding = UDim.new(0,5)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
---// Arrow toggle
 local arrow = Instance.new("TextButton", top)
 arrow.Size = UDim2.fromOffset(topHeight,topHeight)
 arrow.Position = UDim2.new(1,-topHeight,0,0)
@@ -114,7 +107,6 @@ arrow.MouseButton1Click:Connect(function()
 	TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size = opened and openSize or closeSize}):Play()
 end)
 
---// Update main size based on content
 local function updateMainHeight()
 	local totalHeight = topHeight + layout.AbsoluteContentSize.Y + 10
 	main.Size = UDim2.fromOffset(mainWidth, totalHeight)
@@ -125,7 +117,6 @@ end
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateMainHeight)
 updateMainHeight()
 
---// Instant Take & Unlock Zoom Limit
 local function setPromptInstant(prompt)
 	if prompt:IsA("ProximityPrompt") then
 		prompt.HoldDuration = 0
@@ -147,7 +138,6 @@ player:GetPropertyChangedSignal("CameraMaxZoomDistance"):Connect(function() play
 player:GetPropertyChangedSignal("CameraMinZoomDistance"):Connect(function() player.CameraMinZoomDistance=0 end)
 player:GetPropertyChangedSignal("DevCameraOcclusionMode"):Connect(function() player.DevCameraOcclusionMode=Enum.DevCameraOcclusionMode.Invisicam end)
 
---// Buttons
 local instantBtn = Instance.new("TextButton", content)
 instantBtn.Size = UDim2.new(0,0,0,0) -- نخفي الزر
 instantBtn.Visible = false
@@ -167,14 +157,13 @@ end)
 local refreshBtn = Instance.new("TextButton", content)
 refreshBtn.Size = UDim2.new(0, mainWidth-10,0,buttonHeight)
 refreshBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-refreshBtn.Text = "ESP+Refresh"
+refreshBtn.Text = "🔄️ESP+Refresh"
 refreshBtn.TextColor3 = Color3.fromRGB(230,230,230)
 refreshBtn.TextSize = 11
 refreshBtn.Font = Enum.Font.GothamBold
 refreshBtn.BorderSizePixel = 0
 Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
 
---// Blocks
 local orderedBlocks = {
 	{model="NaturalLuckyBlock_Common",color=Color3.fromRGB(200,200,200)},
 	{model="NaturalLuckyBlock_Uncommon",color=Color3.fromRGB(0,255,0)},
@@ -189,6 +178,35 @@ local orderedBlocks = {
 	{model="NaturalLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
 	{model="NaturalLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
 	{model="NaturalLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
+
+	{model="EventLuckyBlock_Common",color=Color3.fromRGB(180,180,180)},
+	{model="EventLuckyBlock_Uncommon",color=Color3.fromRGB(0,200,0)},
+	{model="EventLuckyBlock_Rare",color=Color3.fromRGB(0,120,255)},
+	{model="EventLuckyBlock_Epic",color=Color3.fromRGB(128,0,128)},
+	{model="EventLuckyBlock_Legendary",color=Color3.fromRGB(255,230,0)},
+	{model="EventLuckyBlock_Mythical",color=Color3.fromRGB(128,0,128)},
+	{model="EventLuckyBlock_Cosmic",color=Color3.fromRGB(40,40,40)},
+	{model="EventLuckyBlock_Secret",color=Color3.fromRGB(255,50,50)},
+	{model="EventLuckyBlock_Celestial",color=Color3.fromRGB(0,200,255)},
+	{model="EventLuckyBlock_UFO",color=Color3.fromRGB(0,255,127)},
+	{model="EventLuckyBlock_Money",color=Color3.fromRGB(255,255,0)},
+	{model="EventLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
+	{model="EventLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
+	{model="EventLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
+
+	{model="GlobalLuckyBlock_Common",color=Color3.fromRGB(160,160,160)},
+	{model="GlobalLuckyBlock_Uncommon",color=Color3.fromRGB(0,255,120)},
+	{model="GlobalLuckyBlock_Rare",color=Color3.fromRGB(0,170,255)},
+	{model="GlobalLuckyBlock_Epic",color=Color3.fromRGB(128,0,128)},
+	{model="GlobalLuckyBlock_Legendary",color=Color3.fromRGB(255,200,0)},
+	{model="GlobalLuckyBlock_Mythical",color=Color3.fromRGB(128,0,128)},
+	{model="GlobalLuckyBlock_Cosmic",color=Color3.fromRGB(70,70,70)},
+	{model="GlobalLuckyBlock_Secret",color=Color3.fromRGB(255,80,80)},
+	{model="GlobalLuckyBlock_Money",color=Color3.fromRGB(255,255,0)},
+	{model="GlobalLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
+	{model="GlobalLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
+	{model="GlobalLuckyBlock_UFO",color=Color3.fromRGB(0,255,127)},
+	{model="GlobalLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
 }
 
 local highlightedModels = {}
@@ -253,7 +271,6 @@ refreshBtn.MouseButton1Click:Connect(function()
 	end)
 end)
 
---// Notification: Unlock Zoom & Discord Copy
 task.spawn(function()
 	-- Unlock Zoom notification
 	StarterGui:SetCore("SendNotification", {
@@ -262,7 +279,6 @@ task.spawn(function()
 		Duration = 5
 	})
 
-	-- Discord copy notification
 	local discordLink = "https://discord.gg/r54j6Y4M6h"
 	if setclipboard then setclipboard(discordLink) end
 	StarterGui:SetCore("SendNotification", {
