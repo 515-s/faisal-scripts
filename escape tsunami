@@ -100,7 +100,7 @@ end)
 --// Content frame
 local content = Instance.new("Frame", main)
 content.Position = UDim2.new(0,0,0,topHeight)
-content.Size = UDim2.new(1,0,1,-topHeight)
+content.Size = UDim2.new(1,0,0,0) -- نخلي ارتفاع المحتوى يتحدد حسب عناصره
 content.BackgroundTransparency = 1
 
 local layout = Instance.new("UIListLayout", content)
@@ -108,7 +108,7 @@ layout.Padding = UDim.new(0,5)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
---// Arrow toggle
+--// Arrow toggle (للحركة)
 local arrow = Instance.new("TextButton", top)
 arrow.Size = UDim2.fromOffset(topHeight,topHeight)
 arrow.Position = UDim2.new(1,-topHeight,0,0)
@@ -128,6 +128,18 @@ arrow.MouseButton1Click:Connect(function()
 	content.Visible = opened
 	TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size = opened and openSize or closeSize}):Play()
 end)
+
+--// Update main size based on content
+local function updateMainHeight()
+	local totalHeight = topHeight + layout.AbsoluteContentSize.Y + 10
+	main.Size = UDim2.fromOffset(mainWidth, totalHeight)
+	openSize = main.Size
+	closeSize = UDim2.fromOffset(mainWidth, topHeight)
+end
+
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateMainHeight)
+-- call once to set correct size on start
+updateMainHeight()
 
 --// Instant Take & Unlock Zoom Limit
 local function setPromptInstant(prompt)
@@ -152,6 +164,7 @@ player:GetPropertyChangedSignal("CameraMaxZoomDistance"):Connect(function() play
 player:GetPropertyChangedSignal("CameraMinZoomDistance"):Connect(function() player.CameraMinZoomDistance=0 end)
 player:GetPropertyChangedSignal("DevCameraOcclusionMode"):Connect(function() player.DevCameraOcclusionMode=Enum.DevCameraOcclusionMode.Invisicam end)
 
+
 --// Buttons
 local instantBtn = Instance.new("TextButton", content)
 instantBtn.Size = UDim2.new(0, mainWidth-10,0,buttonHeight)
@@ -167,8 +180,7 @@ instantBtn.MouseButton1Click:Connect(function()
 		setPromptInstant(v)
 	end
 end)
-
--- <<< التعديل: اخفاء زر Instant Take بصريًا مع الاحتفاظ بالوظيفة
+-- <<< التعديل البسيط: نخفي الزر بصريًا لكن نحافظ على الوظيفة
 instantBtn.Size = UDim2.new(0,0,0,0)
 instantBtn.Visible = false
 -- <<< نهاية التعديل
@@ -247,6 +259,7 @@ local function highlightModel(model,color)
 					child:Destroy()
 				end
 			end
+			-- BoxHandleAdornment
 			local adorn = Instance.new("BoxHandleAdornment")
 			adorn.Adornee = part
 			adorn.AlwaysOnTop = true
@@ -255,7 +268,7 @@ local function highlightModel(model,color)
 			adorn.Transparency = 0.3
 			adorn.Color3 = color
 			adorn.Parent = part
-
+			-- Name Billboard
 			if not blockNamesAdded[model] then
 				local billboard = Instance.new("BillboardGui")
 				billboard.Adornee = part
@@ -289,7 +302,7 @@ refreshBtn.MouseButton1Click:Connect(function()
 end)
 
 --// LocalScript: Unlock Zoom Notification
-task.wait(1)
+task.wait(1) -- يعطي وقت للنظام يشتغل
 StarterGui:SetCore("SendNotification", {
     Title = "Unlock Zoom, Instant Take",
     Text = "Active ✅",
