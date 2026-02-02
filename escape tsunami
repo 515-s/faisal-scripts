@@ -82,20 +82,6 @@ title.TextSize = 12
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Center
 
---// Discord button small
-local discordBtn = Instance.new("TextButton", top)
-discordBtn.Size = UDim2.fromOffset(topHeight,topHeight)
-discordBtn.Position = UDim2.new(0,0,0,0)
-discordBtn.Text = "Discord"
-discordBtn.BackgroundColor3 = Color3.fromRGB(100,100,255)
-discordBtn.TextColor3 = Color3.fromRGB(255,255,255)
-discordBtn.TextSize = 10
-discordBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", discordBtn).CornerRadius = UDim.new(0,6)
-discordBtn.MouseButton1Click:Connect(function()
-	if setclipboard then setclipboard("https://discord.gg/r54j6Y4M6h") end
-end)
-
 --// Content frame
 local content = Instance.new("Frame", main)
 content.Position = UDim2.new(0,0,0,topHeight)
