@@ -1,5 +1,5 @@
 --==================================================
--- حذف أي VIPWalls أول ما السكربت يشتغل
+-- حذف أي VIPWalls
 --==================================================
 for _, v in pairs(workspace:GetDescendants()) do
 	if v.Name == "VIPWalls" then
@@ -8,20 +8,38 @@ for _, v in pairs(workspace:GetDescendants()) do
 end
 
 --==================================================
--- VIP WALLS UI
+-- Services
 --==================================================
-
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
 local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "VipWallsUI"
+--==================================================
+-- الإحداثيات
+--==================================================
+local points = {
+	Vector3.new(242,3,135),
+	Vector3.new(341,3,135),
+	Vector3.new(470,3,135),
+	Vector3.new(649,3,135),
+	Vector3.new(913,3,135),
+	Vector3.new(1310,3,135),
+	Vector3.new(1900,3,135),
+	Vector3.new(1900,3,135)
+}
+
+local currentIndex = 0
+
+--==================================================
+-- GUI
+--==================================================
+local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
 
--- الإطار الرئيسي
-local frame = Instance.new("Frame")
-frame.Parent = gui
+local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.fromOffset(260,150)
 frame.Position = UDim2.new(1,-280,0,30)
 frame.BackgroundColor3 = Color3.fromRGB(35,25,10)
@@ -35,7 +53,6 @@ local stroke = Instance.new("UIStroke", frame)
 stroke.Color = Color3.fromRGB(255,200,60)
 stroke.Thickness = 2
 
--- العنوان
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1,0,0,30)
 title.BackgroundTransparency = 1
@@ -44,34 +61,68 @@ title.TextScaled = true
 title.Font = Enum.Font.GothamBold
 title.TextColor3 = Color3.fromRGB(255,220,70)
 
--- النص
-local wall = Instance.new("TextLabel", frame)
-wall.Position = UDim2.new(0,0,0,30)
-wall.Size = UDim2.new(1,0,0,25)
-wall.BackgroundTransparency = 1
-wall.Text = "VIP Wall 0"
-wall.TextScaled = true
-wall.Font = Enum.Font.Gotham
-wall.TextColor3 = Color3.new(1,1,1)
+local wallLabel = Instance.new("TextLabel", frame)
+wallLabel.Position = UDim2.new(0,0,0,30)
+wallLabel.Size = UDim2.new(1,0,0,25)
+wallLabel.BackgroundTransparency = 1
+wallLabel.Text = "VIP Wall 0"
+wallLabel.TextScaled = true
+wallLabel.Font = Enum.Font.Gotham
+wallLabel.TextColor3 = Color3.new(1,1,1)
 
 --==================================================
--- الأزرار (شكل فقط)
+-- زر UP
 --==================================================
+local upBtn = Instance.new("TextButton", frame)
+upBtn.Position = UDim2.new(0.05,0,0,60)
+upBtn.Size = UDim2.new(0.4,0,0,25)
+upBtn.Text = "🔼 UP"
+upBtn.BackgroundColor3 = Color3.fromRGB(60,120,255)
+upBtn.TextScaled = true
+upBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", upBtn).CornerRadius = UDim.new(0,8)
 
-local function makeButton(text, pos, color, size)
-	local b = Instance.new("TextButton")
-	b.Parent = frame
-	b.Position = pos
-	b.Size = size or UDim2.new(0.9,0,0,25)
-	b.Text = text
-	b.BackgroundColor3 = color
-	b.TextColor3 = Color3.new(1,1,1)
-	b.TextScaled = true
-	b.Font = Enum.Font.GothamBold
-	Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
+-- زر DOWN
+local downBtn = Instance.new("TextButton", frame)
+downBtn.Position = UDim2.new(0.55,0,0,60)
+downBtn.Size = UDim2.new(0.4,0,0,25)
+downBtn.Text = "🔽 DOWN"
+downBtn.BackgroundColor3 = Color3.fromRGB(80,80,80)
+downBtn.TextScaled = true
+downBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", downBtn).CornerRadius = UDim.new(0,8)
+
+--==================================================
+-- نظام الطيران السريع
+--==================================================
+local function flyTo(index)
+	if not points[index] then return end
+
+	currentIndex = index
+	wallLabel.Text = "VIP Wall "..index
+
+	local target = points[index] + Vector3.new(0,5,0) -- يرفع 5 ستد
+
+	local tween = TweenService:Create(
+		hrp,
+		TweenInfo.new(0.35, Enum.EasingStyle.Linear), -- سرعة قوية
+		{CFrame = CFrame.new(target)}
+	)
+
+	tween:Play()
 end
 
-makeButton("🔼 UP", UDim2.new(0.05,0,0,60), Color3.fromRGB(60,120,255), UDim2.new(0.4,0,0,25))
-makeButton("🔽 DOWN", UDim2.new(0.55,0,0,60), Color3.fromRGB(80,80,80), UDim2.new(0.4,0,0,25))
-makeButton("🔒 UNLOCK VIP DOORS", UDim2.new(0.05,0,0,95), Color3.fromRGB(200,30,30))
-makeButton("VIP شراء", UDim2.new(0.05,0,0,125), Color3.fromRGB(180,120,30))
+--==================================================
+-- أزرار
+--==================================================
+upBtn.MouseButton1Click:Connect(function()
+	if currentIndex < #points then
+		flyTo(currentIndex + 1)
+	end
+end)
+
+downBtn.MouseButton1Click:Connect(function()
+	if currentIndex > 1 then
+		flyTo(currentIndex - 1)
+	end
+end)
