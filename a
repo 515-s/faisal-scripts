@@ -1,11 +1,9 @@
--- لازم LocalScript
-
 local StarterGui = game:GetService("StarterGui")
 
-task.wait(1) -- عشان يضمن أن النظام يشتغل
+task.wait(1) 
 
 StarterGui:SetCore("SendNotification", {
-    Title = "انلوك زوم",
-    Text = "اكتيف",
-    Duration = 5
+    Title = "Unlock Zoom, Instant Take",
+    Text = "Active ✅",
+    Duration = 3
 })
