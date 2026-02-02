@@ -1,162 +1,23 @@
-local Workspace = game:GetService("Workspace")
-local CoreGui = game:GetService("CoreGui")
-local RunService = game:GetService("RunService")
+-- رسالة أسفل يسار الشاشة
 
-local Allowed_Pets = {"Celestial","Divine", "Common", "Uncommon", "Cosmic", "Mythical"}
-local Allowed_Blocks = {
-    "NaturalLuckyBlock_Celestial",
-    "NaturalLuckyBlock_Divine", 
-    "NaturalLuckyBlock_Admin",
-    "NaturalLuckyBlock_UFO"
-}
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
-local ESPEnabled = true
-local ESPLoop = nil
+-- إنشاء GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "MessageGui"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
-local function makePetESP(pet, petType, isBlock)
-    if not pet or not pet.Parent then return end
-    
-    local targetPart = pet:IsA("Model") and (pet.PrimaryPart or pet:FindFirstChildWhichIsA("BasePart")) or pet
-    if not targetPart then return end
-    
-    local color, displayName
-    if isBlock then
-        color = Color3.fromRGB(255, 200, 0)
-        local blockType = petType:gsub("NaturalLuckyBlock_", "")
-        displayName = "🎁 " .. blockType
-    else
-        color = Color3.fromRGB(255, 255, 255)
-        displayName = "🐱 " .. petType
-    end
-    
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "PetESP"
-    highlight.Adornee = targetPart
-    highlight.FillColor = color
-    highlight.OutlineColor = Color3.new(1, 1, 1)
-    highlight.FillTransparency = 0.4
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Parent = targetPart
-    
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "PetTag"
-    billboard.AlwaysOnTop = true
-    billboard.Size = UDim2.new(0, 150, 0, 40)
-    billboard.ExtentsOffset = Vector3.new(0, 2, 0)
-    billboard.Adornee = targetPart
-    billboard.Parent = targetPart
-    
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, 0, 1, 0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = displayName
-    nameLabel.TextColor3 = color
-    nameLabel.TextStrokeTransparency = 0
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextSize = 13
-    nameLabel.Parent = billboard
-    
-    return {highlight, billboard}
-end
-
-local function applyESP()
-    for _, item in pairs(Workspace:GetDescendants()) do
-        if item.Name == "PetESP" or item.Name == "PetTag" then
-            item:Destroy()
-        end
-    end
-    
-    if not ESPEnabled then return end
-    
-    local petFolder = Workspace:FindFirstChild("ActiveBrainrots")
-    if petFolder then
-        for _, rankFolder in pairs(petFolder:GetChildren()) do
-            if table.find(Allowed_Pets, rankFolder.Name) then
-                for _, pet in pairs(rankFolder:GetChildren()) do
-                    if pet:IsA("Model") then
-                        makePetESP(pet, rankFolder.Name, false)
-                    end
-                end
-            end
-        end
-    end
-    
-    local luckyFolder = Workspace:FindFirstChild("ActiveLuckyBlocks")
-    if luckyFolder then
-        for _, typeFolder in pairs(luckyFolder:GetChildren()) do
-            if table.find(Allowed_Blocks, typeFolder.Name) then
-                for _, block in pairs(typeFolder:GetChildren()) do
-                    if block:IsA("Model") then
-                        makePetESP(block, typeFolder.Name, true)
-                    end
-                end
-            end
-        end
-    end
-end
-
-local function toggleESP()
-    ESPEnabled = not ESPEnabled
-    
-    if ESPEnabled then
-        if ESPLoop then
-            ESPLoop:Disconnect()
-        end
-        
-        ESPLoop = RunService.Heartbeat:Connect(function()
-            applyESP()
-            task.wait(1) -- هذا فقط لتخفيف الضغط
-        end)
-    else
-        if ESPLoop then
-            ESPLoop:Disconnect()
-            ESPLoop = nil
-        end
-        
-        for _, item in pairs(Workspace:GetDescendants()) do
-            if item.Name == "PetESP" or item.Name == "PetTag" then
-                item:Destroy()
-            end
-        end
-    end
-    
-    return ESPEnabled
-end
-
-local button = Instance.new("TextButton")
-button.Name = "PetESP_Button"
-button.Size = UDim2.new(0, 70, 0, 35)
-button.Position = UDim2.new(0, 20, 0, 50)
-button.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-button.Text = "تشغيل"
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Font = Enum.Font.GothamBold
-button.TextSize = 12
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 6)
-corner.Parent = button
-
-button.MouseButton1Click:Connect(function()
-    local status = toggleESP()
-    if status then
-        button.Text = "تشغيل"
-        button.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-    else
-        button.Text = "ايقاف"
-        button.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
-    end
-end)
-
-if CoreGui:FindFirstChild("PetESP_GUI") then
-    CoreGui.PetESP_GUI:Destroy()
-end
-
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "PetESP_GUI"
-screenGui.Parent = CoreGui
-button.Parent = screenGui
-
-toggleESP()
-
-print("Run!!")
+-- مربع النص
+local label = Instance.new("TextLabel")
+label.Parent = gui
+label.Size = UDim2.new(0, 300, 0, 50)
+label.Position = UDim2.new(0, 10, 1, -60) -- تحت يسار
+label.BackgroundTransparency = 0.2
+label.BackgroundColor3 = Color3.fromRGB(0,0,0)
+label.TextColor3 = Color3.fromRGB(255,255,255)
+label.TextScaled = true
+label.Text = "تم تشغيل السكربت ✅"
+label.Font = Enum.Font.GothamBold
+label.BorderSizePixel = 0
