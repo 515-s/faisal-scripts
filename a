@@ -1,18 +1,31 @@
+--==================================================
+-- حذف أي VIPWalls أول ما السكربت يشتغل
+--==================================================
+for _, v in pairs(workspace:GetDescendants()) do
+	if v.Name == "VIPWalls" then
+		v:Destroy()
+	end
+end
+
+--==================================================
+-- VIP WALLS UI
+--==================================================
+
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
 local gui = Instance.new("ScreenGui")
-gui.Parent = player.PlayerGui
+gui.Name = "VipWallsUI"
 gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
+-- الإطار الرئيسي
 local frame = Instance.new("Frame")
 frame.Parent = gui
 frame.Size = UDim2.fromOffset(260,150)
 frame.Position = UDim2.new(1,-280,0,30)
 frame.BackgroundColor3 = Color3.fromRGB(35,25,10)
 frame.BorderSizePixel = 0
-
--- ⭐ هذا المهم
 frame.Active = true
 frame.Draggable = true
 
@@ -22,6 +35,7 @@ local stroke = Instance.new("UIStroke", frame)
 stroke.Color = Color3.fromRGB(255,200,60)
 stroke.Thickness = 2
 
+-- العنوان
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1,0,0,30)
 title.BackgroundTransparency = 1
@@ -30,6 +44,7 @@ title.TextScaled = true
 title.Font = Enum.Font.GothamBold
 title.TextColor3 = Color3.fromRGB(255,220,70)
 
+-- النص
 local wall = Instance.new("TextLabel", frame)
 wall.Position = UDim2.new(0,0,0,30)
 wall.Size = UDim2.new(1,0,0,25)
@@ -37,19 +52,26 @@ wall.BackgroundTransparency = 1
 wall.Text = "VIP Wall 0"
 wall.TextScaled = true
 wall.Font = Enum.Font.Gotham
+wall.TextColor3 = Color3.new(1,1,1)
 
-local function btn(text,pos,color,sizeX)
-	local b = Instance.new("TextButton", frame)
+--==================================================
+-- الأزرار (شكل فقط)
+--==================================================
+
+local function makeButton(text, pos, color, size)
+	local b = Instance.new("TextButton")
+	b.Parent = frame
 	b.Position = pos
-	b.Size = sizeX or UDim2.new(0.9,0,0,25)
+	b.Size = size or UDim2.new(0.9,0,0,25)
 	b.Text = text
 	b.BackgroundColor3 = color
+	b.TextColor3 = Color3.new(1,1,1)
 	b.TextScaled = true
 	b.Font = Enum.Font.GothamBold
 	Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
 end
 
-btn("🔼 UP", UDim2.new(0.05,0,0,60), Color3.fromRGB(60,120,255), UDim2.new(0.4,0,0,25))
-btn("🔽 DOWN", UDim2.new(0.55,0,0,60), Color3.fromRGB(80,80,80), UDim2.new(0.4,0,0,25))
-btn("🔒 UNLOCK VIP DOORS", UDim2.new(0.05,0,0,95), Color3.fromRGB(200,30,30))
-btn("VIP اغلاق", UDim2.new(0.05,0,0,125), Color3.fromRGB(180,120,30))
+makeButton("🔼 UP", UDim2.new(0.05,0,0,60), Color3.fromRGB(60,120,255), UDim2.new(0.4,0,0,25))
+makeButton("🔽 DOWN", UDim2.new(0.55,0,0,60), Color3.fromRGB(80,80,80), UDim2.new(0.4,0,0,25))
+makeButton("🔒 UNLOCK VIP DOORS", UDim2.new(0.05,0,0,95), Color3.fromRGB(200,30,30))
+makeButton("VIP شراء", UDim2.new(0.05,0,0,125), Color3.fromRGB(180,120,30))
