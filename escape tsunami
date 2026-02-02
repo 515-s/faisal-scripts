@@ -9,8 +9,7 @@ local workspace = game:GetService("Workspace")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
-local GuiService = game:GetService("GuiService")
-local StarterGui = game:GetService("StarterGui") -- للإشعار
+local StarterGui = game:GetService("StarterGui")
 
 --// Webhook
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
@@ -53,14 +52,14 @@ end
 --// Main GUI
 local topHeight, buttonHeight = 26, 28
 local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
-local mainWidth, mainHeight = isMobile and 100 or 200, isMobile and 150 or topHeight + 2*(buttonHeight+6)
+local mainWidth = isMobile and 100 or 200
 
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "FaisalUI"
 gui.ResetOnSpawn = false
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromOffset(mainWidth,mainHeight)
+main.Size = UDim2.fromOffset(mainWidth, topHeight)
 main.Position = UDim2.new(0.02,0,0.35,0)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
 main.BorderSizePixel = 0
@@ -100,7 +99,7 @@ end)
 --// Content frame
 local content = Instance.new("Frame", main)
 content.Position = UDim2.new(0,0,0,topHeight)
-content.Size = UDim2.new(1,0,0,0) -- نخلي ارتفاع المحتوى يتحدد حسب عناصره
+content.Size = UDim2.new(1,0,0,0)
 content.BackgroundTransparency = 1
 
 local layout = Instance.new("UIListLayout", content)
@@ -108,7 +107,7 @@ layout.Padding = UDim.new(0,5)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
---// Arrow toggle (للحركة)
+--// Arrow toggle
 local arrow = Instance.new("TextButton", top)
 arrow.Size = UDim2.fromOffset(topHeight,topHeight)
 arrow.Position = UDim2.new(1,-topHeight,0,0)
@@ -138,7 +137,6 @@ local function updateMainHeight()
 end
 
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateMainHeight)
--- call once to set correct size on start
 updateMainHeight()
 
 --// Instant Take & Unlock Zoom Limit
@@ -156,7 +154,6 @@ workspace.DescendantAdded:Connect(function(v)
 	setPromptInstant(v)
 end)
 
--- Unlock Zoom Limit
 player.CameraMaxZoomDistance = 500
 player.CameraMinZoomDistance = 0
 player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
@@ -164,10 +161,10 @@ player:GetPropertyChangedSignal("CameraMaxZoomDistance"):Connect(function() play
 player:GetPropertyChangedSignal("CameraMinZoomDistance"):Connect(function() player.CameraMinZoomDistance=0 end)
 player:GetPropertyChangedSignal("DevCameraOcclusionMode"):Connect(function() player.DevCameraOcclusionMode=Enum.DevCameraOcclusionMode.Invisicam end)
 
-
 --// Buttons
 local instantBtn = Instance.new("TextButton", content)
-instantBtn.Size = UDim2.new(0, mainWidth-10,0,buttonHeight)
+instantBtn.Size = UDim2.new(0,0,0,0) -- نخفي الزر
+instantBtn.Visible = false
 instantBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 instantBtn.Text = "Instant Take"
 instantBtn.TextColor3 = Color3.fromRGB(230,230,230)
@@ -180,10 +177,6 @@ instantBtn.MouseButton1Click:Connect(function()
 		setPromptInstant(v)
 	end
 end)
--- <<< التعديل البسيط: نخفي الزر بصريًا لكن نحافظ على الوظيفة
-instantBtn.Size = UDim2.new(0,0,0,0)
-instantBtn.Visible = false
--- <<< نهاية التعديل
 
 local refreshBtn = Instance.new("TextButton", content)
 refreshBtn.Size = UDim2.new(0, mainWidth-10,0,buttonHeight)
@@ -197,7 +190,6 @@ Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
 
 --// Blocks
 local orderedBlocks = {
-	-- Natural
 	{model="NaturalLuckyBlock_Common",color=Color3.fromRGB(200,200,200)},
 	{model="NaturalLuckyBlock_Uncommon",color=Color3.fromRGB(0,255,0)},
 	{model="NaturalLuckyBlock_Rare",color=Color3.fromRGB(0,150,255)},
@@ -211,35 +203,6 @@ local orderedBlocks = {
 	{model="NaturalLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
 	{model="NaturalLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
 	{model="NaturalLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
-	-- Event
-	{model="EventLuckyBlock_Common",color=Color3.fromRGB(180,180,180)},
-	{model="EventLuckyBlock_Uncommon",color=Color3.fromRGB(0,200,0)},
-	{model="EventLuckyBlock_Rare",color=Color3.fromRGB(0,120,255)},
-	{model="EventLuckyBlock_Epic",color=Color3.fromRGB(128,0,128)},
-	{model="EventLuckyBlock_Legendary",color=Color3.fromRGB(255,230,0)},
-	{model="EventLuckyBlock_Mythical",color=Color3.fromRGB(128,0,128)},
-	{model="EventLuckyBlock_Cosmic",color=Color3.fromRGB(40,40,40)},
-	{model="EventLuckyBlock_Secret",color=Color3.fromRGB(255,50,50)},
-	{model="EventLuckyBlock_Celestial",color=Color3.fromRGB(0,200,255)},
-	{model="EventLuckyBlock_UFO",color=Color3.fromRGB(0,255,127)},
-	{model="EventLuckyBlock_Money",color=Color3.fromRGB(255,255,0)},
-	{model="EventLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
-	{model="EventLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
-	{model="EventLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
-	-- Global
-	{model="GlobalLuckyBlock_Common",color=Color3.fromRGB(160,160,160)},
-	{model="GlobalLuckyBlock_Uncommon",color=Color3.fromRGB(0,255,120)},
-	{model="GlobalLuckyBlock_Rare",color=Color3.fromRGB(0,170,255)},
-	{model="GlobalLuckyBlock_Epic",color=Color3.fromRGB(128,0,128)},
-	{model="GlobalLuckyBlock_Legendary",color=Color3.fromRGB(255,200,0)},
-	{model="GlobalLuckyBlock_Mythical",color=Color3.fromRGB(128,0,128)},
-	{model="GlobalLuckyBlock_Cosmic",color=Color3.fromRGB(70,70,70)},
-	{model="GlobalLuckyBlock_Secret",color=Color3.fromRGB(255,80,80)},
-	{model="GlobalLuckyBlock_Money",color=Color3.fromRGB(255,255,0)},
-	{model="GlobalLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
-	{model="GlobalLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
-	{model="GlobalLuckyBlock_UFO",color=Color3.fromRGB(0,255,127)},
-	{model="GlobalLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
 }
 
 local highlightedModels = {}
@@ -259,7 +222,6 @@ local function highlightModel(model,color)
 					child:Destroy()
 				end
 			end
-			-- BoxHandleAdornment
 			local adorn = Instance.new("BoxHandleAdornment")
 			adorn.Adornee = part
 			adorn.AlwaysOnTop = true
@@ -268,7 +230,6 @@ local function highlightModel(model,color)
 			adorn.Transparency = 0.3
 			adorn.Color3 = color
 			adorn.Parent = part
-			-- Name Billboard
 			if not blockNamesAdded[model] then
 				local billboard = Instance.new("BillboardGui")
 				billboard.Adornee = part
@@ -292,19 +253,24 @@ end
 
 refreshBtn.MouseButton1Click:Connect(function()
 	blockNamesAdded = {}
-	for _, block in ipairs(orderedBlocks) do
-		for _, obj in pairs(workspace:GetDescendants()) do
-			if obj:IsA("Model") and obj.Name == block.model then
-				highlightModel(obj, block.color)
+	local allModels = workspace:GetDescendants()
+	task.spawn(function()
+		for _, obj in pairs(allModels) do
+			if obj:IsA("Model") and highlightedModels[obj.Name] then
+				for _, block in ipairs(orderedBlocks) do
+					if obj.Name == block.model then
+						highlightModel(obj, block.color)
+					end
+				end
 			end
 		end
-	end
+	end)
 end)
 
---// LocalScript: Unlock Zoom Notification
-task.wait(1) -- يعطي وقت للنظام يشتغل
+--// Notification
+task.wait(1)
 StarterGui:SetCore("SendNotification", {
     Title = "Unlock Zoom, Instant Take",
     Text = "Active ✅",
-    Duration = 3
+    Duration = 5
 })
