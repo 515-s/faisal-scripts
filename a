@@ -35,30 +35,7 @@ local points = {
 local character
 local hrp
 local currentIndex = 1
-
---==================================================
--- تحديث الشخصية بعد الموت (المهم)
---==================================================
-local function setupCharacter(char)
-	character = char
-	hrp = char:WaitForChild("HumanoidRootPart")
-
-	task.wait(0.2)
-
-	-- يرجع لأول نقطة تلقائي
-	currentIndex = 1
-	hrp.CFrame = CFrame.new(points[1] + Vector3.new(0,5,0))
-
-	if wallLabel then
-		wallLabel.Text = "VIP Wall 1"
-	end
-end
-
-player.CharacterAdded:Connect(setupCharacter)
-
-if player.Character then
-	setupCharacter(player.Character)
-end
+local RANGE = 2 -- مسافة السماح (2 ستد)
 
 --==================================================
 -- GUI
@@ -88,11 +65,10 @@ title.TextScaled = true
 title.Font = Enum.Font.GothamBold
 title.TextColor3 = Color3.fromRGB(255,220,70)
 
-wallLabel = Instance.new("TextLabel", frame)
+local wallLabel = Instance.new("TextLabel", frame)
 wallLabel.Position = UDim2.new(0,0,0,30)
 wallLabel.Size = UDim2.new(1,0,0,25)
 wallLabel.BackgroundTransparency = 1
-wallLabel.Text = "VIP Wall 1"
 wallLabel.TextScaled = true
 wallLabel.Font = Enum.Font.Gotham
 wallLabel.TextColor3 = Color3.white()
@@ -118,14 +94,31 @@ makeBtn("🔒 UNLOCK VIP DOORS", UDim2.new(0.05,0,0,95), Color3.fromRGB(200,30,3
 makeBtn("VIP شراء", UDim2.new(0.05,0,0,125), Color3.fromRGB(180,120,30))
 
 --==================================================
--- الطيران
+-- وظائف مساعدة
 --==================================================
+local function updateLabel()
+	wallLabel.Text = "VIP Wall "..currentIndex
+
+	if currentIndex >= #points then
+		upBtn.Text = "CANT"
+		upBtn.AutoButtonColor = false
+	else
+		upBtn.Text = "🔼 UP"
+		upBtn.AutoButtonColor = true
+	end
+end
+
+local function nearCurrent()
+	if not hrp then return false end
+	return (hrp.Position - points[currentIndex]).Magnitude <= RANGE
+end
+
 local function flyTo(index)
 	if not hrp then return end
 	if not points[index] then return end
 
 	currentIndex = index
-	wallLabel.Text = "VIP Wall "..index
+	updateLabel()
 
 	local target = points[index] + Vector3.new(0,5,0)
 
@@ -139,16 +132,36 @@ local function flyTo(index)
 end
 
 --==================================================
--- تحكم الأزرار
+-- أزرار التحكم
 --==================================================
 upBtn.MouseButton1Click:Connect(function()
-	if currentIndex < #points then
-		flyTo(currentIndex + 1)
-	end
+	if currentIndex >= #points then return end
+	if not nearCurrent() then return end
+	flyTo(currentIndex + 1)
 end)
 
 downBtn.MouseButton1Click:Connect(function()
-	if currentIndex > 1 then
-		flyTo(currentIndex - 1)
-	end
+	if currentIndex <= 1 then return end
+	if not nearCurrent() then return end
+	flyTo(currentIndex - 1)
 end)
+
+--==================================================
+-- نظام الموت (الأهم)
+--==================================================
+local function setupCharacter(char)
+	character = char
+	hrp = char:WaitForChild("HumanoidRootPart")
+
+	currentIndex = 1
+	task.wait(0.2)
+
+	hrp.CFrame = CFrame.new(points[1] + Vector3.new(0,5,0))
+	updateLabel()
+end
+
+player.CharacterAdded:Connect(setupCharacter)
+
+if player.Character then
+	setupCharacter(player.Character)
+end
