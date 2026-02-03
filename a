@@ -1,17 +1,26 @@
---// تشغيل داخل LocalScript
+--==================================================
+-- faisal-script Teleport GUI
+--==================================================
 
---==================================================
--- Services
---==================================================
+--// Services
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
 
 --==================================================
--- حفظ موقع اللاعب أول ما يشتغل
+-- الشخصية
+--==================================================
+local function getHRP()
+	local char = player.Character or player.CharacterAdded:Wait()
+	return char:WaitForChild("HumanoidRootPart")
+end
+
+local hrp = getHRP()
+
+--==================================================
+-- حفظ الموقع أول ما يشتغل
 --==================================================
 local savedPosition = hrp.CFrame
 
@@ -19,67 +28,127 @@ local savedPosition = hrp.CFrame
 -- الإحداثيات
 --==================================================
 local carShowroom = CFrame.new(-20, 5, -130)
-local sharitiyah = CFrame.new(-1813, 5, 4562)
+local sharitiyah  = CFrame.new(-1813, 5, 4562)
 
 --==================================================
--- انتقال ناعم (احترافي)
+-- انتقال ناعم
 --==================================================
 local function teleport(cf)
+	hrp = getHRP()
+
 	local tween = TweenService:Create(
 		hrp,
-		TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 		{CFrame = cf}
 	)
+
 	tween:Play()
 end
 
 --==================================================
 -- GUI
 --==================================================
-local gui = Instance.new("ScreenGui", player.PlayerGui)
-gui.Name = "TeleportMenu"
+local gui = Instance.new("ScreenGui")
+gui.Name = "FaisalTeleportGUI"
 gui.ResetOnSpawn = false
+gui.Parent = player.PlayerGui
 
+-- الإطار الرئيسي
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromOffset(260, 200)
-frame.Position = UDim2.new(0.5, -130, 0.5, -100)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.Size = UDim2.fromOffset(270, 210)
+frame.Position = UDim2.new(0.5,-135,0.5,-105)
+frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
 frame.BorderSizePixel = 0
 
--- زوايا ناعمة
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0,18)
 
--- إطار حلو
 local stroke = Instance.new("UIStroke", frame)
 stroke.Color = Color3.fromRGB(255, 200, 60)
 stroke.Thickness = 2
 
 --==================================================
--- دالة إنشاء زر احترافي
+-- العنوان (قابل للسحب)
 --==================================================
-local function createButton(text, posY, callback)
+local titleBar = Instance.new("Frame", frame)
+titleBar.Size = UDim2.new(1,0,0,40)
+titleBar.BackgroundColor3 = Color3.fromRGB(25,25,25)
+titleBar.BorderSizePixel = 0
+
+Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0,18)
+
+local title = Instance.new("TextLabel", titleBar)
+title.Size = UDim2.new(1,0,1,0)
+title.BackgroundTransparency = 1
+title.Text = "faisal-script"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(255, 210, 90)
+
+--==================================================
+-- السحب من العنوان فقط
+--==================================================
+local dragging = false
+local dragStart, startPos
+
+titleBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+	end
+end)
+
+titleBar.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+	or input.UserInputType == Enum.UserInputType.Touch) then
+
+		local delta = input.Position - dragStart
+
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+--==================================================
+-- إنشاء زر احترافي
+--==================================================
+local function createButton(text, order, callback)
 	local btn = Instance.new("TextButton", frame)
 	btn.Size = UDim2.new(1,-20,0,45)
-	btn.Position = UDim2.new(0,10,0,posY)
+	btn.Position = UDim2.new(0,10,0,45 + (order * 50))
+
 	btn.Text = text
 	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 16
+	btn.TextSize = 15
 	btn.TextColor3 = Color3.new(1,1,1)
-	btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+	btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
 	btn.AutoButtonColor = false
+	btn.BorderSizePixel = 0
 
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,12)
 
 	local stroke = Instance.new("UIStroke", btn)
 	stroke.Color = Color3.fromRGB(255,200,60)
 
-	-- تأثير ضغط
 	btn.MouseEnter:Connect(function()
-		btn.BackgroundColor3 = Color3.fromRGB(55,55,55)
+		btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 	end)
 
 	btn.MouseLeave:Connect(function()
-		btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+		btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
 	end)
 
 	btn.MouseButton1Click:Connect(callback)
@@ -88,14 +157,14 @@ end
 --==================================================
 -- الأزرار الثلاثة
 --==================================================
-createButton("الانتقال إلى معرضك", 15, function()
+createButton("الانتقال إلى معرضك", 0, function()
 	teleport(savedPosition)
 end)
 
-createButton("معرض السيارات", 70, function()
+createButton("معرض السيارات", 1, function()
 	teleport(carShowroom)
 end)
 
-createButton("حي الشريطية", 125, function()
+createButton("حي الشريطية", 2, function()
 	teleport(sharitiyah)
 end)
