@@ -1,78 +1,45 @@
---==================================================
--- faisal-script | Teleport + Local Car Move
---==================================================
-
-------------------------------
--- Services
-------------------------------
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
-------------------------------
--- إشعار
-------------------------------
-local function notify(txt)
+local function notify(t)
 	pcall(function()
-		StarterGui:SetCore("SendNotification",{
-			Title = "faisal-script",
-			Text = txt,
-			Duration = 2
-		})
+		StarterGui:SetCore("SendNotification",{Title="faisal-script",Text=t,Duration=2})
 	end)
 end
 
-------------------------------
--- HRP
-------------------------------
 local function getHRP()
-	local char = player.Character or player.CharacterAdded:Wait()
-	return char:WaitForChild("HumanoidRootPart")
+	local c = player.Character or player.CharacterAdded:Wait()
+	return c:WaitForChild("HumanoidRootPart")
 end
 
 local hrp = getHRP()
 
-------------------------------
--- حفظ موقع البداية
-------------------------------
 local savedPosition = hrp.CFrame
-
-------------------------------
--- الإحداثيات
-------------------------------
 local carShowroom = CFrame.new(-20,5,-130)
 local sharitiyah  = CFrame.new(-1813,5,4562)
 
-------------------------------
--- انتقال اللاعب
-------------------------------
 local function teleport(cf)
 	getHRP().CFrame = cf
 end
 
---==================================================
--- نظام السيارة (Local حقيقي عندك)
---==================================================
-
 local savedCarModel = nil
 
--- أقرب موديل
 local function getNearestModel()
 	local root = getHRP()
-
 	local nearest
 	local shortest = math.huge
 
 	for _,obj in ipairs(workspace:GetDescendants()) do
 		if obj:IsA("Model") and obj ~= player.Character then
-			local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-
-			if part then
-				local dist = (part.Position - root.Position).Magnitude
-				if dist < shortest then
-					shortest = dist
+			local p = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+			if p then
+				local d = (p.Position - root.Position).Magnitude
+				if d < shortest then
+					shortest = d
 					nearest = obj
 				end
 			end
@@ -82,10 +49,8 @@ local function getNearestModel()
 	return nearest
 end
 
--- تحديد
 local function selectCar()
 	local car = getNearestModel()
-
 	if car then
 		savedCarModel = car
 		notify("تم تحديد: "..car.Name)
@@ -94,7 +59,6 @@ local function selectCar()
 	end
 end
 
--- ⭐ نقل قدامك 20 ستود (Local فقط)
 local function bringCar()
 	if not savedCarModel then
 		notify("حدد سيارة أول")
@@ -102,33 +66,41 @@ local function bringCar()
 	end
 
 	local root = getHRP()
-
 	local part = savedCarModel.PrimaryPart or savedCarModel:FindFirstChildWhichIsA("BasePart")
-	if not part then
-		notify("الموديل ما فيه أجزاء")
-		return
-	end
+	if not part then return end
 
-	-- نحاول ناخذ ملكية الفيزياء (يساعد بعض الألعاب)
+	local targetPos = root.Position + (root.CFrame.LookVector * 20)
+	local speed = 1400
+
 	pcall(function()
 		part:SetNetworkOwner(player)
 	end)
 
-	local forward = root.CFrame.LookVector
-	local pos = root.Position + (forward * 20)
+	RunService:UnbindFromRenderStep("MoveCar")
 
-	savedCarModel:PivotTo(CFrame.new(pos, pos + forward))
+	RunService:BindToRenderStep("MoveCar",301,function(dt)
+		if not savedCarModel or not part then
+			RunService:UnbindFromRenderStep("MoveCar")
+			return
+		end
 
-	notify("تم نقل السيارة قدامك")
+		local current = part.Position
+		local dir = targetPos - current
+		local dist = dir.Magnitude
+
+		if dist <= 1 then
+			RunService:UnbindFromRenderStep("MoveCar")
+			savedCarModel:PivotTo(CFrame.new(targetPos, targetPos + root.CFrame.LookVector))
+			return
+		end
+
+		local step = dir.Unit * math.min(speed * dt, dist)
+		savedCarModel:PivotTo(CFrame.new(current + step, targetPos + root.CFrame.LookVector))
+	end)
 end
-
---==================================================
--- GUI
---==================================================
 
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.ResetOnSpawn = false
-gui.Name = "FaisalGUI"
 
 local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.fromOffset(300,270)
@@ -141,9 +113,6 @@ local stroke = Instance.new("UIStroke", frame)
 stroke.Color = Color3.fromRGB(255,210,90)
 stroke.Thickness = 2
 
-------------------------------
--- عنوان
-------------------------------
 local titleBar = Instance.new("Frame", frame)
 titleBar.Size = UDim2.new(1,0,0,40)
 titleBar.BackgroundColor3 = Color3.fromRGB(30,30,30)
@@ -157,69 +126,44 @@ title.TextColor3 = Color3.fromRGB(255,210,90)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 
-------------------------------
--- سحب من العنوان
-------------------------------
-local dragging = false
-local dragStart, startPos
+local dragging=false
+local dragStart,startPos
 
-titleBar.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
+titleBar.InputBegan:Connect(function(i)
+	if i.UserInputType==Enum.UserInputType.MouseButton1 then
+		dragging=true
+		dragStart=i.Position
+		startPos=frame.Position
 	end
 end)
 
 titleBar.InputEnded:Connect(function()
-	dragging = false
+	dragging=false
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local delta = input.Position - dragStart
-		frame.Position = UDim2.new(
-			startPos.X.Scale,
-			startPos.X.Offset + delta.X,
-			startPos.Y.Scale,
-			startPos.Y.Offset + delta.Y
-		)
+UserInputService.InputChanged:Connect(function(i)
+	if dragging and i.UserInputType==Enum.UserInputType.MouseMovement then
+		local d=i.Position-dragStart
+		frame.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y)
 	end
 end)
 
-------------------------------
--- زر
-------------------------------
 local function makeBtn(text,y,fn,width,x)
-	local b = Instance.new("TextButton", frame)
-	b.Size = UDim2.new(width or 1,-20,0,40)
-	b.Position = UDim2.new(x or 0,10,y,0)
-	b.Text = text
-	b.Font = Enum.Font.GothamBold
-	b.TextSize = 14
-	b.TextColor3 = Color3.new(1,1,1)
-	b.BackgroundColor3 = Color3.fromRGB(40,40,40)
-	b.BorderSizePixel = 0
-	Instance.new("UICorner", b)
-
+	local b=Instance.new("TextButton",frame)
+	b.Size=UDim2.new(width or 1,-20,0,40)
+	b.Position=UDim2.new(x or 0,10,y,0)
+	b.Text=text
+	b.Font=Enum.Font.GothamBold
+	b.TextSize=14
+	b.TextColor3=Color3.new(1,1,1)
+	b.BackgroundColor3=Color3.fromRGB(40,40,40)
+	b.BorderSizePixel=0
+	Instance.new("UICorner",b)
 	b.MouseButton1Click:Connect(fn)
 end
 
-------------------------------
--- الأزرار
-------------------------------
-makeBtn("الانتقال إلى معرضك",0.18,function()
-	teleport(savedPosition)
-end)
-
-makeBtn("معرض السيارات",0.35,function()
-	teleport(carShowroom)
-end)
-
-makeBtn("حي الشريطية",0.52,function()
-	teleport(sharitiyah)
-end)
-
--- نص + نص
+makeBtn("الانتقال إلى معرضك",0.18,function() teleport(savedPosition) end)
+makeBtn("معرض السيارات",0.35,function() teleport(carShowroom) end)
+makeBtn("حي الشريطية",0.52,function() teleport(sharitiyah) end)
 makeBtn("تحديد السيارة",0.70,selectCar,0.5,0)
 makeBtn("نقل لسيارة",0.70,bringCar,0.5,0.5)
