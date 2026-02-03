@@ -1,17 +1,30 @@
 --==================================================
--- faisal-script | Teleport + Car System
+-- faisal-script (FINAL WORKING VERSION)
 --==================================================
 
---// Services
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 
---==================================================
--- الشخصية
---==================================================
+---------------------------------------------------
+-- إشعار بسيط
+---------------------------------------------------
+local function notify(txt)
+	pcall(function()
+		StarterGui:SetCore("SendNotification", {
+			Title = "faisal-script",
+			Text = txt,
+			Duration = 2
+		})
+	end)
+end
+
+---------------------------------------------------
+-- HRP
+---------------------------------------------------
 local function getHRP()
 	local char = player.Character or player.CharacterAdded:Wait()
 	return char:WaitForChild("HumanoidRootPart")
@@ -19,50 +32,44 @@ end
 
 local hrp = getHRP()
 
---==================================================
--- حفظ مكان اللاعب عند تشغيل السكربت
---==================================================
+---------------------------------------------------
+-- حفظ الموقع
+---------------------------------------------------
 local savedPosition = hrp.CFrame
 
---==================================================
--- الإحداثيات
---==================================================
-local carShowroom = CFrame.new(-20, 5, -130)
-local sharitiyah  = CFrame.new(-1813, 5, 4562)
+---------------------------------------------------
+-- إحداثياتك
+---------------------------------------------------
+local carShowroom = CFrame.new(-20,5,-130)
+local sharitiyah  = CFrame.new(-1813,5,4562)
 
---==================================================
--- انتقال ناعم
---==================================================
+---------------------------------------------------
+-- انتقال
+---------------------------------------------------
 local function teleport(cf)
 	hrp = getHRP()
-
-	TweenService:Create(
-		hrp,
-		TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{CFrame = cf}
-	):Play()
+	hrp.CFrame = cf
 end
 
---==================================================
--- نظام السيارات
---==================================================
+---------------------------------------------------
+-- السيارات
+---------------------------------------------------
 local savedCarModel = nil
 
--- أقرب موديل (يتجاهل اللاعب)
 local function getNearestModel()
 	hrp = getHRP()
 
 	local nearest
-	local shortest = math.huge
+	local distMin = math.huge
 
-	for _, obj in pairs(workspace:GetDescendants()) do
-		if obj:IsA("Model") and obj ~= player.Character then
-			local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+	for _,m in ipairs(workspace:GetDescendants()) do
+		if m:IsA("Model") and m ~= player.Character then
+			local part = m.PrimaryPart or m:FindFirstChildWhichIsA("BasePart")
 			if part then
-				local dist = (part.Position - hrp.Position).Magnitude
-				if dist < shortest then
-					shortest = dist
-					nearest = obj
+				local d = (part.Position - hrp.Position).Magnitude
+				if d < distMin then
+					distMin = d
+					nearest = m
 				end
 			end
 		end
@@ -71,146 +78,78 @@ local function getNearestModel()
 	return nearest
 end
 
--- تحديد السيارة
 local function selectCar()
 	local car = getNearestModel()
+
 	if car then
 		savedCarModel = car
-		print("تم تحديد:", car.Name)
+		notify("تم تحديد: "..car.Name)
+	else
+		notify("ما فيه موديل قريب")
 	end
 end
 
--- ✅ يجيبها قدامك أنت 20 ستود مهما كانت بعيدة
+-- ✅ يجيبها قدامك 20 ستود
 local function bringCar()
 	if not savedCarModel then
-		warn("حدد سيارة أولاً")
+		notify("حدد سيارة أول")
 		return
 	end
 
 	hrp = getHRP()
 
-	local forward = hrp.CFrame.LookVector
-	local newPos = hrp.Position + (forward * 20)
+	local pos = hrp.Position + (hrp.CFrame.LookVector * 20)
+	savedCarModel:PivotTo(CFrame.new(pos))
 
-	savedCarModel:PivotTo(CFrame.new(newPos))
+	notify("تم نقل السيارة قدامك")
 end
 
---==================================================
--- GUI
---==================================================
-local gui = Instance.new("ScreenGui")
-gui.Name = "FaisalTeleportGUI"
+---------------------------------------------------
+-- GUI بسيط ومضمون
+---------------------------------------------------
+local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.ResetOnSpawn = false
-gui.Parent = player.PlayerGui
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromOffset(300, 260)
-frame.Position = UDim2.new(0.5,-150,0.5,-130)
-frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+frame.Size = UDim2.fromOffset(280,240)
+frame.Position = UDim2.new(0.5,-140,0.5,-120)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 frame.BorderSizePixel = 0
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,18)
+Instance.new("UICorner", frame)
 
-local stroke = Instance.new("UIStroke", frame)
-stroke.Color = Color3.fromRGB(255,200,60)
-stroke.Thickness = 2
-
---==================================================
--- العنوان (سحب)
---==================================================
-local titleBar = Instance.new("Frame", frame)
-titleBar.Size = UDim2.new(1,0,0,40)
-titleBar.BackgroundColor3 = Color3.fromRGB(25,25,25)
-titleBar.BorderSizePixel = 0
-Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0,18)
-
-local title = Instance.new("TextLabel", titleBar)
-title.Size = UDim2.new(1,0,1,0)
-title.BackgroundTransparency = 1
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,35)
 title.Text = "faisal-script"
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255,210,90)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
-title.TextColor3 = Color3.fromRGB(255,210,90)
 
+---------------------------------------------------
 -- سحب
-local dragging = false
-local dragStart, startPos
+---------------------------------------------------
+frame.Active = true
+frame.Draggable = true
 
-titleBar.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
-	end
-end)
-
-titleBar.InputEnded:Connect(function()
-	dragging = false
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-		local delta = input.Position - dragStart
-		frame.Position = UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
-	end
-end)
-
---==================================================
--- زر احترافي
---==================================================
-local function makeBtn(text,pos,size,callback)
+---------------------------------------------------
+-- زر
+---------------------------------------------------
+local function btn(text,y,fn)
 	local b = Instance.new("TextButton", frame)
-	b.Size = size
-	b.Position = pos
+	b.Size = UDim2.new(1,-20,0,40)
+	b.Position = UDim2.new(0,10,0,y)
 	b.Text = text
+	b.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	b.TextColor3 = Color3.new(1,1,1)
 	b.Font = Enum.Font.GothamBold
 	b.TextSize = 14
-	b.TextColor3 = Color3.new(1,1,1)
-	b.BackgroundColor3 = Color3.fromRGB(35,35,35)
-	b.BorderSizePixel = 0
-	b.AutoButtonColor = false
-
-	Instance.new("UICorner", b).CornerRadius = UDim.new(0,12)
-
-	local s = Instance.new("UIStroke", b)
-	s.Color = Color3.fromRGB(255,200,60)
-
-	b.MouseEnter:Connect(function()
-		b.BackgroundColor3 = Color3.fromRGB(55,55,55)
-	end)
-
-	b.MouseLeave:Connect(function()
-		b.BackgroundColor3 = Color3.fromRGB(35,35,35)
-	end)
-
-	b.MouseButton1Click:Connect(callback)
+	Instance.new("UICorner", b)
+	b.MouseButton1Click:Connect(fn)
 end
 
---==================================================
--- أزرار التنقل
---==================================================
-makeBtn("الانتقال إلى معرضك", UDim2.new(0,10,0,50), UDim2.new(1,-20,0,45), function()
-	teleport(savedPosition)
-end)
+btn("الانتقال إلى معرضك",40,function() teleport(savedPosition) end)
+btn("معرض السيارات",85,function() teleport(carShowroom) end)
+btn("حي الشريطية",130,function() teleport(sharitiyah) end)
 
-makeBtn("معرض السيارات", UDim2.new(0,10,0,105), UDim2.new(1,-20,0,45), function()
-	teleport(carShowroom)
-end)
-
-makeBtn("حي الشريطية", UDim2.new(0,10,0,160), UDim2.new(1,-20,0,45), function()
-	teleport(sharitiyah)
-end)
-
---==================================================
--- زرين نص + نص
---==================================================
-makeBtn("تحديد السيارة",
-	UDim2.new(0,10,0,215),
-	UDim2.new(0.5,-15,0,40),
-	selectCar
-)
-
-makeBtn("نقل لسيارة",
-	UDim2.new(0.5,5,0,215),
-	UDim2.new(0.5,-15,0,40),
-	bringCar
-)
+btn("تحديد السيارة",175,selectCar)
+btn("نقل لسيارة",215,bringCar)
