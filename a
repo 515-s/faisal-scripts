@@ -1,6 +1,8 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 
@@ -26,6 +28,21 @@ end
 
 local savedCarModel = nil
 
+-- البحث عن أي RemoteEvent في اللعبة يتحكم بالسيارات
+local function findCarRemote()
+	for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
+		if obj:IsA("RemoteEvent") and obj.Name:lower():find("car") then
+			return obj
+		end
+	end
+	return nil
+end
+
+local carRemote = findCarRemote()
+if not carRemote then
+	notify("ما حصلت RemoteEvent لنقل السيارات")
+end
+
 local function getNearestModel()
 	local root = getHRP()
 	local nearest
@@ -43,7 +60,6 @@ local function getNearestModel()
 			end
 		end
 	end
-
 	return nearest
 end
 
@@ -57,38 +73,25 @@ local function selectCar()
 	end
 end
 
+-- نقل السيارة عبر السيرفر
 local function bringCar()
 	if not savedCarModel then
 		notify("حدد سيارة أول")
 		return
 	end
-
-	local root = getHRP()
-	local part = savedCarModel.PrimaryPart or savedCarModel:FindFirstChildWhichIsA("BasePart")
-	if not part then
-		notify("الموديل ما فيه أجزاء")
+	if not carRemote then
+		notify("RemoteEvent مفقود")
 		return
 	end
 
+	local root = getHRP()
 	local targetPos = root.Position + (root.CFrame.LookVector * 20)
-	local speed = 1400
 
-	pcall(function()
-		part:SetNetworkOwner(player)
-	end)
-
-	spawn(function()
-		while (part.Position - targetPos).Magnitude > 1 do
-			local dir = (targetPos - part.Position).Unit
-			local step = dir * math.min(speed * (1/60), (targetPos - part.Position).Magnitude)
-			part.CFrame = part.CFrame + step
-			task.wait(1/60)
-		end
-		part.CFrame = CFrame.new(targetPos, targetPos + root.CFrame.LookVector)
-		notify("وصلت السيارة")
-	end)
+	-- نرسل للسيرفر السيارة والمكان
+	carRemote:FireServer(savedCarModel, targetPos)
 end
 
+-- واجهة المستخدم
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.ResetOnSpawn = false
 
