@@ -1,5 +1,5 @@
 --==================================================
--- faisal-script Teleport GUI
+-- faisal-script | Teleport + Car System
 --==================================================
 
 --// Services
@@ -20,7 +20,7 @@ end
 local hrp = getHRP()
 
 --==================================================
--- حفظ الموقع أول ما يشتغل
+-- حفظ مكان اللاعب عند تشغيل السكربت
 --==================================================
 local savedPosition = hrp.CFrame
 
@@ -36,13 +36,63 @@ local sharitiyah  = CFrame.new(-1813, 5, 4562)
 local function teleport(cf)
 	hrp = getHRP()
 
-	local tween = TweenService:Create(
+	TweenService:Create(
 		hrp,
-		TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 		{CFrame = cf}
-	)
+	):Play()
+end
 
-	tween:Play()
+--==================================================
+-- نظام السيارات
+--==================================================
+local savedCarModel = nil
+
+-- أقرب موديل (يتجاهل اللاعب)
+local function getNearestModel()
+	hrp = getHRP()
+
+	local nearest
+	local shortest = math.huge
+
+	for _, obj in pairs(workspace:GetDescendants()) do
+		if obj:IsA("Model") and obj ~= player.Character then
+			local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+			if part then
+				local dist = (part.Position - hrp.Position).Magnitude
+				if dist < shortest then
+					shortest = dist
+					nearest = obj
+				end
+			end
+		end
+	end
+
+	return nearest
+end
+
+-- تحديد السيارة
+local function selectCar()
+	local car = getNearestModel()
+	if car then
+		savedCarModel = car
+		print("تم تحديد:", car.Name)
+	end
+end
+
+-- ✅ يجيبها قدامك أنت 20 ستود مهما كانت بعيدة
+local function bringCar()
+	if not savedCarModel then
+		warn("حدد سيارة أولاً")
+		return
+	end
+
+	hrp = getHRP()
+
+	local forward = hrp.CFrame.LookVector
+	local newPos = hrp.Position + (forward * 20)
+
+	savedCarModel:PivotTo(CFrame.new(newPos))
 end
 
 --==================================================
@@ -53,27 +103,24 @@ gui.Name = "FaisalTeleportGUI"
 gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
--- الإطار الرئيسي
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromOffset(270, 210)
-frame.Position = UDim2.new(0.5,-135,0.5,-105)
+frame.Size = UDim2.fromOffset(300, 260)
+frame.Position = UDim2.new(0.5,-150,0.5,-130)
 frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
 frame.BorderSizePixel = 0
-
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0,18)
 
 local stroke = Instance.new("UIStroke", frame)
-stroke.Color = Color3.fromRGB(255, 200, 60)
+stroke.Color = Color3.fromRGB(255,200,60)
 stroke.Thickness = 2
 
 --==================================================
--- العنوان (قابل للسحب)
+-- العنوان (سحب)
 --==================================================
 local titleBar = Instance.new("Frame", frame)
 titleBar.Size = UDim2.new(1,0,0,40)
 titleBar.BackgroundColor3 = Color3.fromRGB(25,25,25)
 titleBar.BorderSizePixel = 0
-
 Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0,18)
 
 local title = Instance.new("TextLabel", titleBar)
@@ -82,89 +129,88 @@ title.BackgroundTransparency = 1
 title.Text = "faisal-script"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
-title.TextColor3 = Color3.fromRGB(255, 210, 90)
+title.TextColor3 = Color3.fromRGB(255,210,90)
 
---==================================================
--- السحب من العنوان فقط
---==================================================
+-- سحب
 local dragging = false
 local dragStart, startPos
 
 titleBar.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-	or input.UserInputType == Enum.UserInputType.Touch then
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		dragging = true
 		dragStart = input.Position
 		startPos = frame.Position
 	end
 end)
 
-titleBar.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-	or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = false
-	end
+titleBar.InputEnded:Connect(function()
+	dragging = false
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
-	or input.UserInputType == Enum.UserInputType.Touch) then
-
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 		local delta = input.Position - dragStart
-
-		frame.Position = UDim2.new(
-			startPos.X.Scale,
-			startPos.X.Offset + delta.X,
-			startPos.Y.Scale,
-			startPos.Y.Offset + delta.Y
-		)
+		frame.Position = UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
 	end
 end)
 
 --==================================================
--- إنشاء زر احترافي
+-- زر احترافي
 --==================================================
-local function createButton(text, order, callback)
-	local btn = Instance.new("TextButton", frame)
-	btn.Size = UDim2.new(1,-20,0,45)
-	btn.Position = UDim2.new(0,10,0,45 + (order * 50))
+local function makeBtn(text,pos,size,callback)
+	local b = Instance.new("TextButton", frame)
+	b.Size = size
+	b.Position = pos
+	b.Text = text
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 14
+	b.TextColor3 = Color3.new(1,1,1)
+	b.BackgroundColor3 = Color3.fromRGB(35,35,35)
+	b.BorderSizePixel = 0
+	b.AutoButtonColor = false
 
-	btn.Text = text
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 15
-	btn.TextColor3 = Color3.new(1,1,1)
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,12)
 
-	btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
-	btn.AutoButtonColor = false
-	btn.BorderSizePixel = 0
+	local s = Instance.new("UIStroke", b)
+	s.Color = Color3.fromRGB(255,200,60)
 
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,12)
-
-	local stroke = Instance.new("UIStroke", btn)
-	stroke.Color = Color3.fromRGB(255,200,60)
-
-	btn.MouseEnter:Connect(function()
-		btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+	b.MouseEnter:Connect(function()
+		b.BackgroundColor3 = Color3.fromRGB(55,55,55)
 	end)
 
-	btn.MouseLeave:Connect(function()
-		btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+	b.MouseLeave:Connect(function()
+		b.BackgroundColor3 = Color3.fromRGB(35,35,35)
 	end)
 
-	btn.MouseButton1Click:Connect(callback)
+	b.MouseButton1Click:Connect(callback)
 end
 
 --==================================================
--- الأزرار الثلاثة
+-- أزرار التنقل
 --==================================================
-createButton("الانتقال إلى معرضك", 0, function()
+makeBtn("الانتقال إلى معرضك", UDim2.new(0,10,0,50), UDim2.new(1,-20,0,45), function()
 	teleport(savedPosition)
 end)
 
-createButton("معرض السيارات", 1, function()
+makeBtn("معرض السيارات", UDim2.new(0,10,0,105), UDim2.new(1,-20,0,45), function()
 	teleport(carShowroom)
 end)
 
-createButton("حي الشريطية", 2, function()
+makeBtn("حي الشريطية", UDim2.new(0,10,0,160), UDim2.new(1,-20,0,45), function()
 	teleport(sharitiyah)
 end)
+
+--==================================================
+-- زرين نص + نص
+--==================================================
+makeBtn("تحديد السيارة",
+	UDim2.new(0,10,0,215),
+	UDim2.new(0.5,-15,0,40),
+	selectCar
+)
+
+makeBtn("نقل لسيارة",
+	UDim2.new(0.5,5,0,215),
+	UDim2.new(0.5,-15,0,40),
+	bringCar
+)
