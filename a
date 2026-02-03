@@ -1,7 +1,6 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
-local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
@@ -17,7 +16,6 @@ local function getHRP()
 end
 
 local hrp = getHRP()
-
 local savedPosition = hrp.CFrame
 local carShowroom = CFrame.new(-20,5,-130)
 local sharitiyah  = CFrame.new(-1813,5,4562)
@@ -67,7 +65,10 @@ local function bringCar()
 
 	local root = getHRP()
 	local part = savedCarModel.PrimaryPart or savedCarModel:FindFirstChildWhichIsA("BasePart")
-	if not part then return end
+	if not part then
+		notify("الموديل ما فيه أجزاء")
+		return
+	end
 
 	local targetPos = root.Position + (root.CFrame.LookVector * 20)
 	local speed = 1400
@@ -76,26 +77,15 @@ local function bringCar()
 		part:SetNetworkOwner(player)
 	end)
 
-	RunService:UnbindFromRenderStep("MoveCar")
-
-	RunService:BindToRenderStep("MoveCar",301,function(dt)
-		if not savedCarModel or not part then
-			RunService:UnbindFromRenderStep("MoveCar")
-			return
+	spawn(function()
+		while (part.Position - targetPos).Magnitude > 1 do
+			local dir = (targetPos - part.Position).Unit
+			local step = dir * math.min(speed * (1/60), (targetPos - part.Position).Magnitude)
+			part.CFrame = part.CFrame + step
+			task.wait(1/60)
 		end
-
-		local current = part.Position
-		local dir = targetPos - current
-		local dist = dir.Magnitude
-
-		if dist <= 1 then
-			RunService:UnbindFromRenderStep("MoveCar")
-			savedCarModel:PivotTo(CFrame.new(targetPos, targetPos + root.CFrame.LookVector))
-			return
-		end
-
-		local step = dir.Unit * math.min(speed * dt, dist)
-		savedCarModel:PivotTo(CFrame.new(current + step, targetPos + root.CFrame.LookVector))
+		part.CFrame = CFrame.new(targetPos, targetPos + root.CFrame.LookVector)
+		notify("وصلت السيارة")
 	end)
 end
 
