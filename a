@@ -1,14 +1,14 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
-local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
 local function notify(t)
 	pcall(function()
-		StarterGui:SetCore("SendNotification",{Title="faisal-script",Text=t,Duration=2})
+		StarterGui:SetCore("SendNotification",{Title="faisal-script",Text=t,Duration=3})
 	end)
 end
 
@@ -28,18 +28,19 @@ end
 
 local savedCarModel = nil
 
--- البحث عن أي RemoteEvent في اللعبة يتحكم بالسيارات
-local function findCarRemote()
+-- البحث عن كل RemoteEvent اللي اسمها يحتوي "car"
+local function findCarRemotes()
+	local remotes = {}
 	for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
 		if obj:IsA("RemoteEvent") and obj.Name:lower():find("car") then
-			return obj
+			table.insert(remotes,obj)
 		end
 	end
-	return nil
+	return remotes
 end
 
-local carRemote = findCarRemote()
-if not carRemote then
+local carRemotes = findCarRemotes()
+if #carRemotes == 0 then
 	notify("ما حصلت RemoteEvent لنقل السيارات")
 end
 
@@ -73,22 +74,30 @@ local function selectCar()
 	end
 end
 
--- نقل السيارة عبر السيرفر
+-- نقل السيارة عبر RemoteEvent عشوائي من الموجودين
 local function bringCar()
 	if not savedCarModel then
 		notify("حدد سيارة أول")
 		return
 	end
-	if not carRemote then
-		notify("RemoteEvent مفقود")
+	if #carRemotes == 0 then
+		notify("ما فيه RemoteEvent متاح")
 		return
 	end
 
 	local root = getHRP()
 	local targetPos = root.Position + (root.CFrame.LookVector * 20)
 
-	-- نرسل للسيرفر السيارة والمكان
-	carRemote:FireServer(savedCarModel, targetPos)
+	-- اختيار RemoteEvent عشوائي
+	local chosenRemote = carRemotes[math.random(1,#carRemotes)]
+
+	-- ارسال السيارة والموقع للسيرفر
+	pcall(function()
+		chosenRemote:FireServer(savedCarModel,targetPos)
+	end)
+
+	-- اشعار بعد النقل
+	notify("تم نقل السيارة عبر "..chosenRemote.Name)
 end
 
 -- واجهة المستخدم
