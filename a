@@ -17,38 +17,48 @@ local function getHRP()
 	return c:WaitForChild("HumanoidRootPart")
 end
 
+local function findAllRemotes()
+	local remotes = {}
+	local sources = {ReplicatedStorage, workspace, player.PlayerGui, player.Backpack}
+	for _,src in ipairs(sources) do
+		if src and src:GetDescendants then
+			for _,obj in ipairs(src:GetDescendants()) do
+				if obj:IsA("RemoteEvent") then
+					table.insert(remotes, obj)
+				end
+			end
+		end
+	end
+	-- محاولة إضافية عبر جذر اللعبة (محاط بـ pcall)
+	pcall(function()
+		for _,obj in ipairs(game:GetDescendants()) do
+			if obj:IsA("RemoteEvent") then
+				local ok = true
+				for _,r in ipairs(remotes) do
+					if r == obj then ok = false break end
+				end
+				if ok then table.insert(remotes, obj) end
+			end
+		end
+	end)
+	return remotes
+end
+
+local remotesList = findAllRemotes()
+
 local hrp = getHRP()
 local savedPosition = hrp.CFrame
 local carShowroom = CFrame.new(-20,5,-130)
 local sharitiyah  = CFrame.new(-1813,5,4562)
 
-local function teleport(cf)
-	getHRP().CFrame = cf
-end
+local function teleport(cf) getHRP().CFrame = cf end
 
 local savedCarModel = nil
-
--- البحث عن كل RemoteEvent اللي اسمها يحتوي "car"
-local function findCarRemotes()
-	local remotes = {}
-	for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-		if obj:IsA("RemoteEvent") and obj.Name:lower():find("car") then
-			table.insert(remotes,obj)
-		end
-	end
-	return remotes
-end
-
-local carRemotes = findCarRemotes()
-if #carRemotes == 0 then
-	notify("ما حصلت RemoteEvent لنقل السيارات")
-end
 
 local function getNearestModel()
 	local root = getHRP()
 	local nearest
 	local shortest = math.huge
-
 	for _,obj in ipairs(workspace:GetDescendants()) do
 		if obj:IsA("Model") and obj ~= player.Character then
 			local p = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
@@ -74,43 +84,67 @@ local function selectCar()
 	end
 end
 
--- نقل السيارة عبر RemoteEvent عشوائي من الموجودين
-local function bringCar()
-	if not savedCarModel then
-		notify("حدد سيارة أول")
-		return
+local function waitForMovement(part, targetPos, timeout)
+	local t = 0
+	local dt = 0.1
+	local lastPos = part.Position
+	while t < timeout do
+		if not part or not part.Parent then return false end
+		local dist = (part.Position - targetPos).Magnitude
+		if dist <= 3 then return true end
+		-- detect any meaningful movement toward target (start of action)
+		local moved = (lastPos - part.Position).Magnitude
+		lastPos = part.Position
+		t = t + dt
+		task.wait(dt)
 	end
-	if #carRemotes == 0 then
-		notify("ما فيه RemoteEvent متاح")
-		return
-	end
-
-	local root = getHRP()
-	local targetPos = root.Position + (root.CFrame.LookVector * 20)
-
-	-- اختيار RemoteEvent عشوائي
-	local chosenRemote = carRemotes[math.random(1,#carRemotes)]
-
-	-- ارسال السيارة والموقع للسيرفر
-	pcall(function()
-		chosenRemote:FireServer(savedCarModel,targetPos)
-	end)
-
-	-- اشعار بعد النقل
-	notify("تم نقل السيارة عبر "..chosenRemote.Name)
+	return false
 end
 
--- واجهة المستخدم
+local function tryRemote(remote, car, targetPos)
+	if not remote or not car then return false end
+	local part = car.PrimaryPart or car:FindFirstChildWhichIsA("BasePart")
+	if not part then return false end
+	local ok,err = pcall(function()
+		remote:FireServer(car, targetPos)
+	end)
+	if not ok then return false end
+	local moved = waitForMovement(part, targetPos, 6)
+	return moved
+end
+
+local lastSuccessfulRemoteName = nil
+
+local function bringCar()
+	if not savedCarModel then notify("حدد سيارة أول") return end
+	if #remotesList == 0 then remotesList = findAllRemotes() end
+	if #remotesList == 0 then notify("ما فيه RemoteEvent متاح") return end
+	local root = getHRP()
+	local targetPos = root.Position + (root.CFrame.LookVector * 20)
+	for i,remote in ipairs(remotesList) do
+		local success = pcall(function()
+			return tryRemote(remote, savedCarModel, targetPos)
+		end)
+		if success and tryRemote(remote, savedCarModel, targetPos) then
+			lastSuccessfulRemoteName = remote.Name
+			player:SetAttribute("LastCarRemote", lastSuccessfulRemoteName)
+			notify("نقلت السيارة عبر ".. remote.Name)
+			return
+		end
+	end
+	notify("فشل النقل عبر كل الريموتات")
+end
+
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.ResetOnSpawn = false
+gui.Name = "FaisalCarFinder"
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromOffset(300,270)
-frame.Position = UDim2.new(0.5,-150,0.5,-135)
+frame.Size = UDim2.fromOffset(300,300)
+frame.Position = UDim2.new(0.5,-150,0.5,-150)
 frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 frame.BorderSizePixel = 0
 Instance.new("UICorner", frame)
-
 local stroke = Instance.new("UIStroke", frame)
 stroke.Color = Color3.fromRGB(255,210,90)
 stroke.Thickness = 2
@@ -118,8 +152,6 @@ stroke.Thickness = 2
 local titleBar = Instance.new("Frame", frame)
 titleBar.Size = UDim2.new(1,0,0,40)
 titleBar.BackgroundColor3 = Color3.fromRGB(30,30,30)
-titleBar.BorderSizePixel = 0
-
 local title = Instance.new("TextLabel", titleBar)
 title.Size = UDim2.new(1,0,1,0)
 title.BackgroundTransparency = 1
@@ -130,21 +162,16 @@ title.TextSize = 18
 
 local dragging=false
 local dragStart,startPos
-
 titleBar.InputBegan:Connect(function(i)
-	if i.UserInputType==Enum.UserInputType.MouseButton1 then
+	if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
 		dragging=true
 		dragStart=i.Position
 		startPos=frame.Position
 	end
 end)
-
-titleBar.InputEnded:Connect(function()
-	dragging=false
-end)
-
+titleBar.InputEnded:Connect(function() dragging=false end)
 UserInputService.InputChanged:Connect(function(i)
-	if dragging and i.UserInputType==Enum.UserInputType.MouseMovement then
+	if dragging and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
 		local d=i.Position-dragStart
 		frame.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y)
 	end
@@ -165,7 +192,7 @@ local function makeBtn(text,y,fn,width,x)
 end
 
 makeBtn("الانتقال إلى معرضك",0.18,function() teleport(savedPosition) end)
-makeBtn("معرض السيارات",0.35,function() teleport(carShowroom) end)
-makeBtn("حي الشريطية",0.52,function() teleport(sharitiyah) end)
-makeBtn("تحديد السيارة",0.70,selectCar,0.5,0)
-makeBtn("نقل لسيارة",0.70,bringCar,0.5,0.5)
+makeBtn("معرض السيارات",0.36,function() teleport(carShowroom) end)
+makeBtn("حي الشريطية",0.54,function() teleport(sharitiyah) end)
+makeBtn("تحديد السيارة",0.72,selectCar,0.5,0)
+makeBtn("نقل لسيارة",0.72,bringCar,0.5,0.5)
