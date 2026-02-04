@@ -1,50 +1,74 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local StarterGui = game:GetService("StarterGui")
 
 -- GUI
-local gui = Instance.new("ScreenGui", game.CoreGui)
+local gui = Instance.new("ScreenGui")
+gui.Parent = game.CoreGui
 gui.Name = "RemoteDebugger"
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromScale(0.45,0.6)
-frame.Position = UDim2.fromScale(0.03,0.2)
+frame.Size = UDim2.fromScale(0.5,0.7)
+frame.Position = UDim2.fromScale(0.02,0.15)
 frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 
 local scroll = Instance.new("ScrollingFrame", frame)
 scroll.Size = UDim2.fromScale(1,1)
 scroll.CanvasSize = UDim2.new(0,0,0,0)
-scroll.ScrollBarThickness = 8
+scroll.ScrollBarThickness = 10
 
 local layout = Instance.new("UIListLayout", scroll)
 layout.Padding = UDim.new(0,4)
 
-local count = 0
+local rows = 0
+
+-- تحويل القيم لنص واضح
+local function format(v)
+	local t = typeof(v)
+
+	if t == "Vector3" then
+		return string.format("Vector3(%.1f, %.1f, %.1f)", v.X, v.Y, v.Z)
+
+	elseif t == "CFrame" then
+		local p = v.Position
+		return string.format("CFrame(%.1f, %.1f, %.1f)", p.X, p.Y, p.Z)
+
+	elseif t == "Instance" then
+		return v.Name
+
+	elseif t == "table" then
+		return "Table"
+
+	else
+		return tostring(v)
+	end
+end
 
 local function addRow(text)
-	count += 1
+	rows += 1
 
 	local row = Instance.new("Frame", scroll)
-	row.Size = UDim2.new(1,-5,0,30)
+	row.Size = UDim2.new(1,-5,0,32)
 	row.BackgroundColor3 = Color3.fromRGB(35,35,35)
 
 	local label = Instance.new("TextLabel", row)
 	label.Size = UDim2.new(0.85,0,1,0)
-	label.Text = text
+	label.TextWrapped = true
+	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.TextScaled = true
 	label.BackgroundTransparency = 1
 	label.TextColor3 = Color3.new(1,1,1)
+	label.Text = text
 
 	local copy = Instance.new("TextButton", row)
 	copy.Size = UDim2.new(0.15,0,1,0)
 	copy.Position = UDim2.new(0.85,0,0,0)
 	copy.Text = "Copy"
-	copy.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	copy.BackgroundColor3 = Color3.fromRGB(70,70,70)
 
 	copy.MouseButton1Click:Connect(function()
 		setclipboard(text)
 	end)
 
-	scroll.CanvasSize = UDim2.new(0,0,0,count*34)
+	scroll.CanvasSize = UDim2.new(0,0,0,rows*36)
 end
 
 -- ربط كل الريموتات
@@ -52,9 +76,16 @@ for _,v in pairs(ReplicatedStorage:GetDescendants()) do
 	if v:IsA("RemoteEvent") then
 		v.OnClientEvent:Connect(function(...)
 			local args = {...}
-			addRow(v:GetFullName().." | args: "..#args)
+
+			local text = v:GetFullName()
+
+			for _,a in ipairs(args) do
+				text ..= " | "..format(a)
+			end
+
+			addRow(text)
 		end)
 	end
 end
 
-print("Remote Debugger Ready")
+print("Advanced Remote Debugger Enabled")
