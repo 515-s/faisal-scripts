@@ -1,78 +1,219 @@
---// Services
-local RunService = game:GetService("RunService")
+-- LocalScript: BombDetector (ضعه في StarterPlayerScripts)
+local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
-local MARK_SIZE = 6
+-- إعدادات
+local MARK_SIZE = 2 -- حجم الكرة الحمراء
+local PREDICT_DISTANCE = 30 -- المسافة اللي يتوقعها أمام اللاعب عند التوقع
+local DEDUPE_DISTANCE = 3 -- لو في علامة بمسافة أقل ما يسوي علامة جديدة
 
--- يخليه ظاهر دايم
-local function forceVisible(obj)
-	if obj:IsA("BasePart") then
-		obj.Transparency = 0
-		obj.LocalTransparencyModifier = 0
-		obj.Material = Enum.Material.Neon
-		obj.Color = Color3.fromRGB(255,0,0)
-		obj.CanCollide = false
+-- يخلي المارك persistent ويمنع التضارب
+local function isNearExistingMark(pos)
+	for _, m in pairs(Workspace:GetChildren()) do
+		if m:IsA("BasePart") and m.Name == "BombMark" then
+			if (m.Position - pos).Magnitude <= DEDUPE_DISTANCE then
+				return true
+			end
+		end
 	end
+	return false
 end
 
--- يرسم كرة النهاية
-local function createMark(pos)
+local function createMark(pos, reason)
+	if isNearExistingMark(pos) then return end
 	local p = Instance.new("Part")
-	p.Shape = Enum.PartType.Ball
-	p.Size = Vector3.new(MARK_SIZE, MARK_SIZE, MARK_SIZE)
+	p.Name = "BombMark"
 	p.Anchored = true
 	p.CanCollide = false
-	p.Material = Enum.Material.Neon
-	p.Color = Color3.fromRGB(255, 0, 0)
+	p.Shape = Enum.PartType.Ball
+	p.Size = Vector3.new(MARK_SIZE, MARK_SIZE, MARK_SIZE)
 	p.Position = pos
-	p.Name = "BombLastPosition"
-	p.Parent = workspace
+	p.Material = Enum.Material.Neon
+	p.Color = Color3.fromRGB(255, 60, 60)
+	p.Parent = Workspace
+
+	-- تسمية للتتبع لو احتجت
+	local tag = Instance.new("StringValue")
+	tag.Name = "MarkReason"
+	tag.Value = reason or "unknown"
+	tag.Parent = p
 end
 
--- يرجع موقع البومب الحقيقي
-local function getPosition(obj)
-	if obj:IsA("Model") then
-		local cf = obj:GetBoundingBox()
-		return cf.Position
-	elseif obj:IsA("BasePart") then
+-- استخراج موقع دقيق للموديل (BoundingBox)
+local function modelPosition(obj)
+	if obj and obj:IsA("Model") then
+		local ok, min, max = pcall(function() return obj:GetBoundingBox() end)
+		if ok and min and max then
+			return (min + max) / 2
+		end
+	end
+	if obj and obj:IsA("BasePart") then
 		return obj.Position
 	end
+	return nil
 end
 
--- تتبع دقيق
-local function trackBomb(bomb)
-	local lastPos = getPosition(bomb)
-	if not lastPos then return end
-
-	local connection
-	connection = RunService.RenderStepped:Connect(function()
-		if not bomb.Parent then
-			connection:Disconnect()
-			createMark(lastPos) -- آخر مكان حرفيًا
-			return
-		end
-
-		local pos = getPosition(bomb)
-		if pos then
-			lastPos = pos
-		end
-
-		for _,v in pairs(bomb:GetDescendants()) do
-			forceVisible(v)
-		end
-	end)
+-- 1) تتبع أي موديل/بارت اسمه Bomb
+local function tryTrackBombDirect(obj)
+	local pos = modelPosition(obj)
+	if pos then
+		createMark(pos, "direct_bomb")
+		return true
+	end
+	return false
 end
 
--- فحص الموجود
-for _,v in pairs(Workspace:GetDescendants()) do
-	if v.Name == "Bomb" then
-		task.spawn(trackBomb, v)
+-- 2) عندما يظهر Explosion أو تأثير واضح
+local function handlePossibleEffect(obj)
+	-- انفجارات (Explosion class)
+	if obj:IsA("Explosion") then
+		if obj.Position then
+			createMark(obj.Position, "explosion")
+			return true
+		end
+	end
+
+	-- صوت باسمه يحتوي "bomb" أو "explode"
+	if obj:IsA("Sound") then
+		local name = obj.Name:lower()
+		if name:find("bomb") or name:find("explode") or name:find("blast") then
+			if obj.Parent and obj.Parent:IsA("BasePart") then
+				createMark(obj.Parent.Position, "sound")
+				return true
+			end
+		end
+	end
+
+	-- Part اسمها blast / hit / impact
+	if obj:IsA("BasePart") then
+		local n = obj.Name:lower()
+		if n:find("blast") or n:find("impact") or n:find("hit") or n:find("boom") then
+			createMark(obj.Position, "part_named_effect")
+			return true
+		end
+	end
+
+	-- ParticleEmitter sudden (قد يكون دلالة)
+	if obj:IsA("ParticleEmitter") then
+		local parParent = obj.Parent
+		if parParent and parParent:IsA("BasePart") then
+			createMark(parParent.Position, "particle")
+			return true
+		end
+	end
+
+	return false
+end
+
+-- 3) مراقبة Tools داخل شخصيات اللاعبين — محاولة توقع الرمي
+local function watchPlayerTools(player)
+	local function onCharacter(char)
+		-- مراقبة وجود أدوات جديدة في الشخصية
+		char.ChildAdded:Connect(function(child)
+			if child:IsA("Tool") then
+				-- لو اسم الأداة يدل على القنبلة
+				local name = child.Name:lower()
+				if name:find("bomb") or name:find("grenade") or name:find("explosive") then
+					-- نجرب توقع مكان الرمي: أمام اللاعب مسافة محددة
+					local hrp = char:FindFirstChild("HumanoidRootPart")
+					if hrp then
+						local guess = hrp.CFrame.Position + (hrp.CFrame.LookVector * PREDICT_DISTANCE)
+						createMark(guess, "tool_spawn_guess")
+					end
+				end
+
+				-- لو الأداة مفعلة (Activated) نحاول توقع وقت الإطلاق
+				local activatedConn
+				activatedConn = child.Activated:Connect(function()
+					local hrp = char:FindFirstChild("HumanoidRootPart")
+					if hrp then
+						local guess = hrp.CFrame.Position + (hrp.CFrame.LookVector * PREDICT_DISTANCE)
+						createMark(guess, "tool_activated_guess")
+					end
+					if activatedConn then activatedConn:Disconnect() end
+				end)
+			end
+		end)
+	end
+
+	-- اتصل لما تتصل الشخصية الحالية
+	if player.Character then
+		onCharacter(player.Character)
+	end
+	player.CharacterAdded:Connect(onCharacter)
+end
+
+-- 4) توقع سريع واحد لكل لاعب (محاولة واحدة) — مثل طلقة أمامه
+local attemptedPredict = {}
+local function oneTimePredictFromPlayers()
+	for _, pl in pairs(Players:GetPlayers()) do
+		if pl ~= Players.LocalPlayer and not attemptedPredict[pl.UserId] then
+			attemptedPredict[pl.UserId] = true
+			local char = pl.Character
+			if char then
+				local hrp = char:FindFirstChild("HumanoidRootPart")
+				if hrp then
+					local guess = hrp.CFrame.Position + (hrp.CFrame.LookVector * PREDICT_DISTANCE)
+					createMark(guess, "one_time_player_predict")
+				end
+			end
+		end
 	end
 end
 
--- فحص الجديد
+-- --------------- وصل كل الأشياء مع بعض ---------------
+
+-- راقب الظهور المباشر لأي Bomb
 Workspace.DescendantAdded:Connect(function(obj)
+	-- أولاً: اسم Bomb صريح
 	if obj.Name == "Bomb" then
-		task.spawn(trackBomb, obj)
+		pcall(function() tryTrackBombDirect(obj) end)
+		return
+	end
+
+	-- ثانياً: حاول تمييز تأثيرات/انفجارات
+	pcall(function() handlePossibleEffect(obj) end)
+
+	-- ثالثاً: لو هو موديل أو بارنت لبارت ممكن يكون بصيغة Projectiles
+	local lower = obj.Name:lower()
+	if lower:find("projectile") or lower:find("grenade") or lower:find("bomb") then
+		pcall(function()
+			local pos = modelPosition(obj)
+			if pos then createMark(pos, "projectile_named") end
+		end)
 	end
 end)
+
+-- راقب التفجيرات (لو تظهر كـ Explosion ضمن الـ Workspace بالفعل)
+Workspace.ChildAdded:Connect(function(ch)
+	pcall(function() handlePossibleEffect(ch) end)
+end)
+
+-- راقب كل اللاعبين لأدواتهم
+for _,pl in pairs(Players:GetPlayers()) do
+	watchPlayerTools(pl)
+end
+Players.PlayerAdded:Connect(function(pl)
+	watchPlayerTools(pl)
+end)
+
+-- محاولة توقع مرة واحدة من مواقع اللاعبين الحاليين (طلبك: "يحاول مرة")
+oneTimePredictFromPlayers()
+
+-- (اختياري) لو في Projectiles folder في Workspace حاول نبحث فيه فورًا
+local function scanProjectilesFolder()
+	local folder = Workspace:FindFirstChild("Projectiles") or Workspace:FindFirstChild("Grenades")
+	if folder and folder:GetChildren() then
+		for _, v in pairs(folder:GetChildren()) do
+			if v:IsA("BasePart") or v:IsA("Model") then
+				local pos = modelPosition(v)
+				if pos then createMark(pos, "projectiles_folder") end
+			end
+		end
+	end
+end
+scanProjectilesFolder()
+
+-- نهاية: تنبيه خفيف للمطور (غير ضروري)
+print("[BombDetector] loaded — حاولنا عدة طرق مرة وحدة.")
