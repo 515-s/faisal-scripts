@@ -1,1 +1,1 @@
-
+loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/Glass%20Bridge%202"))()
