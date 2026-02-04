@@ -9,54 +9,38 @@ local KEYWORDS = {
 
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.ResetOnSpawn = false
-gui.Name = "RemoteSpy"
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromOffset(600, 420) -- أكبر
+main.Size = UDim2.fromOffset(650, 450)
 main.Position = UDim2.fromOffset(40, 40)
 main.BackgroundColor3 = Color3.fromRGB(30,30,30)
 main.Active = true
-main.Draggable = true -- تقدر تسحبها
+main.Draggable = true
 
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1,0,0,30)
-title.Text = "Remote Spy"
+title.Text = "Remote Spy (Copy Enabled)"
 title.TextColor3 = Color3.new(1,1,1)
 title.BackgroundColor3 = Color3.fromRGB(40,40,40)
 title.Font = Enum.Font.Code
 title.TextSize = 18
 
--- ScrollFrame
 local scroll = Instance.new("ScrollingFrame", main)
 scroll.Position = UDim2.fromOffset(5, 35)
-scroll.Size = UDim2.new(1,-10,1,-80)
+scroll.Size = UDim2.new(1,-10,1,-40)
 scroll.CanvasSize = UDim2.fromOffset(0,0)
 scroll.ScrollBarThickness = 8
 scroll.BackgroundColor3 = Color3.fromRGB(20,20,20)
-scroll.AutomaticCanvasSize = Enum.AutomaticSize.None
 
 local layout = Instance.new("UIListLayout", scroll)
 layout.Padding = UDim.new(0,2)
-
--- أزرار
-local clear = Instance.new("TextButton", main)
-clear.Size = UDim2.new(0.5,-5,0,35)
-clear.Position = UDim2.new(0,5,1,-40)
-clear.Text = "Clear"
-
-local hide = Instance.new("TextButton", main)
-hide.Size = UDim2.new(0.5,-5,0,35)
-hide.Position = UDim2.new(0.5,0,1,-40)
-hide.Text = "Hide"
-
---================ منطق السكرول (المهم) =================
 
 local function updateCanvas()
 	scroll.CanvasSize = UDim2.fromOffset(0, layout.AbsoluteContentSize.Y + 5)
 end
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
 
---================ المنطق =================
+--================ منطق =================
 
 local found = {}
 
@@ -69,19 +53,34 @@ local function hasKeyword(name)
 	end
 end
 
+local function copyText(txt)
+	if setclipboard then
+		setclipboard(txt)
+		print("Copied:", txt)
+	else
+		print("Copy manually:", txt)
+	end
+end
+
 local function addRemote(remote)
 	local path = remote:GetFullName()
 	if found[path] then return end
 	found[path] = true
 
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1,-5,0,22) -- ارتفاع ثابت مهم
+	-- صف
+	local row = Instance.new("Frame")
+	row.Size = UDim2.new(1,-5,0,24)
+	row.BackgroundTransparency = 1
+	row.Parent = scroll
+
+	-- الاسم
+	local label = Instance.new("TextLabel", row)
+	label.Size = UDim2.new(1,-60,1,0)
 	label.BackgroundTransparency = 1
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Font = Enum.Font.Code
 	label.TextSize = 14
 	label.Text = path
-	label.Parent = scroll
 
 	if hasKeyword(path) then
 		label.TextColor3 = Color3.fromRGB(255,80,80)
@@ -89,23 +88,21 @@ local function addRemote(remote)
 	else
 		label.TextColor3 = Color3.new(1,1,1)
 	end
+
+	-- زر النسخ
+	local copy = Instance.new("TextButton", row)
+	copy.Size = UDim2.fromOffset(50,20)
+	copy.Position = UDim2.new(1,-55,0,2)
+	copy.Text = "Copy"
+	copy.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	copy.TextColor3 = Color3.new(1,1,1)
+	copy.Font = Enum.Font.Code
+	copy.TextSize = 13
+
+	copy.MouseButton1Click:Connect(function()
+		copyText(path)
+	end)
 end
-
--- Clear
-clear.MouseButton1Click:Connect(function()
-	found = {}
-	for _,v in pairs(scroll:GetChildren()) do
-		if v:IsA("TextLabel") then
-			v:Destroy()
-		end
-	end
-	updateCanvas()
-end)
-
--- Hide
-hide.MouseButton1Click:Connect(function()
-	scroll.Visible = not scroll.Visible
-end)
 
 --================ الفحص =================
 
@@ -121,4 +118,4 @@ game.DescendantAdded:Connect(function(v)
 	end
 end)
 
-print("Remote Spy Ready")
+print("Remote Spy with Copy Ready")
