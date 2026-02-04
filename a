@@ -1,99 +1,28 @@
--- LocalScript: BombMarker_FinalAdvanced
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
+-- LocalScript / ServerScript: AnchorAllParts
 local workspace = game:GetService("Workspace")
-local player = Players.LocalPlayer
-local RunService = game:GetService("RunService")
 
--- إعدادات
-local MARKER_SIZE_MIN = 3
-local MARKER_SIZE_MAX = 4.5
-local MARKER_COLOR = Color3.fromRGB(255, 40, 40)
-local Y_OFFSET = 1.5
-local MARKER_DURATION = 1.5
-local PULSE_SPEED = 3 -- سرعة النبض
-
--- spawn marker مع نبض
-local function spawnMarkerAt(pos, label)
-	if not pos then return end
-
-	local part = Instance.new("Part")
-	part.Name = "BombMarker_Advanced"
-	part.Shape = Enum.PartType.Ball
-	part.Size = Vector3.new(MARKER_SIZE_MIN, MARKER_SIZE_MIN, MARKER_SIZE_MIN)
-	part.Anchored = true
-	part.CanCollide = false
-	part.Material = Enum.Material.Neon
-	part.Color = MARKER_COLOR
-	part.Position = pos + Vector3.new(0, Y_OFFSET, 0)
-	part.Parent = workspace
-
-	-- Billboard لكتابة "BOMB" أو رقم الخلية
-	if label then
-		local billboard = Instance.new("BillboardGui")
-		billboard.Adornee = part
-		billboard.AlwaysOnTop = true
-		billboard.Size = UDim2.new(0,140,0,36)
-		billboard.StudsOffset = Vector3.new(0, MARKER_SIZE_MAX + 0.5, 0)
-		billboard.Parent = player:WaitForChild("PlayerGui")
-
-		local textLabel = Instance.new("TextLabel", billboard)
-		textLabel.Size = UDim2.new(1,0,1,0)
-		textLabel.BackgroundTransparency = 1
-		textLabel.Font = Enum.Font.Code
-		textLabel.TextSize = 18
-		textLabel.TextColor3 = Color3.new(1,1,1)
-		textLabel.Text = label
-	end
-
-	-- نبض الكرة (تكبر وتصغر)
-	local startTime = tick()
-	local conn
-	conn = RunService.RenderStepped:Connect(function()
-		if not part.Parent then
-			conn:Disconnect()
-			return
+-- دالة لعمل Anchored لأي Part داخل الماب
+local function anchorParts(parent)
+	for _, obj in ipairs(parent:GetDescendants()) do
+		if obj:IsA("BasePart") and obj.Name == "Part" then
+			obj.Anchored = true
+			obj.CanCollide = true
 		end
-		local t = (tick() - startTime) * PULSE_SPEED * math.pi * 2
-		local alpha = (math.sin(t) + 1)/2
-		local size = MARKER_SIZE_MIN + (MARKER_SIZE_MAX - MARKER_SIZE_MIN) * alpha
-		part.Size = Vector3.new(size,size,size)
-		part.Position = pos + Vector3.new(0, Y_OFFSET + (size/2 - MARKER_SIZE_MIN/2), 0)
-	end)
-
-	-- تختفي بعد MARKER_DURATION
-	task.delay(MARKER_DURATION, function()
-		if part and part.Parent then part:Destroy() end
-		if conn then conn:Disconnect() end
-	end)
+	end
 end
 
--- GameMessage
-local events = ReplicatedStorage:WaitForChild("Events")
-local gameMsg = events:WaitForChild("GameMessage")
+-- أول مرة نثبت كل البارتس
+anchorParts(workspace)
 
-gameMsg.OnClientEvent:Connect(function(action, instance, ...)
-	if type(action) == "string" and action:lower() == "bomb" then
-		local args = {...}
-		local pos
-		-- أولاً نحاول نقرأ Vector3 أو CFrame من args (يمثل موقع البومب النهائي)
-		for _,a in ipairs(args) do
-			if typeof(a) == "Vector3" then pos = a; break
-			elseif typeof(a) == "CFrame" then pos = a.Position; break
-			end
-		end
-		-- إذا ما وجدنا موقع في args، نحاول الـ Instance
-		if not pos and instance then
-			task.delay(0.03, function()
-				local ok,p = pcall(function() return instance:GetPivot().Position end)
-				if ok and p then spawnMarkerAt(p, "BOMB") end
-			end)
-			return
-		end
-		if pos then
-			spawnMarkerAt(pos, "BOMB")
-		end
+-- نراقب أي شيء جديد ينضاف للماب
+workspace.DescendantAdded:Connect(function(obj)
+	if obj:IsA("BasePart") and obj.Name == "Part" then
+		obj.Anchored = true
+		obj.CanCollide = true
+	elseif obj:IsA("Model") then
+		-- لو موديل فيه Parts، نثبتها
+		anchorParts(obj)
 	end
 end)
 
-print("BombMarker_FinalAdvanced Ready ✅")
+print("AnchorAllParts Script Active ✅")
