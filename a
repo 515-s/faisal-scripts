@@ -3,11 +3,9 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 --// إعدادات
-local STEP_DISTANCE = 3 -- كل كم ستد يحط بارت
-local PATH_LIFETIME = 25 -- مدة بقاء البارات
-local PATH_SIZE = Vector3.new(0.7,0.7,0.7)
+local MARK_SIZE = 6 -- حجم الكرة
 
---// يخلي البومب مرئي دائمًا
+-- يخلي البومب ظاهر دائمًا
 local function forceVisible(obj)
 	if obj:IsA("BasePart") then
 		obj.Transparency = 0
@@ -18,24 +16,21 @@ local function forceVisible(obj)
 	end
 end
 
---// ينشئ بارت للمسار
-local function createPoint(pos)
+-- ينشئ علامة النهاية
+local function createMark(pos)
 	local p = Instance.new("Part")
+	p.Shape = Enum.PartType.Ball
+	p.Size = Vector3.new(MARK_SIZE, MARK_SIZE, MARK_SIZE)
 	p.Anchored = true
 	p.CanCollide = false
-	p.Size = PATH_SIZE
-	p.Shape = Enum.PartType.Ball
 	p.Material = Enum.Material.Neon
-	p.Color = Color3.fromRGB(0, 255, 150)
+	p.Color = Color3.fromRGB(255, 0, 0)
 	p.Position = pos
+	p.Name = "BombLastPosition"
 	p.Parent = workspace
-
-	task.delay(PATH_LIFETIME, function()
-		if p then p:Destroy() end
-	end)
 end
 
---// تتبع البومب
+-- تتبع البومب
 local function trackBomb(bomb)
 	local root = bomb:IsA("Model") and bomb.PrimaryPart or bomb
 
@@ -44,42 +39,33 @@ local function trackBomb(bomb)
 	end
 	if not root then return end
 
-	-- يخليه ظاهر
-	for _,v in pairs(bomb:GetDescendants()) do
-		forceVisible(v)
-	end
-
 	local lastPos = root.Position
 
 	local connection
 	connection = RunService.Heartbeat:Connect(function()
 		if not bomb.Parent then
 			connection:Disconnect()
+			createMark(lastPos) -- يحط الكرة عند آخر مكان
 			return
 		end
 
-		local pos = root.Position
+		lastPos = root.Position
 
-		if (pos - lastPos).Magnitude >= STEP_DISTANCE then
-			createPoint(pos)
-			lastPos = pos
-		end
-
-		-- لو حاول يختفي نخليه ظاهر
+		-- يخليه ظاهر دائمًا
 		for _,v in pairs(bomb:GetDescendants()) do
 			forceVisible(v)
 		end
 	end)
 end
 
---// فحص الموجودين مسبقًا
+-- الموجودين مسبقًا
 for _,v in pairs(Workspace:GetDescendants()) do
 	if v.Name == "Bomb" then
 		task.spawn(trackBomb, v)
 	end
 end
 
---// يراقب أي Bomb جديد
+-- الجديد
 Workspace.DescendantAdded:Connect(function(obj)
 	if obj.Name == "Bomb" then
 		task.spawn(trackBomb, obj)
