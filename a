@@ -1,8 +1,9 @@
 local Players = game:GetService("Players")
-local workspace = game:GetService("Workspace")
 local StarterGui = game:GetService("StarterGui")
+local workspace = game:GetService("Workspace")
 
 local CORRECT_PLACEID = 16993432698
+local player = Players.LocalPlayer
 
 if game.PlaceId ~= CORRECT_PLACEID then
 	StarterGui:SetCore("SendNotification", {
@@ -13,12 +14,6 @@ if game.PlaceId ~= CORRECT_PLACEID then
 	return
 end
 
-StarterGui:SetCore("SendNotification", {
-	Title = "Glass is now unbreakable";
-	Text = "";
-	Duration = 5;
-})
-
 local function anchorParts(parent)
 	for _, obj in ipairs(parent:GetDescendants()) do
 		if obj:IsA("BasePart") and obj.Name == "Part" then
@@ -28,13 +23,67 @@ local function anchorParts(parent)
 	end
 end
 
-anchorParts(workspace)
+local function enableAnchor()
+	anchorParts(workspace)
 
-workspace.DescendantAdded:Connect(function(obj)
-	if obj:IsA("BasePart") and obj.Name == "Part" then
-		obj.Anchored = true
-		obj.CanCollide = true
-	elseif obj:IsA("Model") then
-		anchorParts(obj)
-	end
+	workspace.DescendantAdded:Connect(function(obj)
+		if obj:IsA("BasePart") and obj.Name == "Part" then
+			obj.Anchored = true
+			obj.CanCollide = true
+		elseif obj:IsA("Model") then
+			anchorParts(obj)
+		end
+	end)
+end
+
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "ASNO_UI"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 260, 0, 140)
+frame.Position = UDim2.new(0.5, -130, 0.5, -70)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.Active = true
+frame.Draggable = true
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,30)
+title.BackgroundTransparency = 1
+title.Text = "ASNO"
+title.TextColor3 = Color3.new(1,1,1)
+title.TextScaled = true
+
+local enableBtn = Instance.new("TextButton", frame)
+enableBtn.Size = UDim2.new(0.8,0,0,40)
+enableBtn.Position = UDim2.new(0.1,0,0.35,0)
+enableBtn.Text = "Enable"
+enableBtn.TextScaled = true
+enableBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+enableBtn.TextColor3 = Color3.new(1,1,1)
+
+local minimize = Instance.new("TextButton", frame)
+minimize.Size = UDim2.new(0,30,0,30)
+minimize.Position = UDim2.new(1,-60,0,0)
+minimize.Text = "-"
+
+local close = Instance.new("TextButton", frame)
+close.Size = UDim2.new(0,30,0,30)
+close.Position = UDim2.new(1,-30,0,0)
+close.Text = "X"
+
+local minimized = false
+
+minimize.MouseButton1Click:Connect(function()
+	minimized = not minimized
+	frame.Size = minimized and UDim2.new(0,260,0,30) or UDim2.new(0,260,0,140)
+end)
+
+close.MouseButton1Click:Connect(function()
+	gui:Destroy()
+end)
+
+enableBtn.MouseButton1Click:Connect(function()
+	enableBtn.Text = "Enabled ✓"
+	enableBtn.BackgroundColor3 = Color3.fromRGB(0,120,0)
+	enableAnchor()
 end)
