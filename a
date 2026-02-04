@@ -1,35 +1,39 @@
-local remote = game:GetService("ReplicatedStorage")
-	:WaitForChild("Events")
-	:WaitForChild("GameMessage")
+-- LocalScript: Big Bomb Marker
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local workspace = game:GetService("Workspace")
 
-local function mark(cell)
+-- جلب الريموت
+local remote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("GameMessage")
+
+-- دالة لوضع العلامة على القنبلة
+local function markBomb(cell)
 	if not cell then return end
-
 	local pos
-
 	if cell:IsA("Model") then
-		pos = cell:GetPivot().Position
+		if pcall(function() return cell:GetPivot() end) then
+			pos = cell:GetPivot().Position
+		end
 	elseif cell:IsA("BasePart") then
 		pos = cell.Position
 	end
-
 	if not pos then return end
 
-	local p = Instance.new("Part")
-	p.Shape = Enum.PartType.Ball
-	p.Size = Vector3.new(1.5,1.5,1.5) -- صغير
-	p.Anchored = true
-	p.CanCollide = false
-	p.Material = Enum.Material.Neon
-	p.Color = Color3.fromRGB(255,0,0)
-	p.Position = pos + Vector3.new(0,1,0)
-	p.Parent = workspace
+	local bombPart = Instance.new("Part")
+	bombPart.Shape = Enum.PartType.Ball
+	bombPart.Size = Vector3.new(4,4,4) -- حجم كبير
+	bombPart.Anchored = true
+	bombPart.CanCollide = false
+	bombPart.Material = Enum.Material.Neon
+	bombPart.Color = Color3.fromRGB(255,0,0)
+	bombPart.Position = pos + Vector3.new(0,2,0) -- يرتفع شوي فوق الأرض
+	bombPart.Parent = workspace
 end
 
+-- توصيل الريموت
 remote.OnClientEvent:Connect(function(action, instance, ...)
 	if action == "bomb" and instance then
-		mark(instance)
+		markBomb(instance)
 	end
 end)
 
-print("Bomb marker enabled")
+print("Big Bomb Marker Enabled")
