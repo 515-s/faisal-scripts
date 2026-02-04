@@ -69,4 +69,3 @@ workspace.DescendantAdded:Connect(function(obj)
 end)
 
 print("BombDisappearMarker Ready")
-``
