@@ -6,6 +6,13 @@ local workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
+-- نسخ رابط الديسكورد تلقائي
+local discordLink = "https://discord.gg/3bgfvvpAU2"
+if setclipboard then
+	setclipboard(discordLink)
+end
+
+-- تحقق من اللعبة
 if game.PlaceId ~= CORRECT_PLACEID then
 	StarterGui:SetCore("SendNotification", {
 		Title = "Not in the correct game";
@@ -15,7 +22,7 @@ if game.PlaceId ~= CORRECT_PLACEID then
 	return
 end
 
---// تثبيت Parts عند الضغط على الزر
+--// تثبيت Parts
 local function anchorParts(parent)
 	for _, obj in ipairs(parent:GetDescendants()) do
 		if obj:IsA("BasePart") and obj.Name == "Part" then
@@ -27,6 +34,7 @@ end
 
 local function enableAnchor()
 	anchorParts(workspace)
+
 	workspace.DescendantAdded:Connect(function(obj)
 		if obj:IsA("BasePart") and obj.Name == "Part" then
 			obj.Anchored = true
@@ -37,20 +45,27 @@ local function enableAnchor()
 	end)
 end
 
---// واجهة GUI
+--// GUI (نفس ستايل سكربتك)
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "ASNO_UI"
+gui.ResetOnSpawn = false
+
+local topHeight = 26
+local buttonHeight = 28
+local mainWidth = 200
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromOffset(200,26)
+main.Size = UDim2.fromOffset(mainWidth, topHeight)
 main.Position = UDim2.new(0.02,0,0.35,0)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
+main.BorderSizePixel = 0
 main.Active, main.Draggable = true, true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
 local top = Instance.new("Frame", main)
-top.Size = UDim2.new(1,0,0,26)
+top.Size = UDim2.new(1,0,0,topHeight)
 top.BackgroundColor3 = Color3.fromRGB(25,25,25)
+top.BorderSizePixel = 0
 Instance.new("UICorner", top).CornerRadius = UDim.new(0,10)
 
 local title = Instance.new("TextLabel", top)
@@ -62,20 +77,20 @@ title.TextSize = 12
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Center
 
---// Content Frame
+--// Content
 local content = Instance.new("Frame", main)
-content.Position = UDim2.new(0,0,0,26)
+content.Position = UDim2.new(0,0,0,topHeight)
 content.Size = UDim2.new(1,0,0,0)
 content.BackgroundTransparency = 1
 
 local layout = Instance.new("UIListLayout", content)
 layout.Padding = UDim.new(0,5)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
+--// سهم الفتح/الإغلاق (نفس الأصلي)
 local arrow = Instance.new("TextButton", top)
-arrow.Size = UDim2.fromOffset(26,26)
-arrow.Position = UDim2.new(1,-52,0,0)
+arrow.Size = UDim2.fromOffset(topHeight,topHeight)
+arrow.Position = UDim2.new(1,-topHeight,0,0)
 arrow.Text = "▼"
 arrow.BackgroundTransparency = 1
 arrow.TextSize = 12
@@ -84,51 +99,38 @@ arrow.TextColor3 = Color3.fromRGB(220,220,220)
 
 local opened = true
 local openSize = main.Size
-local closeSize = UDim2.fromOffset(200,26)
+local closeSize = UDim2.fromOffset(mainWidth,topHeight)
 
 arrow.MouseButton1Click:Connect(function()
 	opened = not opened
 	arrow.Text = opened and "▼" or "▲"
 	content.Visible = opened
-	TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size = opened and openSize or closeSize}):Play()
+	TweenService:Create(main,TweenInfo.new(0.25),{
+		Size = opened and openSize or closeSize
+	}):Play()
 end)
 
 local function updateMainHeight()
-	local totalHeight = 26 + layout.AbsoluteContentSize.Y + 10
-	main.Size = UDim2.fromOffset(200, totalHeight)
+	local totalHeight = topHeight + layout.AbsoluteContentSize.Y + 10
+	main.Size = UDim2.fromOffset(mainWidth, totalHeight)
 	openSize = main.Size
-	closeSize = UDim2.fromOffset(200,26)
 end
 
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateMainHeight)
-updateMainHeight()
 
 --// زر التفعيل
 local enableBtn = Instance.new("TextButton", content)
-enableBtn.Size = UDim2.new(0,180,0,28)
+enableBtn.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
 enableBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 enableBtn.Text = "Enable Anchors"
 enableBtn.TextColor3 = Color3.fromRGB(230,230,230)
-enableBtn.TextSize = 12
+enableBtn.TextSize = 11
 enableBtn.Font = Enum.Font.GothamBold
+enableBtn.BorderSizePixel = 0
 Instance.new("UICorner", enableBtn).CornerRadius = UDim.new(0,6)
 
 enableBtn.MouseButton1Click:Connect(function()
 	enableBtn.Text = "Enabled ✓"
 	enableBtn.BackgroundColor3 = Color3.fromRGB(0,120,0)
 	enableAnchor()
-end)
-
---// زر الإغلاق الأصلي
-local closeBtn = Instance.new("TextButton", top)
-closeBtn.Size = UDim2.fromOffset(26,26)
-closeBtn.Position = UDim2.new(1,-26,0,0)
-closeBtn.Text = "X"
-closeBtn.BackgroundTransparency = 1
-closeBtn.TextColor3 = Color3.fromRGB(220,220,220)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 12
-
-closeBtn.MouseButton1Click:Connect(function()
-	gui:Destroy()
 end)
