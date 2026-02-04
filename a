@@ -1,7 +1,5 @@
--- LocalScript / ServerScript: AnchorAllParts
 local workspace = game:GetService("Workspace")
 
--- دالة لعمل Anchored لأي Part داخل الماب
 local function anchorParts(parent)
 	for _, obj in ipairs(parent:GetDescendants()) do
 		if obj:IsA("BasePart") and obj.Name == "Part" then
@@ -11,18 +9,13 @@ local function anchorParts(parent)
 	end
 end
 
--- أول مرة نثبت كل البارتس
 anchorParts(workspace)
 
--- نراقب أي شيء جديد ينضاف للماب
 workspace.DescendantAdded:Connect(function(obj)
 	if obj:IsA("BasePart") and obj.Name == "Part" then
 		obj.Anchored = true
 		obj.CanCollide = true
 	elseif obj:IsA("Model") then
-		-- لو موديل فيه Parts، نثبتها
 		anchorParts(obj)
 	end
 end)
-
-print("AnchorAllParts Script Active ✅")
