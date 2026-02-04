@@ -1,220 +1,72 @@
--- LocalScript: PulsingBigBombMarkers
-local Players = game:GetService("Players")
+-- LocalScript: BombDisappearMarker
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
+local workspace = game:GetService("Workspace")
+local MARKER_SIZE = 2.5
+local MARKER_COLOR = Color3.fromRGB(255,0,0)
+local Y_OFFSET = 1.5
+local MARKER_DURATION = 3 -- تقدر تعدل المدة
 
--- ---- إعدادات تقدر تعدلها ----
-local MIN_SIZE = 3           -- حجم الكرة الصغير
-local MAX_SIZE = 8           -- حجم الكرة الكبير
-local PULSE_SPEED = 2        -- سرعة النبض (Hz تقريباً)
-local Y_OFFSET = 2.2         -- ارتفاع العلامة فوق الأرض/الخلية
-local LABEL_FONT_SIZE = 18
-
--- ---- جدول يخزن العلامات بحسب الـ Instance ----
-local markers = {}
-
--- دالة تنسيق النص للقيم
-local function safeToString(v)
-	local t = typeof(v)
-	if t == "Instance" then
-		return ("%s(%s)"):format(v.ClassName, v.Name)
-	elseif t == "Vector3" then
-		return string.format("Vector3(%.2f, %.2f, %.2f)", v.X, v.Y, v.Z)
-	elseif t == "CFrame" then
-		local p = v.Position
-		return string.format("CFrame(%.2f, %.2f, %.2f)", p.X, p.Y, p.Z)
-	elseif t == "table" then
-		return "Table"
-	else
-		return tostring(v)
-	end
-end
-
--- إنشاء علامة جديدة مربوطة بـ instance
-local function createMarkerFor(instance, extraLabel)
-	if not instance then return end
-	if markers[instance] then return markers[instance] end
-
-	-- الكرة التي ستنبض
-	local part = Instance.new("Part")
-	part.Name = "BombMarker_Pulse"
-	part.Shape = Enum.PartType.Ball
-	part.Anchored = true         -- نتحكم بالموقع بالـ RenderStepped
-	part.CanCollide = false
-	part.Material = Enum.Material.Neon
-	part.Color = Color3.fromRGB(255, 40, 40)
-	part.Transparency = 0
-	part.CastShadow = false
-	part.Parent = workspace
-
-	-- Billboard لعرض "BOMB" أو رقم الخلية
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "BombLabelGui"
-	billboard.Adornee = part
-	billboard.AlwaysOnTop = true
-	billboard.Size = UDim2.new(0, 140, 0, 40)
-	billboard.StudsOffset = Vector3.new(0, 2.8, 0)
-	billboard.Parent = player:WaitForChild("PlayerGui")
-
-	local lbl = Instance.new("TextLabel", billboard)
-	lbl.Size = UDim2.new(1,0,1,0)
-	lbl.BackgroundTransparency = 1
-	lbl.TextColor3 = Color3.new(1,1,1)
-	lbl.Font = Enum.Font.Code
-	lbl.TextSize = LABEL_FONT_SIZE
-	lbl.TextStrokeTransparency = 0.6
-	lbl.Text = extraLabel or "BOMB"
-
-	-- بيانات العلامة
-	local data = {
-		instance = instance,
-		part = part,
-		gui = billboard,
-		startTime = tick(),
-		alive = true,
-		pulsePhase = 0
-	}
-
-	markers[instance] = data
-
-	-- وظيفة تحديث موضع وحجم كل فريم
-	data.connection = RunService.RenderStepped:Connect(function(dt)
-		if not data.alive then return end
-
-		-- نحاول نجيب موقع الـ instance بدقة
-		local pos
-		pcall(function()
-			if instance:IsA("Model") then
-				-- GetPivot آمن ويعطي موقع حقيقي
-				pos = instance:GetPivot().Position
-			elseif instance:IsA("BasePart") then
-				pos = instance.Position
-			end
-		end)
-
-		-- لو ما لقين مكان، نحافظ على آخر موقع أو نخفي المؤثر مؤقتاً
-		if pos then
-			-- حساب نبضة (سينوسي)
-			local t = tick() * PULSE_SPEED * math.pi * 2
-			local alpha = (math.sin(t) + 1) / 2 -- من 0 إلى 1
-			local sizeVal = MIN_SIZE + (MAX_SIZE - MIN_SIZE) * alpha
-
-			-- نحدد موقع الكرة فوق الخلية
-			part.Size = Vector3.new(sizeVal, sizeVal, sizeVal)
-			part.Position = pos + Vector3.new(0, Y_OFFSET + (sizeVal/2 - MIN_SIZE/2), 0)
-			billboard.StudsOffset = Vector3.new(0, math.max(2.6, sizeVal/1.6), 0)
+-- دالة لحساب موقع الـ Instance أو أول BasePart داخل Model
+local function getCellPosition(cell)
+	if not cell then return nil end
+	if cell:IsA("BasePart") then
+		return cell.Position
+	elseif cell:IsA("Model") then
+		if cell.PrimaryPart then
+			return cell.PrimaryPart.Position
 		else
-			-- لو ما فيه موقع، نقدر نخلي العلامة مخفية أو ثابتة؛ هنا نخفيها
-			part.Transparency = 1
-			billboard.Enabled = false
-		end
-	end)
-
-	return data
-end
-
--- دالة لإزالة علامة مرتبطة بـ instance (لو تبي تحذفها)
-local function removeMarker(instance)
-	local d = markers[instance]
-	if not d then return end
-	d.alive = false
-	if d.connection then d.connection:Disconnect() end
-	if d.part and d.part.Parent then d.part:Destroy() end
-	if d.gui and d.gui.Parent then d.gui:Destroy() end
-	markers[instance] = nil
-end
-
--- دالة لتحديث/إنشاء علامة لو وردت رسالة bomb مع instance أو موقع
-local function markBombFromRemote(instanceOrPos, label)
-	-- لو جمعت instance:
-	if typeof(instanceOrPos) == "Instance" then
-		local inst = instanceOrPos
-		local extra = label
-		local d = createMarkerFor(inst, extra and tostring(extra) or ("BOMB"))
-		-- لو العلامة كانت مخفية لسبب ما نرجع ظهورها
-		if d and d.part then
-			d.part.Transparency = 0
-			d.gui.Enabled = true
-		end
-		return
-	end
-
-	-- لو جابوا موقع فقط (Vector3/CFrame)
-	if typeof(instanceOrPos) == "Vector3" or typeof(instanceOrPos) == "CFrame" then
-		local pos = instanceOrPos
-		if typeof(pos) == "CFrame" then pos = pos.Position end
-
-		-- نخلق علامة ثابتة (لتتبع موقع ثابت)
-		local markerPart = Instance.new("Part")
-		markerPart.Name = "BombMarker_Static"
-		markerPart.Shape = Enum.PartType.Ball
-		markerPart.Anchored = true
-		markerPart.CanCollide = false
-		markerPart.Material = Enum.Material.Neon
-		markerPart.Color = Color3.fromRGB(255, 40, 40)
-		markerPart.Size = Vector3.new(MAX_SIZE, MAX_SIZE, MAX_SIZE)
-		markerPart.Position = pos + Vector3.new(0, Y_OFFSET + (MAX_SIZE/2 - MIN_SIZE/2), 0)
-		markerPart.Parent = workspace
-
-		local billboard = Instance.new("BillboardGui")
-		billboard.Name = "BombLabelGui_Static"
-		billboard.Adornee = markerPart
-		billboard.AlwaysOnTop = true
-		billboard.Size = UDim2.new(0,140,0,40)
-		billboard.StudsOffset = Vector3.new(0, 2.8, 0)
-		billboard.Parent = player:WaitForChild("PlayerGui")
-
-		local lbl = Instance.new("TextLabel", billboard)
-		lbl.Size = UDim2.new(1,0,1,0)
-		lbl.BackgroundTransparency = 1
-		lbl.TextColor3 = Color3.new(1,1,1)
-		lbl.Font = Enum.Font.Code
-		lbl.TextSize = LABEL_FONT_SIZE
-		lbl.Text = label or "BOMB"
-
-		-- نخليها تبقى (لو تبي مسح لاحقاً تقدر تدمرها يدوياً أو نضيف نظام مسح)
-		return
-	end
-end
-
--- ---- توصيل الريموت Main: GameMessage (نفس اللي استخدمناه قبل) ----
-local ok, events = pcall(function() return ReplicatedStorage:WaitForChild("Events",5) end)
-if not ok or not events then
-	warn("Smart marker: ReplicatedStorage.Events مش موجودة")
-	return
-end
-
-local gameMsg = events:FindFirstChild("GameMessage")
-if not gameMsg or not gameMsg:IsA("RemoteEvent") then
-	warn("Smart marker: GameMessage RemoteEvent مو موجود أو اسمه مختلف")
-	-- لكن نستمر ونحاول رصد Explosion أو ريموتات ثانية بنفس الطريقة اللي فعّالها قبل
-else
-	gameMsg.OnClientEvent:Connect(function(action, instance, ...)
-		-- لو السيرفر يرسل ("bomb", Instance(Model:GameCell), 1, 8) كما شفنا
-		if type(action) == "string" and action:lower() == "bomb" then
-			-- نحاول ناخذ اسم الخلية/الرقم لو موجود
-			local extraLabel = nil
-			local args = {...}
-			-- لو آخر قيمة رقمية مثل رقم الخلية
-			for _,a in ipairs(args) do
-				if typeof(a) == "number" then
-					extraLabel = ("BOMB #%s"):format(tostring(a))
-					break
+			for _,v in pairs(cell:GetDescendants()) do
+				if v:IsA("BasePart") then
+					return v.Position
 				end
 			end
-			-- نمرّر الـ instance مباشرة لو موجود
-			markBombFromRemote(instance, extraLabel)
+		end
+	end
+	return nil
+end
+
+-- دالة عمل علامة Bomb بعد الاختفاء
+local function spawnMarker(pos)
+	if not pos then return end
+	local part = Instance.new("Part")
+	part.Shape = Enum.PartType.Ball
+	part.Size = Vector3.new(MARKER_SIZE, MARKER_SIZE, MARKER_SIZE)
+	part.Anchored = true
+	part.CanCollide = false
+	part.Material = Enum.Material.Neon
+	part.Color = MARKER_COLOR
+	part.Position = pos + Vector3.new(0,Y_OFFSET,0)
+	part.Parent = workspace
+	-- تختفي بعد مدة
+	task.delay(MARKER_DURATION, function()
+		if part and part.Parent then
+			part:Destroy()
 		end
 	end)
 end
 
--- ---- كنّا نرصد أيضاً الإنفجارات كاحتياط ----
-workspace.DescendantAdded:Connect(function(obj)
-	if obj:IsA("Explosion") then
-		local pos = obj.Position
-		markBombFromRemote(pos, "EXPLOSION")
+-- رصد GameMessage للبومب
+local events = ReplicatedStorage:WaitForChild("Events")
+local gameMsg = events:WaitForChild("GameMessage")
+
+gameMsg.OnClientEvent:Connect(function(action, instance, ...)
+	-- نراقب البومب
+	if type(action) == "string" and action:lower() == "bomb" and instance then
+		-- ننتظر ثانية قبل وضع الكرة عشان البومب يختفي
+		task.delay(0.1, function()
+			local pos = getCellPosition(instance)
+			spawnMarker(pos)
+		end)
 	end
 end)
 
-print("Big pulsing bomb markers ready")
+-- رصد الانفجارات كاحتياط
+workspace.DescendantAdded:Connect(function(obj)
+	if obj:IsA("Explosion") then
+		-- وضع الكرة مباشرة عند انفجار البومب (وقت الاختفاء)
+		spawnMarker(obj.Position)
+	end
+end)
+
+print("BombDisappearMarker Ready")
+``
