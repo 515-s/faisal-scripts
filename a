@@ -1,56 +1,65 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+-- الكلمات المهمة للفلاتر
+local KEYWORDS = {"bomb","chip"}
+
 -- GUI
 local gui = Instance.new("ScreenGui")
 gui.Parent = game.CoreGui
-gui.Name = "RemoteDebugger"
+gui.Name = "FilteredRemoteDebugger"
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromScale(0.5,0.7)
-frame.Position = UDim2.fromScale(0.02,0.15)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.Size = UDim2.fromOffset(400, 300)  -- أصغر
+frame.Position = UDim2.fromScale(0.03,0.15)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.Active = true
+frame.Draggable = true
 
 local scroll = Instance.new("ScrollingFrame", frame)
 scroll.Size = UDim2.fromScale(1,1)
 scroll.CanvasSize = UDim2.new(0,0,0,0)
-scroll.ScrollBarThickness = 10
+scroll.ScrollBarThickness = 8
 
 local layout = Instance.new("UIListLayout", scroll)
 layout.Padding = UDim.new(0,4)
 
 local rows = 0
 
--- تحويل القيم لنص واضح
+-- تحويل القيم لنص
 local function format(v)
 	local t = typeof(v)
-
 	if t == "Vector3" then
 		return string.format("Vector3(%.1f, %.1f, %.1f)", v.X, v.Y, v.Z)
-
 	elseif t == "CFrame" then
 		local p = v.Position
 		return string.format("CFrame(%.1f, %.1f, %.1f)", p.X, p.Y, p.Z)
-
 	elseif t == "Instance" then
 		return v.Name
-
 	elseif t == "table" then
 		return "Table"
-
 	else
 		return tostring(v)
 	end
 end
 
+-- تحقق من الكلمات المهمة
+local function isImportant(name)
+	name = name:lower()
+	for _,k in ipairs(KEYWORDS) do
+		if name:find(k) then return true end
+	end
+	return false
+end
+
+-- إضافة صف
 local function addRow(text)
 	rows += 1
-
 	local row = Instance.new("Frame", scroll)
-	row.Size = UDim2.new(1,-5,0,32)
+	row.Size = UDim2.new(1,-5,0,28)
 	row.BackgroundColor3 = Color3.fromRGB(35,35,35)
 
 	local label = Instance.new("TextLabel", row)
-	label.Size = UDim2.new(0.85,0,1,0)
+	label.Size = UDim2.new(0.8,0,1,0)
 	label.TextWrapped = true
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.TextScaled = true
@@ -59,33 +68,32 @@ local function addRow(text)
 	label.Text = text
 
 	local copy = Instance.new("TextButton", row)
-	copy.Size = UDim2.new(0.15,0,1,0)
-	copy.Position = UDim2.new(0.85,0,0,0)
+	copy.Size = UDim2.new(0.2,0,1,0)
+	copy.Position = UDim2.new(0.8,0,0,0)
 	copy.Text = "Copy"
 	copy.BackgroundColor3 = Color3.fromRGB(70,70,70)
+	copy.TextColor3 = Color3.new(1,1,1)
+	copy.Font = Enum.Font.Code
 
 	copy.MouseButton1Click:Connect(function()
 		setclipboard(text)
 	end)
 
-	scroll.CanvasSize = UDim2.new(0,0,0,rows*36)
+	scroll.CanvasSize = UDim2.new(0,0,0,rows*32)
 end
 
--- ربط كل الريموتات
+-- تابع كل الريموتات المهمة
 for _,v in pairs(ReplicatedStorage:GetDescendants()) do
-	if v:IsA("RemoteEvent") then
+	if v:IsA("RemoteEvent") and isImportant(v.Name) then
 		v.OnClientEvent:Connect(function(...)
 			local args = {...}
-
 			local text = v:GetFullName()
-
 			for _,a in ipairs(args) do
 				text ..= " | "..format(a)
 			end
-
 			addRow(text)
 		end)
 	end
 end
 
-print("Advanced Remote Debugger Enabled")
+print("Filtered Remote Debugger (Bomb & Chip) Ready")
