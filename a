@@ -1,12 +1,15 @@
--- LocalScript: BombDisappearMarker
+-- LocalScript: BombDisappearMarker_Final
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local workspace = game:GetService("Workspace")
-local MARKER_SIZE = 2.5
-local MARKER_COLOR = Color3.fromRGB(255,0,0)
-local Y_OFFSET = 1.5
-local MARKER_DURATION = 3 -- تقدر تعدل المدة
+local player = game:GetService("Players").LocalPlayer
 
--- دالة لحساب موقع الـ Instance أو أول BasePart داخل Model
+-- إعدادات
+local MARKER_SIZE = 3         -- حجم الكرة
+local MARKER_COLOR = Color3.fromRGB(255,0,0)
+local Y_OFFSET = 1.5          -- ارتفاع الكرة فوق الأرض
+local MARKER_DURATION = 1.5   -- مدة ظهور الكرة بالثواني
+
+-- دالة للحصول على موقع الـ Instance بدقة
 local function getCellPosition(cell)
 	if not cell then return nil end
 	if cell:IsA("BasePart") then
@@ -25,7 +28,7 @@ local function getCellPosition(cell)
 	return nil
 end
 
--- دالة عمل علامة Bomb بعد الاختفاء
+-- دالة إنشاء الكرة المؤقتة
 local function spawnMarker(pos)
 	if not pos then return end
 	local part = Instance.new("Part")
@@ -35,9 +38,10 @@ local function spawnMarker(pos)
 	part.CanCollide = false
 	part.Material = Enum.Material.Neon
 	part.Color = MARKER_COLOR
-	part.Position = pos + Vector3.new(0,Y_OFFSET,0)
+	part.Position = pos + Vector3.new(0, Y_OFFSET, 0)
 	part.Parent = workspace
-	-- تختفي بعد مدة
+
+	-- تختفي بعد MARKER_DURATION ثانية
 	task.delay(MARKER_DURATION, function()
 		if part and part.Parent then
 			part:Destroy()
@@ -50,22 +54,14 @@ local events = ReplicatedStorage:WaitForChild("Events")
 local gameMsg = events:WaitForChild("GameMessage")
 
 gameMsg.OnClientEvent:Connect(function(action, instance, ...)
-	-- نراقب البومب
+	-- نراقب كلمة "bomb"
 	if type(action) == "string" and action:lower() == "bomb" and instance then
-		-- ننتظر ثانية قبل وضع الكرة عشان البومب يختفي
-		task.delay(0.1, function()
+		-- ننتظر ثانية صغيرة عشان البومب يختفي (وقت الاختفاء)
+		task.delay(0.05, function()
 			local pos = getCellPosition(instance)
 			spawnMarker(pos)
 		end)
 	end
 end)
 
--- رصد الانفجارات كاحتياط
-workspace.DescendantAdded:Connect(function(obj)
-	if obj:IsA("Explosion") then
-		-- وضع الكرة مباشرة عند انفجار البومب (وقت الاختفاء)
-		spawnMarker(obj.Position)
-	end
-end)
-
-print("BombDisappearMarker Ready")
+print("BombDisappearMarker_Final Ready ✅")
