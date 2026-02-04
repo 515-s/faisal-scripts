@@ -1,8 +1,9 @@
+--// تشغيل السكربت فقط داخل اللعبة
+local CORRECT_PLACEID = 16993432698
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 local workspace = game:GetService("Workspace")
-
-local CORRECT_PLACEID = 16993432698
+local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
 if game.PlaceId ~= CORRECT_PLACEID then
@@ -14,6 +15,7 @@ if game.PlaceId ~= CORRECT_PLACEID then
 	return
 end
 
+--// تثبيت Parts عند الضغط على الزر
 local function anchorParts(parent)
 	for _, obj in ipairs(parent:GetDescendants()) do
 		if obj:IsA("BasePart") and obj.Name == "Part" then
@@ -25,7 +27,6 @@ end
 
 local function enableAnchor()
 	anchorParts(workspace)
-
 	workspace.DescendantAdded:Connect(function(obj)
 		if obj:IsA("BasePart") and obj.Name == "Part" then
 			obj.Anchored = true
@@ -36,54 +37,96 @@ local function enableAnchor()
 	end)
 end
 
+--// واجهة GUI
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "ASNO_UI"
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 260, 0, 140)
-frame.Position = UDim2.new(0.5, -130, 0.5, -70)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.Active = true
-frame.Draggable = true
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromOffset(200,26)
+main.Position = UDim2.new(0.02,0,0.35,0)
+main.BackgroundColor3 = Color3.fromRGB(15,15,15)
+main.Active, main.Draggable = true, true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1,0,0,30)
+local top = Instance.new("Frame", main)
+top.Size = UDim2.new(1,0,0,26)
+top.BackgroundColor3 = Color3.fromRGB(25,25,25)
+Instance.new("UICorner", top).CornerRadius = UDim.new(0,10)
+
+local title = Instance.new("TextLabel", top)
+title.Size = UDim2.new(1,0,1,0)
 title.BackgroundTransparency = 1
 title.Text = "ASNO"
-title.TextColor3 = Color3.new(1,1,1)
-title.TextScaled = true
+title.TextColor3 = Color3.fromRGB(230,230,230)
+title.TextSize = 12
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Center
 
-local enableBtn = Instance.new("TextButton", frame)
-enableBtn.Size = UDim2.new(0.8,0,0,40)
-enableBtn.Position = UDim2.new(0.1,0,0.35,0)
-enableBtn.Text = "Enable"
-enableBtn.TextScaled = true
-enableBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-enableBtn.TextColor3 = Color3.new(1,1,1)
+local content = Instance.new("Frame", main)
+content.Position = UDim2.new(0,0,0,26)
+content.Size = UDim2.new(1,0,0,0)
+content.BackgroundTransparency = 1
 
-local minimize = Instance.new("TextButton", frame)
-minimize.Size = UDim2.new(0,30,0,30)
-minimize.Position = UDim2.new(1,-60,0,0)
-minimize.Text = "-"
+local layout = Instance.new("UIListLayout", content)
+layout.Padding = UDim.new(0,5)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
-local close = Instance.new("TextButton", frame)
-close.Size = UDim2.new(0,30,0,30)
-close.Position = UDim2.new(1,-30,0,0)
-close.Text = "X"
+local arrow = Instance.new("TextButton", top)
+arrow.Size = UDim2.fromOffset(26,26)
+arrow.Position = UDim2.new(1,-26,0,0)
+arrow.Text = "▼"
+arrow.BackgroundTransparency = 1
+arrow.TextSize = 12
+arrow.Font = Enum.Font.GothamBold
+arrow.TextColor3 = Color3.fromRGB(220,220,220)
 
-local minimized = false
+local opened = true
+local openSize = main.Size
+local closeSize = UDim2.fromOffset(200,26)
 
-minimize.MouseButton1Click:Connect(function()
-	minimized = not minimized
-	frame.Size = minimized and UDim2.new(0,260,0,30) or UDim2.new(0,260,0,140)
+arrow.MouseButton1Click:Connect(function()
+	opened = not opened
+	arrow.Text = opened and "▼" or "▲"
+	content.Visible = opened
+	TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size = opened and openSize or closeSize}):Play()
 end)
 
-close.MouseButton1Click:Connect(function()
-	gui:Destroy()
-end)
+local function updateMainHeight()
+	local totalHeight = 26 + layout.AbsoluteContentSize.Y + 10
+	main.Size = UDim2.fromOffset(200, totalHeight)
+	openSize = main.Size
+	closeSize = UDim2.fromOffset(200,26)
+end
+
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateMainHeight)
+updateMainHeight()
+
+--// زر التفعيل
+local enableBtn = Instance.new("TextButton", content)
+enableBtn.Size = UDim2.new(0,180,0,28)
+enableBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+enableBtn.Text = "Enable Anchors"
+enableBtn.TextColor3 = Color3.fromRGB(230,230,230)
+enableBtn.TextSize = 12
+enableBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", enableBtn).CornerRadius = UDim.new(0,6)
 
 enableBtn.MouseButton1Click:Connect(function()
 	enableBtn.Text = "Enabled ✓"
 	enableBtn.BackgroundColor3 = Color3.fromRGB(0,120,0)
 	enableAnchor()
+end)
+
+--// زر الإغلاق
+local closeBtn = Instance.new("TextButton", top)
+closeBtn.Size = UDim2.fromOffset(26,26)
+closeBtn.Position = UDim2.new(1,-26,0,0)
+closeBtn.Text = "X"
+closeBtn.BackgroundTransparency = 1
+closeBtn.TextColor3 = Color3.fromRGB(220,220,220)
+closeBtn.Font = Enum.Font.GothamBold
+
+closeBtn.MouseButton1Click:Connect(function()
+	gui:Destroy()
 end)
