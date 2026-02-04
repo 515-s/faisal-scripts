@@ -13,14 +13,12 @@ if game.PlaceId ~= CORRECT_PLACEID then
 	return
 end
 
--- Notification عند بداية السكربت
 StarterGui:SetCore("SendNotification", {
 	Title = "Glass is now unbreakable";
 	Text = "";
 	Duration = 5;
 })
 
--- تثبيت جميع Parts
 local function anchorParts(parent)
 	for _, obj in ipairs(parent:GetDescendants()) do
 		if obj:IsA("BasePart") and obj.Name == "Part" then
