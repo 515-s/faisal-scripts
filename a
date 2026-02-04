@@ -1,198 +1,87 @@
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local StarterGui = game:GetService("StarterGui")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+--// Services
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
-local player = Players.LocalPlayer
+--// إعدادات
+local STEP_DISTANCE = 3 -- كل كم ستد يحط بارت
+local PATH_LIFETIME = 25 -- مدة بقاء البارات
+local PATH_SIZE = Vector3.new(0.7,0.7,0.7)
 
-local function notify(t)
-	pcall(function()
-		StarterGui:SetCore("SendNotification",{Title="faisal-script",Text=t,Duration=3})
+--// يخلي البومب مرئي دائمًا
+local function forceVisible(obj)
+	if obj:IsA("BasePart") then
+		obj.Transparency = 0
+		obj.LocalTransparencyModifier = 0
+		obj.Material = Enum.Material.Neon
+		obj.Color = Color3.fromRGB(255, 80, 80)
+		obj.CanCollide = false
+	end
+end
+
+--// ينشئ بارت للمسار
+local function createPoint(pos)
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanCollide = false
+	p.Size = PATH_SIZE
+	p.Shape = Enum.PartType.Ball
+	p.Material = Enum.Material.Neon
+	p.Color = Color3.fromRGB(0, 255, 150)
+	p.Position = pos
+	p.Parent = workspace
+
+	task.delay(PATH_LIFETIME, function()
+		if p then p:Destroy() end
 	end)
 end
 
-local function getHRP()
-	local c = player.Character or player.CharacterAdded:Wait()
-	return c:WaitForChild("HumanoidRootPart")
-end
+--// تتبع البومب
+local function trackBomb(bomb)
+	local root = bomb:IsA("Model") and bomb.PrimaryPart or bomb
 
-local function findAllRemotes()
-	local remotes = {}
-	local sources = {ReplicatedStorage, workspace, player.PlayerGui, player.Backpack}
-	for _,src in ipairs(sources) do
-		if src and src:GetDescendants then
-			for _,obj in ipairs(src:GetDescendants()) do
-				if obj:IsA("RemoteEvent") then
-					table.insert(remotes, obj)
-				end
-			end
-		end
+	if not root or not root:IsA("BasePart") then
+		root = bomb:FindFirstChildWhichIsA("BasePart")
 	end
-	-- محاولة إضافية عبر جذر اللعبة (محاط بـ pcall)
-	pcall(function()
-		for _,obj in ipairs(game:GetDescendants()) do
-			if obj:IsA("RemoteEvent") then
-				local ok = true
-				for _,r in ipairs(remotes) do
-					if r == obj then ok = false break end
-				end
-				if ok then table.insert(remotes, obj) end
-			end
-		end
-	end)
-	return remotes
-end
+	if not root then return end
 
-local remotesList = findAllRemotes()
-
-local hrp = getHRP()
-local savedPosition = hrp.CFrame
-local carShowroom = CFrame.new(-20,5,-130)
-local sharitiyah  = CFrame.new(-1813,5,4562)
-
-local function teleport(cf) getHRP().CFrame = cf end
-
-local savedCarModel = nil
-
-local function getNearestModel()
-	local root = getHRP()
-	local nearest
-	local shortest = math.huge
-	for _,obj in ipairs(workspace:GetDescendants()) do
-		if obj:IsA("Model") and obj ~= player.Character then
-			local p = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-			if p then
-				local d = (p.Position - root.Position).Magnitude
-				if d < shortest then
-					shortest = d
-					nearest = obj
-				end
-			end
-		end
+	-- يخليه ظاهر
+	for _,v in pairs(bomb:GetDescendants()) do
+		forceVisible(v)
 	end
-	return nearest
-end
 
-local function selectCar()
-	local car = getNearestModel()
-	if car then
-		savedCarModel = car
-		notify("تم تحديد: "..car.Name)
-	else
-		notify("ما فيه موديل قريب")
-	end
-end
+	local lastPos = root.Position
 
-local function waitForMovement(part, targetPos, timeout)
-	local t = 0
-	local dt = 0.1
-	local lastPos = part.Position
-	while t < timeout do
-		if not part or not part.Parent then return false end
-		local dist = (part.Position - targetPos).Magnitude
-		if dist <= 3 then return true end
-		-- detect any meaningful movement toward target (start of action)
-		local moved = (lastPos - part.Position).Magnitude
-		lastPos = part.Position
-		t = t + dt
-		task.wait(dt)
-	end
-	return false
-end
-
-local function tryRemote(remote, car, targetPos)
-	if not remote or not car then return false end
-	local part = car.PrimaryPart or car:FindFirstChildWhichIsA("BasePart")
-	if not part then return false end
-	local ok,err = pcall(function()
-		remote:FireServer(car, targetPos)
-	end)
-	if not ok then return false end
-	local moved = waitForMovement(part, targetPos, 6)
-	return moved
-end
-
-local lastSuccessfulRemoteName = nil
-
-local function bringCar()
-	if not savedCarModel then notify("حدد سيارة أول") return end
-	if #remotesList == 0 then remotesList = findAllRemotes() end
-	if #remotesList == 0 then notify("ما فيه RemoteEvent متاح") return end
-	local root = getHRP()
-	local targetPos = root.Position + (root.CFrame.LookVector * 20)
-	for i,remote in ipairs(remotesList) do
-		local success = pcall(function()
-			return tryRemote(remote, savedCarModel, targetPos)
-		end)
-		if success and tryRemote(remote, savedCarModel, targetPos) then
-			lastSuccessfulRemoteName = remote.Name
-			player:SetAttribute("LastCarRemote", lastSuccessfulRemoteName)
-			notify("نقلت السيارة عبر ".. remote.Name)
+	local connection
+	connection = RunService.Heartbeat:Connect(function()
+		if not bomb.Parent then
+			connection:Disconnect()
 			return
 		end
-	end
-	notify("فشل النقل عبر كل الريموتات")
+
+		local pos = root.Position
+
+		if (pos - lastPos).Magnitude >= STEP_DISTANCE then
+			createPoint(pos)
+			lastPos = pos
+		end
+
+		-- لو حاول يختفي نخليه ظاهر
+		for _,v in pairs(bomb:GetDescendants()) do
+			forceVisible(v)
+		end
+	end)
 end
 
-local gui = Instance.new("ScreenGui", player.PlayerGui)
-gui.ResetOnSpawn = false
-gui.Name = "FaisalCarFinder"
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromOffset(300,300)
-frame.Position = UDim2.new(0.5,-150,0.5,-150)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.BorderSizePixel = 0
-Instance.new("UICorner", frame)
-local stroke = Instance.new("UIStroke", frame)
-stroke.Color = Color3.fromRGB(255,210,90)
-stroke.Thickness = 2
-
-local titleBar = Instance.new("Frame", frame)
-titleBar.Size = UDim2.new(1,0,0,40)
-titleBar.BackgroundColor3 = Color3.fromRGB(30,30,30)
-local title = Instance.new("TextLabel", titleBar)
-title.Size = UDim2.new(1,0,1,0)
-title.BackgroundTransparency = 1
-title.Text = "faisal-script"
-title.TextColor3 = Color3.fromRGB(255,210,90)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 18
-
-local dragging=false
-local dragStart,startPos
-titleBar.InputBegan:Connect(function(i)
-	if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
-		dragging=true
-		dragStart=i.Position
-		startPos=frame.Position
+--// فحص الموجودين مسبقًا
+for _,v in pairs(Workspace:GetDescendants()) do
+	if v.Name == "Bomb" then
+		task.spawn(trackBomb, v)
 	end
-end)
-titleBar.InputEnded:Connect(function() dragging=false end)
-UserInputService.InputChanged:Connect(function(i)
-	if dragging and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
-		local d=i.Position-dragStart
-		frame.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y)
-	end
-end)
-
-local function makeBtn(text,y,fn,width,x)
-	local b=Instance.new("TextButton",frame)
-	b.Size=UDim2.new(width or 1,-20,0,40)
-	b.Position=UDim2.new(x or 0,10,y,0)
-	b.Text=text
-	b.Font=Enum.Font.GothamBold
-	b.TextSize=14
-	b.TextColor3=Color3.new(1,1,1)
-	b.BackgroundColor3=Color3.fromRGB(40,40,40)
-	b.BorderSizePixel=0
-	Instance.new("UICorner",b)
-	b.MouseButton1Click:Connect(fn)
 end
 
-makeBtn("الانتقال إلى معرضك",0.18,function() teleport(savedPosition) end)
-makeBtn("معرض السيارات",0.36,function() teleport(carShowroom) end)
-makeBtn("حي الشريطية",0.54,function() teleport(sharitiyah) end)
-makeBtn("تحديد السيارة",0.72,selectCar,0.5,0)
-makeBtn("نقل لسيارة",0.72,bringCar,0.5,0.5)
+--// يراقب أي Bomb جديد
+Workspace.DescendantAdded:Connect(function(obj)
+	if obj.Name == "Bomb" then
+		task.spawn(trackBomb, obj)
+	end
+end)
