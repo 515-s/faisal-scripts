@@ -62,6 +62,7 @@ title.TextSize = 12
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Center
 
+--// Content Frame
 local content = Instance.new("Frame", main)
 content.Position = UDim2.new(0,0,0,26)
 content.Size = UDim2.new(1,0,0,0)
@@ -74,7 +75,7 @@ layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
 local arrow = Instance.new("TextButton", top)
 arrow.Size = UDim2.fromOffset(26,26)
-arrow.Position = UDim2.new(1,-26,0,0)
+arrow.Position = UDim2.new(1,-52,0,0)
 arrow.Text = "▼"
 arrow.BackgroundTransparency = 1
 arrow.TextSize = 12
@@ -118,7 +119,7 @@ enableBtn.MouseButton1Click:Connect(function()
 	enableAnchor()
 end)
 
---// زر الإغلاق
+--// زر الإغلاق الأصلي
 local closeBtn = Instance.new("TextButton", top)
 closeBtn.Size = UDim2.fromOffset(26,26)
 closeBtn.Position = UDim2.new(1,-26,0,0)
@@ -126,6 +127,7 @@ closeBtn.Text = "X"
 closeBtn.BackgroundTransparency = 1
 closeBtn.TextColor3 = Color3.fromRGB(220,220,220)
 closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 12
 
 closeBtn.MouseButton1Click:Connect(function()
 	gui:Destroy()
