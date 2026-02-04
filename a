@@ -1,37 +1,75 @@
--- LocalScript: BombDisappearMarker_Final
+-- LocalScript: GameCellBombMarker_Smart
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 local workspace = game:GetService("Workspace")
-local player = game:GetService("Players").LocalPlayer
+local player = Players.LocalPlayer
 
 -- إعدادات
-local MARKER_SIZE = 3         -- حجم الكرة
-local MARKER_COLOR = Color3.fromRGB(255,0,0)
-local Y_OFFSET = 1.5          -- ارتفاع الكرة فوق الأرض
-local MARKER_DURATION = 1.5   -- مدة ظهور الكرة بالثواني
+local MARKER_SIZE = 4
+local MARKER_COLOR = Color3.fromRGB(255, 40, 40)
+local Y_OFFSET = 1.6
+local MARKER_DURATION = 1.5
+local DEDUPE_RADIUS = 3 -- ما يسوي علامة جديدة لو فيه واحدة قريبة
 
--- دالة للحصول على موقع الـ Instance بدقة
-local function getCellPosition(cell)
-	if not cell then return nil end
-	if cell:IsA("BasePart") then
-		return cell.Position
-	elseif cell:IsA("Model") then
-		if cell.PrimaryPart then
-			return cell.PrimaryPart.Position
-		else
-			for _,v in pairs(cell:GetDescendants()) do
-				if v:IsA("BasePart") then
-					return v.Position
+-- دالة للحصول على أفضل BasePart داخل الموديل
+local function findBestPart(model)
+	if not model then return nil end
+	-- 1) لو فيه PrimaryPart استخدمه
+	if model.PrimaryPart then
+		return model.PrimaryPart
+	end
+	-- 2) لو فيه جزء اسمه Seat/Chair/Holder استخدمه
+	local namePrefs = {"Seat","Chair","Holder","Base","Cell","GameCell","Root"}
+	for _,n in ipairs(namePrefs) do
+		for _,d in ipairs(model:GetDescendants()) do
+			if d:IsA("BasePart") and d.Name:lower():find(n:lower()) then
+				return d
+			end
+		end
+	end
+	-- 3) لو اللاعب جالس في الموديل: نستخدم أقرب BasePart إلى شخصية اللاعب المحلي
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		local best, bestDist
+		for _,d in ipairs(model:GetDescendants()) do
+			if d:IsA("BasePart") then
+				local dist = (d.Position - hrp.Position).Magnitude
+				if not bestDist or dist < bestDist then
+					best = d
+					bestDist = dist
 				end
 			end
+		end
+		if best then return best end
+	end
+	-- 4) أخيراً: أول BasePart نجده داخل الموديل
+	for _,d in ipairs(model:GetDescendants()) do
+		if d:IsA("BasePart") then
+			return d
 		end
 	end
 	return nil
 end
 
--- دالة إنشاء الكرة المؤقتة
-local function spawnMarker(pos)
+-- منع التكرار: هل فيه علامة قريبة؟
+local function isNearExistingMark(pos)
+	for _,p in ipairs(workspace:GetChildren()) do
+		if p:IsA("BasePart") and (p.Name == "BombMarker_Temp" or p.Name == "BombMarker_Static") then
+			if (p.Position - pos).Magnitude <= DEDUPE_RADIUS then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- spawn marker مؤقت
+local function spawnMarkerAt(pos, label)
 	if not pos then return end
+	if isNearExistingMark(pos) then return end
+
 	local part = Instance.new("Part")
+	part.Name = "BombMarker_Temp"
 	part.Shape = Enum.PartType.Ball
 	part.Size = Vector3.new(MARKER_SIZE, MARKER_SIZE, MARKER_SIZE)
 	part.Anchored = true
@@ -41,27 +79,69 @@ local function spawnMarker(pos)
 	part.Position = pos + Vector3.new(0, Y_OFFSET, 0)
 	part.Parent = workspace
 
-	-- تختفي بعد MARKER_DURATION ثانية
+	-- optional label (billboard)
+	if label then
+		local bg = Instance.new("BillboardGui", player:WaitForChild("PlayerGui"))
+		bg.Adornee = part
+		bg.AlwaysOnTop = true
+		bg.Size = UDim2.new(0,140,0,36)
+		bg.StudsOffset = Vector3.new(0, MARKER_SIZE + 0.6, 0)
+		local tl = Instance.new("TextLabel", bg)
+		tl.Size = UDim2.new(1,0,1,0)
+		tl.BackgroundTransparency = 1
+		tl.Font = Enum.Font.Code
+		tl.TextSize = 18
+		tl.TextColor3 = Color3.new(1,1,1)
+		tl.Text = tostring(label)
+	end
+
 	task.delay(MARKER_DURATION, function()
-		if part and part.Parent then
-			part:Destroy()
-		end
+		if part and part.Parent then part:Destroy() end
 	end)
 end
 
--- رصد GameMessage للبومب
+-- احصل موقع صالح من Instance (Model أو BasePart)
+local function getInstancePosition(inst)
+	if not inst then return nil end
+	if typeof(inst) == "Instance" then
+		if inst:IsA("BasePart") then
+			return inst.Position
+		elseif inst:IsA("Model") then
+			local targetPart = findBestPart(inst)
+			if targetPart then return targetPart.Position end
+			-- كخيار أخير، استخدم GetPivot() إن كان متوفر
+			local ok, pivot = pcall(function() return inst:GetPivot() end)
+			if ok and pivot then return pivot.Position end
+		end
+	end
+	return nil
+end
+
+-- توصيل لـ GameMessage
 local events = ReplicatedStorage:WaitForChild("Events")
 local gameMsg = events:WaitForChild("GameMessage")
 
 gameMsg.OnClientEvent:Connect(function(action, instance, ...)
-	-- نراقب كلمة "bomb"
 	if type(action) == "string" and action:lower() == "bomb" and instance then
-		-- ننتظر ثانية صغيرة عشان البومب يختفي (وقت الاختفاء)
-		task.delay(0.05, function()
-			local pos = getCellPosition(instance)
-			spawnMarker(pos)
+		-- ننتظر لحظة قصيرة عشان نتأكد انه اختفى فعلاً ثم نأخذ الموقع النهائي
+		task.delay(0.06, function()
+			local pos = getInstancePosition(instance)
+			-- لو ما حصلنا موقع، نجرب نقرأ آخر قيمة ممكن تكون مرسلة بعد الـ instance
+			-- بعض الـ GameMessage يرسل Instance ثم ارقام، وهنا نضع علامة بدون instance كاحتياط
+			if not pos then
+				-- تفقد الوسائط اذا فيها Vector3 أو CFrame
+				local args = {...}
+				for _,a in ipairs(args) do
+					if typeof(a) == "Vector3" then pos = a; break
+					elseif typeof(a) == "CFrame" then pos = a.Position; break
+					end
+				end
+			end
+			if pos then
+				spawnMarkerAt(pos, "BOMB")
+			end
 		end)
 	end
 end)
 
-print("BombDisappearMarker_Final Ready ✅")
+print("GameCellBombMarker_Smart ready")
