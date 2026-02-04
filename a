@@ -1,61 +1,119 @@
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
+local player = Players.LocalPlayer
 
--- GUI
-local gui = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
-gui.Name = "RemoteViewer"
+local KEYWORDS = {
+	"bomb","grenade","vip","explode","blast","projectile","reveal","vision"
+}
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 400, 0, 300)
-frame.Position = UDim2.new(0, 20, 0, 20)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.BackgroundTransparency = 0.2
+--================ GUI =================
 
-local list = Instance.new("TextLabel", frame)
-list.Size = UDim2.new(1, -10, 1, -10)
-list.Position = UDim2.new(0, 5, 0, 5)
-list.TextXAlignment = Enum.TextXAlignment.Left
-list.TextYAlignment = Enum.TextYAlignment.Top
-list.TextWrapped = false
-list.TextScaled = false
-list.TextSize = 14
-list.Font = Enum.Font.Code
-list.TextColor3 = Color3.new(1,1,1)
-list.Text = ""
-list.BackgroundTransparency = 1
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.ResetOnSpawn = false
+gui.Name = "RemoteSpyUI"
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 450, 0, 350)
+main.Position = UDim2.new(0, 20, 0, 20)
+main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0,30)
+title.Text = "Remote Spy"
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.Code
+title.TextSize = 18
+
+local scroll = Instance.new("ScrollingFrame", main)
+scroll.Position = UDim2.new(0,5,0,35)
+scroll.Size = UDim2.new(1,-10,1,-75)
+scroll.CanvasSize = UDim2.new(0,0,0,0)
+scroll.ScrollBarThickness = 6
+scroll.BackgroundColor3 = Color3.fromRGB(20,20,20)
+
+local layout = Instance.new("UIListLayout", scroll)
+layout.Padding = UDim.new(0,2)
+
+-- أزرار
+local clearBtn = Instance.new("TextButton", main)
+clearBtn.Size = UDim2.new(0.5,-5,0,30)
+clearBtn.Position = UDim2.new(0,5,1,-35)
+clearBtn.Text = "Clear"
+
+local hideBtn = Instance.new("TextButton", main)
+hideBtn.Size = UDim2.new(0.5,-5,0,30)
+hideBtn.Position = UDim2.new(0.5,0,1,-35)
+hideBtn.Text = "Hide"
+
+--================ منطق =================
 
 local found = {}
 
-local function add(text)
-	if found[text] then return end
-	found[text] = true
-	list.Text ..= text .. "\n"
-end
-
-local function scan(container)
-	for _,v in pairs(container:GetDescendants()) do
-		if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-			add(v:GetFullName())
+local function hasKeyword(name)
+	name = name:lower()
+	for _,k in pairs(KEYWORDS) do
+		if name:find(k) then
+			return true
 		end
 	end
+	return false
 end
 
--- فحص أول مرة
-scan(ReplicatedStorage)
-scan(Workspace)
+local function updateCanvas()
+	scroll.CanvasSize = UDim2.new(0,0,0, layout.AbsoluteContentSize.Y + 5)
+end
 
--- فحص الجديد
-ReplicatedStorage.DescendantAdded:Connect(function(v)
-	if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-		add(v:GetFullName())
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
+
+local function addRemote(remote)
+	local path = remote:GetFullName()
+	if found[path] then return end
+	found[path] = true
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1,-5,0,22)
+	label.BackgroundTransparency = 1
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Font = Enum.Font.Code
+	label.TextSize = 14
+	label.Text = path
+	label.Parent = scroll
+
+	if hasKeyword(path) then
+		label.TextColor3 = Color3.fromRGB(255,80,80)
+		label.Text = "🔥 "..path
+	else
+		label.TextColor3 = Color3.new(1,1,1)
+	end
+end
+
+-- Clear
+clearBtn.MouseButton1Click:Connect(function()
+	found = {}
+	for _,v in pairs(scroll:GetChildren()) do
+		if v:IsA("TextLabel") then
+			v:Destroy()
+		end
 	end
 end)
 
-Workspace.DescendantAdded:Connect(function(v)
+-- Hide
+hideBtn.MouseButton1Click:Connect(function()
+	main.Visible = not main.Visible
+end)
+
+--================ فحص =================
+
+for _,v in pairs(game:GetDescendants()) do
 	if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-		add(v:GetFullName())
+		addRemote(v)
+	end
+end
+
+game.DescendantAdded:Connect(function(v)
+	if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+		addRemote(v)
 	end
 end)
 
-print("Remote viewer started")
+print("Remote Spy (scroll) started")
