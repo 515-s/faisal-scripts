@@ -2,7 +2,18 @@ local Players = game:GetService("Players")
 local workspace = game:GetService("Workspace")
 local StarterGui = game:GetService("StarterGui")
 
--- إظهار Notification
+local CORRECT_PLACEID = 16993432698
+
+if game.PlaceId ~= CORRECT_PLACEID then
+	StarterGui:SetCore("SendNotification", {
+		Title = "Not in the correct game";
+		Text = "لست في اللعبة الصحيحة";
+		Duration = 5;
+	})
+	return
+end
+
+-- Notification عند بداية السكربت
 StarterGui:SetCore("SendNotification", {
 	Title = "Glass is now unbreakable";
 	Text = "";
