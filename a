@@ -1,77 +1,26 @@
--- LocalScript: GameCellBombMarker_Smart
+-- LocalScript: BombMarker_FinalAdvanced
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
 -- إعدادات
-local MARKER_SIZE = 4
+local MARKER_SIZE_MIN = 3
+local MARKER_SIZE_MAX = 4.5
 local MARKER_COLOR = Color3.fromRGB(255, 40, 40)
-local Y_OFFSET = 1.6
+local Y_OFFSET = 1.5
 local MARKER_DURATION = 1.5
-local DEDUPE_RADIUS = 3 -- ما يسوي علامة جديدة لو فيه واحدة قريبة
+local PULSE_SPEED = 3 -- سرعة النبض
 
--- دالة للحصول على أفضل BasePart داخل الموديل
-local function findBestPart(model)
-	if not model then return nil end
-	-- 1) لو فيه PrimaryPart استخدمه
-	if model.PrimaryPart then
-		return model.PrimaryPart
-	end
-	-- 2) لو فيه جزء اسمه Seat/Chair/Holder استخدمه
-	local namePrefs = {"Seat","Chair","Holder","Base","Cell","GameCell","Root"}
-	for _,n in ipairs(namePrefs) do
-		for _,d in ipairs(model:GetDescendants()) do
-			if d:IsA("BasePart") and d.Name:lower():find(n:lower()) then
-				return d
-			end
-		end
-	end
-	-- 3) لو اللاعب جالس في الموديل: نستخدم أقرب BasePart إلى شخصية اللاعب المحلي
-	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	if hrp then
-		local best, bestDist
-		for _,d in ipairs(model:GetDescendants()) do
-			if d:IsA("BasePart") then
-				local dist = (d.Position - hrp.Position).Magnitude
-				if not bestDist or dist < bestDist then
-					best = d
-					bestDist = dist
-				end
-			end
-		end
-		if best then return best end
-	end
-	-- 4) أخيراً: أول BasePart نجده داخل الموديل
-	for _,d in ipairs(model:GetDescendants()) do
-		if d:IsA("BasePart") then
-			return d
-		end
-	end
-	return nil
-end
-
--- منع التكرار: هل فيه علامة قريبة؟
-local function isNearExistingMark(pos)
-	for _,p in ipairs(workspace:GetChildren()) do
-		if p:IsA("BasePart") and (p.Name == "BombMarker_Temp" or p.Name == "BombMarker_Static") then
-			if (p.Position - pos).Magnitude <= DEDUPE_RADIUS then
-				return true
-			end
-		end
-	end
-	return false
-end
-
--- spawn marker مؤقت
+-- spawn marker مع نبض
 local function spawnMarkerAt(pos, label)
 	if not pos then return end
-	if isNearExistingMark(pos) then return end
 
 	local part = Instance.new("Part")
-	part.Name = "BombMarker_Temp"
+	part.Name = "BombMarker_Advanced"
 	part.Shape = Enum.PartType.Ball
-	part.Size = Vector3.new(MARKER_SIZE, MARKER_SIZE, MARKER_SIZE)
+	part.Size = Vector3.new(MARKER_SIZE_MIN, MARKER_SIZE_MIN, MARKER_SIZE_MIN)
 	part.Anchored = true
 	part.CanCollide = false
 	part.Material = Enum.Material.Neon
@@ -79,69 +28,72 @@ local function spawnMarkerAt(pos, label)
 	part.Position = pos + Vector3.new(0, Y_OFFSET, 0)
 	part.Parent = workspace
 
-	-- optional label (billboard)
+	-- Billboard لكتابة "BOMB" أو رقم الخلية
 	if label then
-		local bg = Instance.new("BillboardGui", player:WaitForChild("PlayerGui"))
-		bg.Adornee = part
-		bg.AlwaysOnTop = true
-		bg.Size = UDim2.new(0,140,0,36)
-		bg.StudsOffset = Vector3.new(0, MARKER_SIZE + 0.6, 0)
-		local tl = Instance.new("TextLabel", bg)
-		tl.Size = UDim2.new(1,0,1,0)
-		tl.BackgroundTransparency = 1
-		tl.Font = Enum.Font.Code
-		tl.TextSize = 18
-		tl.TextColor3 = Color3.new(1,1,1)
-		tl.Text = tostring(label)
+		local billboard = Instance.new("BillboardGui")
+		billboard.Adornee = part
+		billboard.AlwaysOnTop = true
+		billboard.Size = UDim2.new(0,140,0,36)
+		billboard.StudsOffset = Vector3.new(0, MARKER_SIZE_MAX + 0.5, 0)
+		billboard.Parent = player:WaitForChild("PlayerGui")
+
+		local textLabel = Instance.new("TextLabel", billboard)
+		textLabel.Size = UDim2.new(1,0,1,0)
+		textLabel.BackgroundTransparency = 1
+		textLabel.Font = Enum.Font.Code
+		textLabel.TextSize = 18
+		textLabel.TextColor3 = Color3.new(1,1,1)
+		textLabel.Text = label
 	end
 
+	-- نبض الكرة (تكبر وتصغر)
+	local startTime = tick()
+	local conn
+	conn = RunService.RenderStepped:Connect(function()
+		if not part.Parent then
+			conn:Disconnect()
+			return
+		end
+		local t = (tick() - startTime) * PULSE_SPEED * math.pi * 2
+		local alpha = (math.sin(t) + 1)/2
+		local size = MARKER_SIZE_MIN + (MARKER_SIZE_MAX - MARKER_SIZE_MIN) * alpha
+		part.Size = Vector3.new(size,size,size)
+		part.Position = pos + Vector3.new(0, Y_OFFSET + (size/2 - MARKER_SIZE_MIN/2), 0)
+	end)
+
+	-- تختفي بعد MARKER_DURATION
 	task.delay(MARKER_DURATION, function()
 		if part and part.Parent then part:Destroy() end
+		if conn then conn:Disconnect() end
 	end)
 end
 
--- احصل موقع صالح من Instance (Model أو BasePart)
-local function getInstancePosition(inst)
-	if not inst then return nil end
-	if typeof(inst) == "Instance" then
-		if inst:IsA("BasePart") then
-			return inst.Position
-		elseif inst:IsA("Model") then
-			local targetPart = findBestPart(inst)
-			if targetPart then return targetPart.Position end
-			-- كخيار أخير، استخدم GetPivot() إن كان متوفر
-			local ok, pivot = pcall(function() return inst:GetPivot() end)
-			if ok and pivot then return pivot.Position end
-		end
-	end
-	return nil
-end
-
--- توصيل لـ GameMessage
+-- GameMessage
 local events = ReplicatedStorage:WaitForChild("Events")
 local gameMsg = events:WaitForChild("GameMessage")
 
 gameMsg.OnClientEvent:Connect(function(action, instance, ...)
-	if type(action) == "string" and action:lower() == "bomb" and instance then
-		-- ننتظر لحظة قصيرة عشان نتأكد انه اختفى فعلاً ثم نأخذ الموقع النهائي
-		task.delay(0.06, function()
-			local pos = getInstancePosition(instance)
-			-- لو ما حصلنا موقع، نجرب نقرأ آخر قيمة ممكن تكون مرسلة بعد الـ instance
-			-- بعض الـ GameMessage يرسل Instance ثم ارقام، وهنا نضع علامة بدون instance كاحتياط
-			if not pos then
-				-- تفقد الوسائط اذا فيها Vector3 أو CFrame
-				local args = {...}
-				for _,a in ipairs(args) do
-					if typeof(a) == "Vector3" then pos = a; break
-					elseif typeof(a) == "CFrame" then pos = a.Position; break
-					end
-				end
+	if type(action) == "string" and action:lower() == "bomb" then
+		local args = {...}
+		local pos
+		-- أولاً نحاول نقرأ Vector3 أو CFrame من args (يمثل موقع البومب النهائي)
+		for _,a in ipairs(args) do
+			if typeof(a) == "Vector3" then pos = a; break
+			elseif typeof(a) == "CFrame" then pos = a.Position; break
 			end
-			if pos then
-				spawnMarkerAt(pos, "BOMB")
-			end
-		end)
+		end
+		-- إذا ما وجدنا موقع في args، نحاول الـ Instance
+		if not pos and instance then
+			task.delay(0.03, function()
+				local ok,p = pcall(function() return instance:GetPivot().Position end)
+				if ok and p then spawnMarkerAt(p, "BOMB") end
+			end)
+			return
+		end
+		if pos then
+			spawnMarkerAt(pos, "BOMB")
+		end
 	end
 end)
 
-print("GameCellBombMarker_Smart ready")
+print("BombMarker_FinalAdvanced Ready ✅")
