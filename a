@@ -1,262 +1,35 @@
--- LocalScript: SmartRemoteWatch (ضعه في StarterPlayerScripts)
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local CollectionService = game:GetService("CollectionService")
+local remote = game:GetService("ReplicatedStorage")
+	:WaitForChild("Events")
+	:WaitForChild("GameMessage")
 
--- كلمات البحث الذكية
-local KEYWORDS = {"bomb","chip","explosion","bombchip","bombs","shib","gamecell","chipitem"}
+local function mark(cell)
+	if not cell then return end
 
--- أسماء محتملة للشبس/خلية في الـ Workspace
-local CHIP_NAMES = {"Chip","GameCell","Shibs","Shib","shib","chip","gamecell"}
+	local pos
 
--- ======= واجهة بسيطة وصغيرة =======
-local gui = Instance.new("ScreenGui")
-gui.Name = "SmartRemoteWatch"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
-
-local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromOffset(420, 320)
-main.Position = UDim2.fromOffset(30, 30)
-main.BackgroundColor3 = Color3.fromRGB(30,30,30)
-main.Active = true
-main.Draggable = true
-
-local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1,0,0,28)
-title.Position = UDim2.new(0,0,0,0)
-title.BackgroundColor3 = Color3.fromRGB(40,40,40)
-title.Text = "SmartRemoteWatch"
-title.TextColor3 = Color3.new(1,1,1)
-title.Font = Enum.Font.Code
-title.TextSize = 16
-
-local scroll = Instance.new("ScrollingFrame", main)
-scroll.Position = UDim2.fromOffset(6, 34)
-scroll.Size = UDim2.fromOffset(408, 260)
-scroll.CanvasSize = UDim2.new(0,0,0,0)
-scroll.BackgroundColor3 = Color3.fromRGB(18,18,18)
-scroll.ScrollBarThickness = 8
-
-local layout = Instance.new("UIListLayout", scroll)
-layout.Padding = UDim.new(0,4)
-
-local btnClear = Instance.new("TextButton", main)
-btnClear.Size = UDim2.fromOffset(88, 26)
-btnClear.Position = UDim2.fromOffset(6, 298)
-btnClear.Text = "Clear"
-btnClear.Font = Enum.Font.Code
-
-local btnClose = Instance.new("TextButton", main)
-btnClose.Size = UDim2.fromOffset(88, 26)
-btnClose.Position = UDim2.fromOffset(104, 298)
-btnClose.Text = "Hide"
-btnClose.Font = Enum.Font.Code
-
--- ======= وظائف مساعدة =======
-local rows = 0
-local function updateCanvas()
-	scroll.CanvasSize = UDim2.fromOffset(0, layout.AbsoluteContentSize.Y + 8)
-end
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
-
-local function formatValue(v)
-	local t = typeof(v)
-	if t == "Vector3" then
-		return string.format("Vector3(%.1f, %.1f, %.1f)", v.X, v.Y, v.Z)
-	elseif t == "CFrame" then
-		local p = v.Position
-		return string.format("CFrame(%.1f, %.1f, %.1f)", p.X, p.Y, p.Z)
-	elseif t == "Instance" then
-		return ("Instance(%s:%s)"):format(v.ClassName, v.Name)
-	elseif t == "table" then
-		-- نحاول عرض محتوى بسيط إن وجد
-		local parts = {}
-		for k, val in pairs(v) do
-			table.insert(parts, tostring(k) .. "=" .. tostring(val))
-			if #parts >= 5 then break end
-		end
-		return "Table{" .. table.concat(parts, ",") .. "}"
-	else
-		return tostring(v)
+	if cell:IsA("Model") then
+		pos = cell:GetPivot().Position
+	elseif cell:IsA("BasePart") then
+		pos = cell.Position
 	end
+
+	if not pos then return end
+
+	local p = Instance.new("Part")
+	p.Shape = Enum.PartType.Ball
+	p.Size = Vector3.new(1.5,1.5,1.5) -- صغير
+	p.Anchored = true
+	p.CanCollide = false
+	p.Material = Enum.Material.Neon
+	p.Color = Color3.fromRGB(255,0,0)
+	p.Position = pos + Vector3.new(0,1,0)
+	p.Parent = workspace
 end
 
-local function containsKeyword(s)
-	if not s then return false end
-	local sl = tostring(s):lower()
-	for _,k in ipairs(KEYWORDS) do
-		if sl:find(k) then return true end
-	end
-	return false
-end
-
--- نجمع مواقع الشبس (نحدّث الدوري)
-local chipPositions = {}
-local function scanChips()
-	chipPositions = {}
-	for _,obj in pairs(workspace:GetDescendants()) do
-		if obj:IsA("BasePart") then
-			local name = obj.Name
-			for _,n in ipairs(CHIP_NAMES) do
-				if name:lower():find(n:lower()) then
-					table.insert(chipPositions, obj.Position)
-					break
-				end
-			end
-		end
-	end
-end
-scanChips()
-workspace.DescendantAdded:Connect(function(d)
-	-- لو انضاف شبس جديد حدّث المرة الجاية
-	for _,n in ipairs(CHIP_NAMES) do
-		if d.Name:lower():find(n:lower()) then
-			task.delay(0.1, scanChips)
-			break
-		end
-	end
-end)
-workspace.DescendantRemoving:Connect(function(d)
-	for _,n in ipairs(CHIP_NAMES) do
-		if d.Name:lower():find(n:lower()) then
-			task.delay(0.1, scanChips)
-			break
-		end
+remote.OnClientEvent:Connect(function(action, instance, ...)
+	if action == "bomb" and instance then
+		mark(instance)
 	end
 end)
 
-local function nearAnyChip(pos, radius)
-	if not pos then return false end
-	for _,p in ipairs(chipPositions) do
-		if (p - pos).Magnitude <= (radius or 6) then
-			return true
-		end
-	end
-	return false
-end
-
--- إضافة صف للواجهة
-local function addRow(text, important)
-	rows = rows + 1
-	local row = Instance.new("Frame", scroll)
-	row.Size = UDim2.new(1,-6,0,28)
-	row.BackgroundColor3 = important and Color3.fromRGB(55,22,22) or Color3.fromRGB(40,40,40)
-	row.BorderSizePixel = 0
-
-	local lbl = Instance.new("TextLabel", row)
-	lbl.Size = UDim2.new(0.78,0,1,0)
-	lbl.BackgroundTransparency = 1
-	lbl.TextXAlignment = Enum.TextXAlignment.Left
-	lbl.TextYAlignment = Enum.TextYAlignment.Center
-	lbl.Font = Enum.Font.Code
-	lbl.TextSize = 14
-	lbl.TextColor3 = Color3.new(1,1,1)
-	lbl.Text = text
-
-	local copy = Instance.new("TextButton", row)
-	copy.Size = UDim2.new(0.22, -6, 1, -4)
-	copy.Position = UDim2.new(0.78, 4, 0, 2)
-	copy.Text = "Copy"
-	copy.Font = Enum.Font.Code
-	copy.TextSize = 14
-	copy.BackgroundColor3 = Color3.fromRGB(70,70,70)
-
-	copy.MouseButton1Click:Connect(function()
-		if setclipboard then
-			setclipboard(text)
-		else
-			print(text)
-		end
-	end)
-end
-
-btnClear.MouseButton1Click:Connect(function()
-	for _,c in pairs(scroll:GetChildren()) do
-		if c:IsA("Frame") then c:Destroy() end
-	end
-	rows = 0
-	updateCanvas()
-end)
-btnClose.MouseButton1Click:Connect(function()
-	main.Visible = not main.Visible
-end)
-
--- ======= مراقب RemoteEvents عام وقاضي ذكي =======
-local seen = {}
-
-local function hookRemote(remote)
-	if not remote or not remote:IsA("RemoteEvent") then return end
-	if seen[remote] then return end
-	seen[remote] = true
-
-	remote.OnClientEvent:Connect(function(...)
-		local args = {...}
-		local path = remote:GetFullName()
-		local text = path
-		local important = false
-
-		-- افحص اسم/مسار الريموت
-		if containsKeyword(path) then important = true end
-
-		-- أضف القيم المفصلة
-		for i,a in ipairs(args) do
-			text = text .. " | " .. formatValue(a)
-			-- افحص كل قيمة بحثًا عن كلمات أو مواقع قريبة من الشبس
-			if typeof(a) == "Vector3" and nearAnyChip(a, 7) then
-				important = true
-			elseif typeof(a) == "CFrame" and nearAnyChip(a.Position, 7) then
-				important = true
-			elseif typeof(a) == "string" and containsKeyword(a) then
-				important = true
-			elseif typeof(a) == "table" then
-				-- لو الجدول يحتوي مفاتيح أو قيم فيها كلمات مهمة
-				for k,v in pairs(a) do
-					if containsKeyword(k) or containsKeyword(v) then
-						important = true
-						break
-					end
-				end
-			end
-		end
-
-		-- لو مهم جدًا نعلّق عليه بصوت أو لون
-		if important then
-			addRow(text, true)
-		else
-			addRow(text, false)
-		end
-	end)
-end
-
--- شور على كل RemoteEvent موجودة
-for _,v in pairs(game:GetDescendants()) do
-	if v:IsA("RemoteEvent") then
-		hookRemote(v)
-	end
-end
--- لو انضاف ريموت جديد
-game.DescendantAdded:Connect(function(v)
-	if v:IsA("RemoteEvent") then
-		hookRemote(v)
-	end
-end)
-
--- ======= راصد انفجارات / مؤثرات في الـ Workspace =======
-workspace.DescendantAdded:Connect(function(obj)
-	-- انفجارات حقيقية
-	if obj:IsA("Explosion") then
-		local pos = obj.Position
-		local t = ("Explosion | %s"):format( tostring( pos ) )
-		addRow(t, true)
-	end
-
-	-- Particle emitters على أجزاء
-	if obj:IsA("ParticleEmitter") and obj.Parent and obj.Parent:IsA("BasePart") then
-		local t = ("ParticleEmitter at %s"):format(tostring(obj.Parent.Position))
-		addRow(t, containsKeyword(obj.Name))
-	end
-end)
-
-print("SmartRemoteWatch started")
+print("Bomb marker enabled")
