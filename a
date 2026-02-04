@@ -9,43 +9,54 @@ local KEYWORDS = {
 
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.ResetOnSpawn = false
-gui.Name = "RemoteSpyUI"
+gui.Name = "RemoteSpy"
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0, 450, 0, 350)
-main.Position = UDim2.new(0, 20, 0, 20)
-main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+main.Size = UDim2.fromOffset(600, 420) -- أكبر
+main.Position = UDim2.fromOffset(40, 40)
+main.BackgroundColor3 = Color3.fromRGB(30,30,30)
+main.Active = true
+main.Draggable = true -- تقدر تسحبها
 
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1,0,0,30)
 title.Text = "Remote Spy"
 title.TextColor3 = Color3.new(1,1,1)
-title.BackgroundTransparency = 1
+title.BackgroundColor3 = Color3.fromRGB(40,40,40)
 title.Font = Enum.Font.Code
 title.TextSize = 18
 
+-- ScrollFrame
 local scroll = Instance.new("ScrollingFrame", main)
-scroll.Position = UDim2.new(0,5,0,35)
-scroll.Size = UDim2.new(1,-10,1,-75)
-scroll.CanvasSize = UDim2.new(0,0,0,0)
-scroll.ScrollBarThickness = 6
+scroll.Position = UDim2.fromOffset(5, 35)
+scroll.Size = UDim2.new(1,-10,1,-80)
+scroll.CanvasSize = UDim2.fromOffset(0,0)
+scroll.ScrollBarThickness = 8
 scroll.BackgroundColor3 = Color3.fromRGB(20,20,20)
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.None
 
 local layout = Instance.new("UIListLayout", scroll)
 layout.Padding = UDim.new(0,2)
 
 -- أزرار
-local clearBtn = Instance.new("TextButton", main)
-clearBtn.Size = UDim2.new(0.5,-5,0,30)
-clearBtn.Position = UDim2.new(0,5,1,-35)
-clearBtn.Text = "Clear"
+local clear = Instance.new("TextButton", main)
+clear.Size = UDim2.new(0.5,-5,0,35)
+clear.Position = UDim2.new(0,5,1,-40)
+clear.Text = "Clear"
 
-local hideBtn = Instance.new("TextButton", main)
-hideBtn.Size = UDim2.new(0.5,-5,0,30)
-hideBtn.Position = UDim2.new(0.5,0,1,-35)
-hideBtn.Text = "Hide"
+local hide = Instance.new("TextButton", main)
+hide.Size = UDim2.new(0.5,-5,0,35)
+hide.Position = UDim2.new(0.5,0,1,-40)
+hide.Text = "Hide"
 
---================ منطق =================
+--================ منطق السكرول (المهم) =================
+
+local function updateCanvas()
+	scroll.CanvasSize = UDim2.fromOffset(0, layout.AbsoluteContentSize.Y + 5)
+end
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
+
+--================ المنطق =================
 
 local found = {}
 
@@ -56,14 +67,7 @@ local function hasKeyword(name)
 			return true
 		end
 	end
-	return false
 end
-
-local function updateCanvas()
-	scroll.CanvasSize = UDim2.new(0,0,0, layout.AbsoluteContentSize.Y + 5)
-end
-
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
 
 local function addRemote(remote)
 	local path = remote:GetFullName()
@@ -71,7 +75,7 @@ local function addRemote(remote)
 	found[path] = true
 
 	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1,-5,0,22)
+	label.Size = UDim2.new(1,-5,0,22) -- ارتفاع ثابت مهم
 	label.BackgroundTransparency = 1
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Font = Enum.Font.Code
@@ -88,21 +92,22 @@ local function addRemote(remote)
 end
 
 -- Clear
-clearBtn.MouseButton1Click:Connect(function()
+clear.MouseButton1Click:Connect(function()
 	found = {}
 	for _,v in pairs(scroll:GetChildren()) do
 		if v:IsA("TextLabel") then
 			v:Destroy()
 		end
 	end
+	updateCanvas()
 end)
 
 -- Hide
-hideBtn.MouseButton1Click:Connect(function()
-	main.Visible = not main.Visible
+hide.MouseButton1Click:Connect(function()
+	scroll.Visible = not scroll.Visible
 end)
 
---================ فحص =================
+--================ الفحص =================
 
 for _,v in pairs(game:GetDescendants()) do
 	if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
@@ -116,4 +121,4 @@ game.DescendantAdded:Connect(function(v)
 	end
 end)
 
-print("Remote Spy (scroll) started")
+print("Remote Spy Ready")
