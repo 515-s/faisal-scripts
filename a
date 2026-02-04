@@ -1,5 +1,15 @@
+local Players = game:GetService("Players")
 local workspace = game:GetService("Workspace")
+local StarterGui = game:GetService("StarterGui")
 
+-- إظهار Notification
+StarterGui:SetCore("SendNotification", {
+	Title = "Glass is now unbreakable";
+	Text = "";
+	Duration = 5;
+})
+
+-- تثبيت جميع Parts
 local function anchorParts(parent)
 	for _, obj in ipairs(parent:GetDescendants()) do
 		if obj:IsA("BasePart") and obj.Name == "Part" then
