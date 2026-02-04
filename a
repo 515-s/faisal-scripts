@@ -1,42 +1,61 @@
-local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
-local keywords = {
-	"bomb",
-	"grenade",
-	"projectile",
-	"explosive"
-}
+-- GUI
+local gui = Instance.new("ScreenGui", Players.LocalPlayer.PlayerGui)
+gui.Name = "RemoteViewer"
 
-local function matchName(name)
-	name = name:lower()
-	for _,k in pairs(keywords) do
-		if name:find(k) then
-			return true
-		end
-	end
-	return false
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 400, 0, 300)
+frame.Position = UDim2.new(0, 20, 0, 20)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.BackgroundTransparency = 0.2
+
+local list = Instance.new("TextLabel", frame)
+list.Size = UDim2.new(1, -10, 1, -10)
+list.Position = UDim2.new(0, 5, 0, 5)
+list.TextXAlignment = Enum.TextXAlignment.Left
+list.TextYAlignment = Enum.TextYAlignment.Top
+list.TextWrapped = false
+list.TextScaled = false
+list.TextSize = 14
+list.Font = Enum.Font.Code
+list.TextColor3 = Color3.new(1,1,1)
+list.Text = ""
+list.BackgroundTransparency = 1
+
+local found = {}
+
+local function add(text)
+	if found[text] then return end
+	found[text] = true
+	list.Text ..= text .. "\n"
 end
 
-local function reveal(obj)
-	if obj:IsA("BasePart") then
-		obj.Transparency = 0
-		obj.LocalTransparencyModifier = 0
-		obj.Material = Enum.Material.Neon
-		obj.Color = Color3.fromRGB(255,0,0)
-		obj.CastShadow = false
+local function scan(container)
+	for _,v in pairs(container:GetDescendants()) do
+		if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+			add(v:GetFullName())
+		end
 	end
 end
 
-RunService.RenderStepped:Connect(function()
-	for _,v in pairs(Workspace:GetDescendants()) do
-		if matchName(v.Name) then
-			reveal(v)
+-- فحص أول مرة
+scan(ReplicatedStorage)
+scan(Workspace)
 
-			-- لو كان داخل Folder غريب، ننقله للورك سبيس
-			if not v:IsDescendantOf(Workspace) then
-				v.Parent = Workspace
-			end
-		end
+-- فحص الجديد
+ReplicatedStorage.DescendantAdded:Connect(function(v)
+	if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+		add(v:GetFullName())
 	end
 end)
+
+Workspace.DescendantAdded:Connect(function(v)
+	if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+		add(v:GetFullName())
+	end
+end)
+
+print("Remote viewer started")
