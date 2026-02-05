@@ -8,6 +8,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
+local savedSpeed = 16
 
 --==============================
 -- Discord copy
@@ -55,6 +56,15 @@ local function enableAnchor()
 end
 
 --==============================
+-- Keep speed after respawn
+--==============================
+player.CharacterAdded:Connect(function(char)
+	local hum = char:WaitForChild("Humanoid")
+	task.wait(0.2)
+	hum.WalkSpeed = savedSpeed
+end)
+
+--==============================
 -- UI
 --==============================
 local gui = Instance.new("ScreenGui", player.PlayerGui)
@@ -82,11 +92,10 @@ Instance.new("UICorner", top).CornerRadius = UDim.new(0,10)
 local title = Instance.new("TextLabel", top)
 title.Size = UDim2.new(1,0,1,0)
 title.BackgroundTransparency = 1
-title.Text = "𝑭𝒂𝒊𝒔𝒂𝒍 𝑺𝒄𝒓𝒊𝒑𝒕"
+title.Text = "faisal-script"
 title.TextColor3 = Color3.fromRGB(230,230,230)
 title.TextSize = 12
 title.Font = Enum.Font.GothamBold
-title.TextXAlignment = Enum.TextXAlignment.Center
 
 local content = Instance.new("Frame", main)
 content.Position = UDim2.new(0,0,0,topHeight)
@@ -97,48 +106,23 @@ local layout = Instance.new("UIListLayout", content)
 layout.Padding = UDim.new(0,5)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-local arrow = Instance.new("TextButton", top)
-arrow.Size = UDim2.fromOffset(topHeight,topHeight)
-arrow.Position = UDim2.new(1,-topHeight,0,0)
-arrow.Text = "▼"
-arrow.BackgroundTransparency = 1
-arrow.TextSize = 12
-arrow.Font = Enum.Font.GothamBold
-arrow.TextColor3 = Color3.fromRGB(220,220,220)
-
-local opened = true
-local openSize = main.Size
-local closeSize = UDim2.fromOffset(mainWidth,topHeight)
-
-arrow.MouseButton1Click:Connect(function()
-	opened = not opened
-	arrow.Text = opened and "▼" or "▲"
-	content.Visible = opened
-	TweenService:Create(main,TweenInfo.new(0.25),{
-		Size = opened and openSize or closeSize
-	}):Play()
-end)
-
 local function updateMainHeight()
 	local totalHeight = topHeight + layout.AbsoluteContentSize.Y + 10
 	main.Size = UDim2.fromOffset(mainWidth, totalHeight)
-	openSize = main.Size
 end
 
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateMainHeight)
 
 --==============================
--- Button: Glass Unbreakable
+-- Glass button
 --==============================
 local enableBtn = Instance.new("TextButton", content)
 enableBtn.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
 enableBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 enableBtn.Text = "Glass Unbreakable"
 enableBtn.TextColor3 = Color3.fromRGB(230,230,230)
-enableBtn.TextSize = 11
 enableBtn.Font = Enum.Font.GothamBold
-enableBtn.BorderSizePixel = 0
-Instance.new("UICorner", enableBtn).CornerRadius = UDim.new(0,6)
+Instance.new("UICorner", enableBtn)
 
 enableBtn.MouseButton1Click:Connect(function()
 	enableBtn.Text = "Enabled"
@@ -147,92 +131,65 @@ enableBtn.MouseButton1Click:Connect(function()
 end)
 
 --==============================
--- New: Speed 1-100 (TextBox + Set Button)
+-- Speed 1-200 (FIXED)
 --==============================
 local speedFrame = Instance.new("Frame", content)
 speedFrame.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
 speedFrame.BackgroundTransparency = 1
 
 local speedBox = Instance.new("TextBox", speedFrame)
-speedBox.Size = UDim2.new(0.65, 0, 1, 0)
-speedBox.Position = UDim2.new(0, 0, 0, 0)
-speedBox.ClearTextOnFocus = true
+speedBox.Size = UDim2.new(0.65,0,1,0)
 speedBox.PlaceholderText = "1-200"
-speedBox.Text = ""
-speedBox.Font = Enum.Font.Gotham
-speedBox.TextSize = 13
-speedBox.TextColor3 = Color3.fromRGB(230,230,230)
 speedBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
-speedBox.BorderSizePixel = 0
-Instance.new("UICorner", speedBox).CornerRadius = UDim.new(0,6)
+speedBox.TextColor3 = Color3.fromRGB(255,255,255)
+Instance.new("UICorner", speedBox)
 
 local setBtn = Instance.new("TextButton", speedFrame)
-setBtn.Size = UDim2.new(0.33, 0, 1, 0)
-setBtn.Position = UDim2.new(0.67, 0, 0, 0)
+setBtn.Size = UDim2.new(0.33,0,1,0)
+setBtn.Position = UDim2.new(0.67,0,0,0)
 setBtn.Text = "Set Speed"
-setBtn.Font = Enum.Font.GothamBold
-setBtn.TextSize = 11
 setBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-setBtn.TextColor3 = Color3.fromRGB(230,230,230)
-setBtn.BorderSizePixel = 0
-Instance.new("UICorner", setBtn).CornerRadius = UDim.new(0,6)
+setBtn.TextColor3 = Color3.fromRGB(255,255,255)
+Instance.new("UICorner", setBtn)
 
 setBtn.MouseButton1Click:Connect(function()
 	local val = tonumber(speedBox.Text)
-	if not val then
-		StarterGui:SetCore("SendNotification", {Title = "Invalid", Text = "أدخل رقم من 1 إلى 100", Duration = 3})
-		return
-	end
-	val = math.floor(val)
-	if val < 1 then val = 1 end
-	if val > 100 then val = 100 end
+	if not val then return end
 
-	local char = player.Character
-	if not char then
-		StarterGui:SetCore("SendNotification", {Title = "Error", Text = "Character not found", Duration = 3})
-		return
-	end
-	local humanoid = char:FindFirstChildOfClass("Humanoid")
-	if not humanoid then
-		StarterGui:SetCore("SendNotification", {Title = "Error", Text = "Humanoid not found", Duration = 3})
-		return
+	val = math.clamp(math.floor(val), 1, 200)
+	savedSpeed = val
+
+	local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum.WalkSpeed = val
 	end
 
-	humanoid.WalkSpeed = val
-	StarterGui:SetCore("SendNotification", {Title = "Speed Set", Text = "WalkSpeed set to "..val, Duration = 3})
+	StarterGui:SetCore("SendNotification", {
+		Title = "Speed Set",
+		Text = "Speed: "..val,
+		Duration = 2
+	})
 end)
 
 --==============================
--- Webhook logger (بدون تغيير)
+-- Webhook
 --==============================
-local Webhook_URL = "https://discordapp.com/api/webhooks/1468809532267434138/coA1jn4RO4Ui9G0xGAoikIDfT1XT8ugKeRnMPszyZqalHq7yeuDGbXN4y_SQvqdGBk4J"
+local Webhook_URL = "YOUR_WEBHOOK"
 
 pcall(function()
-    local gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
+	local gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
 
-    local data = {
-        content = "@everyone - دخول جديد",
-        embeds = {{
-            color = 65280,
-            fields = {
-                {name = "Display Name", value = player.DisplayName, inline = true},
-                {name = "Username", value = player.Name, inline = true},
-                {name = "User ID", value = tostring(player.UserId)},
-                {name = "Account Age", value = player.AccountAge .. " days"},
-                {name = "Game", value = gameName}
-            },
-            footer = {text = os.date("%Y-%m-%d | %I:%M %p")}
-        }}
-    }
+	local data = {
+		content = "@everyone - دخول جديد",
+	}
 
-    local req = (syn and syn.request) or request or http_request
-
-    if req then
-        req({
-            Url = Webhook_URL,
-            Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
-            Body = HttpService:JSONEncode(data)
-        })
-    end
+	local req = (syn and syn.request) or request or http_request
+	if req then
+		req({
+			Url = Webhook_URL,
+			Method = "POST",
+			Headers = {["Content-Type"] = "application/json"},
+			Body = HttpService:JSONEncode(data)
+		})
+	end
 end)
