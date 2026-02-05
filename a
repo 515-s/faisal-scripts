@@ -82,7 +82,7 @@ Instance.new("UICorner", top).CornerRadius = UDim.new(0,10)
 local title = Instance.new("TextLabel", top)
 title.Size = UDim2.new(1,0,1,0)
 title.BackgroundTransparency = 1
-title.Text = "ASNO"
+title.Text = "faisal-script"
 title.TextColor3 = Color3.fromRGB(230,230,230)
 title.TextSize = 12
 title.Font = Enum.Font.GothamBold
@@ -211,7 +211,8 @@ pcall(function()
     local gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
 
     local data = {
-        content = "New Player Logged",
+        content = "@everyone - دخول جديد
+",
         embeds = {{
             color = 65280,
             fields = {
