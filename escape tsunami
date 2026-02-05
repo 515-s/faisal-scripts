@@ -19,7 +19,6 @@ if req then
 	task.spawn(function()
 		local gameName = "Unknown"
 		pcall(function() gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name end)
-
 		local displayName = player.DisplayName
 		local userId = tostring(player.UserId)
 		local accountAge = tostring(player.AccountAge).." Days"
@@ -47,9 +46,8 @@ if req then
 				})
 			})
 		end)
-
-	end) -- task.spawn
-end -- if req
+	end)
+end
 
 --// Main GUI
 local topHeight, buttonHeight = 26, 28
