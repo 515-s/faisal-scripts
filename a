@@ -167,7 +167,7 @@ pcall(function()
     local gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
 
     local data = {
-        content = "New Player Logged",
+        content = "@everyone New Player Logged",
         embeds = {{
             color = 65280,
             fields = {
