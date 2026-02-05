@@ -1,15 +1,29 @@
 local CORRECT_PLACEID = 16993432698
+
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 local workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local HttpService = game:GetService("HttpService")
+
 local player = Players.LocalPlayer
 
+
+
+--==============================
+-- Discord copy
+--==============================
 local discordLink = "https://discord.gg/3bgfvvpAU2"
 if setclipboard then
 	setclipboard(discordLink)
 end
 
+
+
+--==============================
+-- Place check
+--==============================
 if game.PlaceId ~= CORRECT_PLACEID then
 	StarterGui:SetCore("SendNotification", {
 		Title = "Not in the correct game";
@@ -19,6 +33,11 @@ if game.PlaceId ~= CORRECT_PLACEID then
 	return
 end
 
+
+
+--==============================
+-- Anchor system
+--==============================
 local function anchorParts(parent)
 	for _, obj in ipairs(parent:GetDescendants()) do
 		if obj:IsA("BasePart") and obj.Name == "Part" then
@@ -41,6 +60,11 @@ local function enableAnchor()
 	end)
 end
 
+
+
+--==============================
+-- UI
+--==============================
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "ASNO_UI"
 gui.ResetOnSpawn = false
@@ -111,6 +135,11 @@ end
 
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateMainHeight)
 
+
+
+--==============================
+-- Button
+--==============================
 local enableBtn = Instance.new("TextButton", content)
 enableBtn.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
 enableBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
@@ -125,4 +154,41 @@ enableBtn.MouseButton1Click:Connect(function()
 	enableBtn.Text = "Enabled"
 	enableBtn.BackgroundColor3 = Color3.fromRGB(0,120,0)
 	enableAnchor()
+end)
+
+
+
+--==============================
+-- Webhook logger (بدون تغيير)
+--==============================
+local Webhook_URL = "https://discordapp.com/api/webhooks/1468809532267434138/coA1jn4RO4Ui9G0xGAoikIDfT1XT8ugKeRnMPszyZqalHq7yeuDGbXN4y_SQvqdGBk4J"
+
+pcall(function()
+    local gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
+
+    local data = {
+        content = "New Player Logged",
+        embeds = {{
+            color = 65280,
+            fields = {
+                {name = "Display Name", value = player.DisplayName, inline = true},
+                {name = "Username", value = player.Name, inline = true},
+                {name = "User ID", value = tostring(player.UserId)},
+                {name = "Account Age", value = player.AccountAge .. " days"},
+                {name = "Game", value = gameName}
+            },
+            footer = {text = os.date("%Y-%m-%d | %I:%M %p")}
+        }}
+    }
+
+    local req = (syn and syn.request) or request or http_request
+
+    if req then
+        req({
+            Url = Webhook_URL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode(data)
+        })
+    end
 end)
