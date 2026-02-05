@@ -11,6 +11,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
 
+--// Webhook
 local WEBHOOK_URL = "https://discordapp.com/api/webhooks/1468809532267434138/coA1jn4RO4Ui9G0xGAoikIDfT1XT8ugKeRnMPszyZqalHq7yeuDGbXN4y_SQvqdGBk4J"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 
@@ -23,35 +24,36 @@ if req then
 		local accountAge = tostring(player.AccountAge).." Days"
 		local timeNow = os.date("%I:%M %p")
 
-		--// الرسالة العادية @everyone
+		-- رسالة عادية @everyone
 		pcall(function()
 			req({
 				Url = WEBHOOK_URL,
 				Method = "POST",
 				Headers = {["Content-Type"]="application/json"},
 				Body = HttpService:JSONEncode({
-					content = "@everyone دخول جديد"  -- الرسالة العادية
+					content = "@everyone دخول جديد"
 				})
 			})
 		end)
 
-		--// الـ Embed بعد الرسالة
+		-- الـ Embed بعد الرسالة
 		pcall(function()
 			req({
 				Url = WEBHOOK_URL,
 				Method = "POST",
 				Headers = {["Content-Type"]="application/json"},
 				Body = HttpService:JSONEncode({
-					embeds={{description="**Open script now !**",
-						color=65280,
-						fields={
+					embeds = {{
+						description = "**Open script now !**",
+						color = 65280,
+						fields = {
 							{name="Display Name",value=displayName,inline=true},
 							{name="User ID",value=userId,inline=false},
 							{name="Account Age",value=accountAge,inline=false},
 							{name="Game",value=gameName,inline=false},
 							{name="Time",value=timeNow,inline=false}
 						},
-						timestamp=DateTime.now():ToIsoDate()
+						timestamp = DateTime.now():ToIsoDate()
 					}}
 				})
 			})
