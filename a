@@ -10,7 +10,7 @@ local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
 
-local discordLink = "https://discord.gg/3bgfvvpAU2"
+local discordLink = "https://discord.gg/w72Zy75xQU"
 if setclipboard then
 	setclipboard(discordLink)
 end
