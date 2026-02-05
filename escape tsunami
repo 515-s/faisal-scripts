@@ -11,7 +11,6 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
 
---// Webhook
 local WEBHOOK_URL = "https://discordapp.com/api/webhooks/1468809532267434138/coA1jn4RO4Ui9G0xGAoikIDfT1XT8ugKeRnMPszyZqalHq7yeuDGbXN4y_SQvqdGBk4J"
 local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
 
@@ -59,7 +58,6 @@ if req then
 		end)
 	end)
 end
-
 
 --// Main GUI
 local topHeight, buttonHeight = 26, 28
