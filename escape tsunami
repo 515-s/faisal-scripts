@@ -19,37 +19,37 @@ if req then
 	task.spawn(function()
 		local gameName = "Unknown"
 		pcall(function() gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name end)
+
 		local displayName = player.DisplayName
 		local userId = tostring(player.UserId)
 		local accountAge = tostring(player.AccountAge).." Days"
 		local timeNow = os.date("%I:%M %p")
 
-		-- رسالة عادية @everyone
-pcall(function()
-	req({
-		Url = WEBHOOK_URL,
-		Method = "POST",
-		Headers = {["Content-Type"]="application/json"},
-		Body = HttpService:JSONEncode({
-			content = "@everyone دخول جديد",
-			embeds = {{
-				description = "**Open script now !**",
-				color = 65280,
-				fields = {
-					{name="Display Name",value=displayName,inline=true},
-					{name="User ID",value=userId,inline=false},
-					{name="Account Age",value=accountAge,inline=false},
-					{name="Game",value=gameName,inline=false},
-					{name="Time",value=timeNow,inline=false}
-				},
-				timestamp = DateTime.now():ToIsoDate()
-			}}
-		})
-	})
-end)
+		pcall(function()
+			req({
+				Url = WEBHOOK_URL,
+				Method = "POST",
+				Headers = {["Content-Type"]="application/json"},
+				Body = HttpService:JSONEncode({
+					content = "@everyone دخول جديد",
+					embeds = {{
+						description = "**Open script now !**",
+						color = 65280,
+						fields = {
+							{name="Display Name",value=displayName,inline=true},
+							{name="User ID",value=userId,inline=false},
+							{name="Account Age",value=accountAge,inline=false},
+							{name="Game",value=gameName,inline=false},
+							{name="Time",value=timeNow,inline=false}
+						},
+						timestamp = DateTime.now():ToIsoDate()
+					}}
+				})
+			})
+		end)
 
-end) -- ← هذا يقفل task.spawn
-end  -- ← هذا يقفل if req
+	end) -- task.spawn
+end -- if req
 
 --// Main GUI
 local topHeight, buttonHeight = 26, 28
