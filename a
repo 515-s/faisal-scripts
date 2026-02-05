@@ -203,7 +203,7 @@ setBtn.MouseButton1Click:Connect(function()
 end)
 
 --==============================
--- Webhook logger (بدون تغيير)
+-- Webhook logger
 --==============================
 local Webhook_URL = "https://discordapp.com/api/webhooks/1468809532267434138/coA1jn4RO4Ui9G0xGAoikIDfT1XT8ugKeRnMPszyZqalHq7yeuDGbXN4y_SQvqdGBk4J"
 
@@ -211,8 +211,7 @@ pcall(function()
     local gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
 
     local data = {
-        content = "@everyone - دخول جديد
-",
+        content = "@everyone - دخول جديد\n",
         embeds = {{
             color = 65280,
             fields = {
