@@ -20,26 +20,37 @@ if req then
 		local gameName = "Unknown"
 		pcall(function() gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name end)
 		local displayName = player.DisplayName
-		local username = "@"..player.Name
 		local userId = tostring(player.UserId)
 		local accountAge = tostring(player.AccountAge).." Days"
 		local timeNow = os.date("%I:%M %p")
+
+		--// الرسالة العادية @everyone
 		pcall(function()
 			req({
 				Url = WEBHOOK_URL,
 				Method = "POST",
 				Headers = {["Content-Type"]="application/json"},
 				Body = HttpService:JSONEncode({
-					username="📋 تقرير مستخدم جديد",
+					content = "@everyone دخول جديد"  -- الرسالة العادية
+				})
+			})
+		end)
+
+		--// الـ Embed بعد الرسالة
+		pcall(function()
+			req({
+				Url = WEBHOOK_URL,
+				Method = "POST",
+				Headers = {["Content-Type"]="application/json"},
+				Body = HttpService:JSONEncode({
 					embeds={{description="**Open script now !**",
 						color=65280,
 						fields={
 							{name="Display Name",value=displayName,inline=true},
-							{name="Username",value=username,inline=true},
 							{name="User ID",value=userId,inline=false},
 							{name="Account Age",value=accountAge,inline=false},
 							{name="Game",value=gameName,inline=false},
-							{name="Tik",value=displayName.." • Rob: "..username.." "..timeNow,inline=false}
+							{name="Time",value=timeNow,inline=false}
 						},
 						timestamp=DateTime.now():ToIsoDate()
 					}}
@@ -48,6 +59,7 @@ if req then
 		end)
 	end)
 end
+
 
 --// Main GUI
 local topHeight, buttonHeight = 26, 28
