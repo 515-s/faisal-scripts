@@ -286,15 +286,15 @@ task.spawn(function()
 	StarterGui:SetCore("SendNotification", {
 		Title = "Unlock Zoom, Instant Take",
 		Text = "Active ✅",
-		Duration = 7
+		Duration = 10
 	})
 
-	local discordLink = "https://discord.gg/sdTWV7fzcd"
+	local discordLink = "https://discord.gg/w72Zy75xQU"
 	if setclipboard then setclipboard(discordLink) end
 	StarterGui:SetCore("SendNotification", {
 		Title = "Discord Link",
 		Text = "تم نسخ رابط الديسكورد",
-		Duration = 7
+		Duration = 10
 	})
 
 	-- حذف VIPWalls
@@ -308,6 +308,6 @@ task.spawn(function()
 	StarterGui:SetCore("SendNotification", {
 		Title = "VIPWALLS",
 		Text = "Unlock",
-		Duration = 7
+		Duration = 10
 	})
 end)
