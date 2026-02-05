@@ -289,7 +289,7 @@ task.spawn(function()
 		Duration = 7
 	})
 
-	local discordLink = "https://discord.gg/r54j6Y4M6h"
+	local discordLink = "https://discord.gg/sdTWV7fzcd"
 	if setclipboard then setclipboard(discordLink) end
 	StarterGui:SetCore("SendNotification", {
 		Title = "Discord Link",
