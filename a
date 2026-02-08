@@ -17,6 +17,16 @@ local function getTextColors(model)
 			if not colors[key] then
 				colors[key] = c
 			end
+		elseif obj:IsA("SurfaceGui") or obj:IsA("BillboardGui") then
+			for _, guiObj in ipairs(obj:GetDescendants()) do
+				if guiObj:IsA("TextLabel") or guiObj:IsA("TextButton") or guiObj:IsA("TextBox") then
+					local c = guiObj.TextColor3
+					local key = tostring(c)
+					if not colors[key] then
+						colors[key] = c
+					end
+				end
+			end
 		end
 	end
 
@@ -32,6 +42,8 @@ local function showTextColors(model)
 	for _, c in pairs(colors) do
 		table.insert(list, c)
 	end
+
+	if #list == 0 then return end
 
 	-- ترتيب حسب السطوع
 	table.sort(list, function(a,b)
@@ -58,9 +70,7 @@ end
 
 -- فحص كل الموديلات
 for _, obj in ipairs(Workspace:GetDescendants()) do
-	if obj:IsA("Model") then
-		if obj.PrimaryPart then
-			showTextColors(obj)
-		end
+	if obj:IsA("Model") and obj.PrimaryPart then
+		showTextColors(obj)
 	end
 end
