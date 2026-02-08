@@ -1,114 +1,120 @@
--- LocalScript: ضع داخل StarterPlayerScripts
-
+-- LocalScript: Fake forced camera using a ViewportFrame
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
-local camera = workspace:WaitForChild("CurrentCamera")
 
--- إعداد التفعيل (true = يثبت الكاميرا من البداية)
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "FakeForcedCameraGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- Viewport full-screen
+local vp = Instance.new("ViewportFrame")
+vp.Size = UDim2.new(1,0,1,0)
+vp.Position = UDim2.new(0,0,0,0)
+vp.BackgroundTransparency = 1
+vp.BorderSizePixel = 0
+vp.Parent = gui
+
+-- زر صغير للتبديل
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(0,180,0,40)
+btn.Position = UDim2.new(0,10,0,10)
+btn.BackgroundTransparency = 0.3
+btn.TextScaled = true
+btn.Text = "إيقاف/تفعيل الكاميرا الوهمية"
+btn.Parent = gui
+btn.ZIndex = 10
+
+-- كاميرا مستقلة للـ ViewportFrame
+local cam = Instance.new("Camera")
+cam.Parent = vp
+vp.CurrentCamera = cam
+
+-- تابع الشخصية
+local function getHRP()
+	local char = player.Character
+	if char then
+		return char:FindFirstChild("HumanoidRootPart")
+	end
+	return nil
+end
+
+-- نعمل نسخة خفيفة من الشخصية داخل الـ Viewport (نمسح السكربتات)
+local function makeViewportClone(character)
+	if not character then return nil end
+	local clone = character:Clone()
+
+	-- إزالة السكربتات والموديولات لحماية الأداء
+	for _,v in ipairs(clone:GetDescendants()) do
+		if v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
+			v:Destroy()
+		end
+		-- ننهي الأصوات والparticles لو موجودة
+		if v:IsA("Sound") or v:IsA("ParticleEmitter") then
+			v:Destroy()
+		end
+	end
+
+	-- نتأكد من وجود PrimaryPart
+	local hrpClone = clone:FindFirstChild("HumanoidRootPart") or clone.PrimaryPart
+	if hrpClone then
+		clone.PrimaryPart = hrpClone
+	else
+		-- لو ما فيه، نرجع nil
+		clone:Destroy()
+		return nil
+	end
+
+	-- نضعه داخل الـ ViewportFrame
+	clone.Parent = vp
+	return clone
+end
+
+-- متغيرات
+local viewportClone = nil
 local enabled = true
 
--- إنشاء موديل وبارت ظاهر أخضر + شريط أبيض
-local model = Instance.new("Model")
-model.Name = "ForcedCameraModel"
-model.Parent = workspace
-
-local base = Instance.new("Part")
-base.Name = "BasePart"
-base.Size = Vector3.new(2, 2, 1)
-base.Anchored = true
-base.CanCollide = false
-base.Material = Enum.Material.SmoothPlastic
-base.Color = Color3.fromRGB(0, 180, 0)
-base.Parent = model
-
-local stripe = Instance.new("Part")
-stripe.Name = "WhiteStripe"
-stripe.Size = Vector3.new(2, 0.35, 1)
-stripe.Anchored = true
-stripe.CanCollide = false
-stripe.Material = Enum.Material.SmoothPlastic
-stripe.Color = Color3.fromRGB(255, 255, 255)
-stripe.Parent = model
-
--- GUI زر التشغيل/الإيقاف
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CamToggleGUI"
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,180,0,50)
-frame.Position = UDim2.new(0,10,0,10)
-frame.BackgroundTransparency = 0.3
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.Parent = screenGui
-
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0,160,0,36)
-button.Position = UDim2.new(0,10,0,7)
-button.TextScaled = true
-button.Font = Enum.Font.SourceSansBold
-button.TextColor3 = Color3.new(1,1,1)
-button.Parent = frame
-
-local function updateButtonText()
-	button.Text = enabled and "إيقاف تثبيت الكاميرا" or "تفعيل تثبيت الكاميرا"
-end
-updateButtonText()
-
-button.MouseButton1Click:Connect(function()
+-- زر التبديل
+btn.MouseButton1Click:Connect(function()
 	enabled = not enabled
-	if not enabled then
-		-- إرجاع الحالة الطبيعية بأدب
-		pcall(function() camera.CameraType = Enum.CameraType.Custom; camera.CameraSubject = player.Character and player.Character:FindFirstChild("Humanoid") or nil end)
-	end
-	updateButtonText()
+	vp.Visible = enabled
 end)
 
--- دالة تجبر الكاميرا على الوضع المطلوب
-local function forceCamera(partPos, targetPos)
-	-- ضع القيم داخل pcall عشان ما يوقف السكربت لو صار خطأ
-	pcall(function()
-		camera.CameraType = Enum.CameraType.Scriptable
-		camera.CameraSubject = nil
-		camera.CFrame = CFrame.new(partPos, targetPos)
-	end)
-end
-
--- لو الكاميرا أحدهم يغير خصائصها، نعيدها فورًا
-camera:GetPropertyChangedSignal("CameraType"):Connect(function()
-	if enabled and camera.CameraType ~= Enum.CameraType.Scriptable then
-		camera.CameraType = Enum.CameraType.Scriptable
-	end
-end)
-camera:GetPropertyChangedSignal("CameraSubject"):Connect(function()
-	if enabled and camera.CameraSubject ~= nil then
-		camera.CameraSubject = nil
-	end
-end)
-
--- تابع الشخصية واحصل على HumanoidRootPart
-local hrp
+-- إعادة إنشاء الكلون كل ما تتغير الشخصية
 local function onCharacterAdded(char)
-	hrp = char:WaitForChild("HumanoidRootPart", 10)
+	-- ننتظر حتى تكون الشخصية جاهزة
+	local hrp = char:WaitForChild("HumanoidRootPart", 5)
+	-- ننظف القديم
+	if viewportClone then
+		viewportClone:Destroy()
+		viewportClone = nil
+	end
+	-- نخلق نسخة
+	viewportClone = makeViewportClone(char)
 end
 
-if player.Character then onCharacterAdded(player.Character) end
+if player.Character then
+	onCharacterAdded(player.Character)
+end
 player.CharacterAdded:Connect(onCharacterAdded)
 
--- أهم جزء: BindToRenderStep بالأولوية Last عشان يشتغل بعد بقية السكربتات
-RunService:BindToRenderStep("ForceCameraLast", Enum.RenderPriority.Last.Value, function(dt)
+-- تحديث الكاميرا الوهمية والكلون كل فريم بحيث تتبع نفس الوضعية
+RunService.RenderStepped:Connect(function()
 	if not enabled then return end
-	if not hrp or not hrp.Parent then return end
+	local hrp = getHRP()
+	if not hrp or not viewportClone or not viewportClone.PrimaryPart then return end
 
+	-- نحافظ على نسخة الكلون عند نفس موقع الشخصية
+	pcall(function()
+		viewportClone:SetPrimaryPartCFrame(hrp.CFrame)
+	end)
+
+	-- حساب موقع الكاميرا: 15 ستود قدام، 5 فوق
 	local forward = hrp.CFrame.LookVector
-	local partPos = hrp.Position + forward * 15 + Vector3.new(0,5,0)
-
-	-- ضع البارت ويواجه نفس الاتجاه
-	base.CFrame = CFrame.new(partPos, partPos + forward)
-	local yOffset = (base.Size.Y/2) - (stripe.Size.Y/2)
-	stripe.CFrame = base.CFrame * CFrame.new(0, yOffset, 0)
-
-	-- إجبار الكاميرا
-	forceCamera(partPos, hrp.Position)
+	local camPos = hrp.Position + forward * 15 + Vector3.new(0,5,0)
+	-- إجعل الكاميرا تنظر للـ HRP (نستخدم CFrame.new(pos, target))
+	pcall(function()
+		cam.CFrame = CFrame.new(camPos, hrp.Position)
+	end)
 end)
