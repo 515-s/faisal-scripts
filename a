@@ -9,23 +9,30 @@ local function copy(text)
 	end
 end
 
---// تحويل لون RGB إلى اسم تقريبي بالعربي
+--// دالة تحول لون RGB إلى اسم تقريبي بالعربي مع التمييز الرمادي
 local function colorNameFromColor3(color)
-	local r,g,b = color.R*255, color.G*255, color.B*255
-	if r > 200 and g < 50 and b < 50 then
+	local r,g,b = color.R, color.G, color.B
+	-- نحسب إذا اللون رمادي (فرق صغير بين R,G,B)
+	local maxDiff = math.max(math.abs(r-g), math.abs(r-b), math.abs(g-b))
+	if maxDiff < 0.05 then
+		if r < 0.1 then
+			return "أسود"
+		elseif r > 0.9 then
+			return "أبيض"
+		else
+			return "رمادي" -- بدون ذكر ندره
+		end
+	end
+
+	-- باقي الألوان بالتقريب
+	if r > g and r > b then
 		return "أحمر"
-	elseif r < 50 and g > 200 and b < 50 then
+	elseif g > r and g > b then
 		return "أخضر"
-	elseif r < 50 and g < 50 and b > 200 then
+	elseif b > r and b > g then
 		return "أزرق"
-	elseif r > 200 and g > 200 and b < 50 then
+	elseif r > 0.8 and g > 0.8 and b < 0.3 then
 		return "أصفر"
-	elseif r > 200 and g > 200 and b > 200 then
-		return "أبيض"
-	elseif r < 50 and g < 50 and b < 50 then
-		return "أسود"
-	elseif r > 100 and g > 100 and b > 100 then
-		return "رمادي"
 	else
 		return "غير معروف"
 	end
@@ -49,12 +56,11 @@ local function setLabelOnPart(part, text)
 		label.Size = UDim2.new(1,0,1,0)
 		label.BackgroundTransparency = 1
 		label.TextColor3 = Color3.fromRGB(255,255,255)
-		label.TextScaled = true -- خلي النص كبير
+		label.TextScaled = true
 		label.Font = Enum.Font.SourceSansBold
 		label.Parent = billboard
 	end
 
-	billboard.ColorLabel.Text = text
 	local lbl = billboard:FindFirstChild("ColorLabel")
 	if lbl then
 		lbl.Text = text
@@ -68,7 +74,7 @@ local function createMarker(model)
 
 	local part = Instance.new("Part")
 	part.Size = Vector3.new(1,10,1) -- طول البارت 10
-	part.Color = Color3.fromRGB(128,128,128)
+	part.Color = Color3.fromRGB(128,128,128) -- اللون الطبيعي
 	part.Material = Enum.Material.Neon
 	part.CanCollide = false
 	part.Anchored = false
