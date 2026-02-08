@@ -1,25 +1,35 @@
---// Services
 local workspace = game:GetService("Workspace")
-
 local TARGET_NAME = "Common"
 
 local function createLabel(obj)
     local main
+
     if obj:IsA("Model") then
-        main = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+        -- نحاول نستخدم PrimaryPart أولًا
+        main = obj.PrimaryPart
+        -- لو ما فيه PrimaryPart نختار أي BasePart
+        if not main then
+            for _, p in ipairs(obj:GetDescendants()) do
+                if p:IsA("BasePart") then
+                    main = p
+                    break
+                end
+            end
+        end
     elseif obj:IsA("BasePart") then
         main = obj
     end
-    if not main then return end
 
-    -- تحقق إذا النص موجود بالفعل لتجنب التكرار
+    if not main or not main.Parent then return end -- لو ما في BasePart أو ما موجود في Workspace
+
+    -- تحقق إذا النص موجود بالفعل
     if main:FindFirstChild("CommonLabel") then return end
 
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "CommonLabel"
     billboard.Adornee = main
     billboard.Size = UDim2.new(0,100,0,40)
-    billboard.StudsOffset = Vector3.new(0,5,0)
+    billboard.StudsOffset = Vector3.new(0, main.Size.Y/2 + 2, 0) -- فوق العنصر مباشرة
     billboard.AlwaysOnTop = true
     billboard.Parent = main
 
@@ -32,19 +42,14 @@ local function createLabel(obj)
     label.Font = Enum.Font.SourceSansBold
 end
 
---// فحص كل العناصر داخل Workspace recursively
-local function checkAll(parent)
-    for _, obj in ipairs(parent:GetDescendants()) do
-        if obj.Name == TARGET_NAME then
-            createLabel(obj)
-        end
+-- فحص كل العناصر داخل Workspace
+for _, obj in ipairs(workspace:GetDescendants()) do
+    if obj.Name == TARGET_NAME then
+        createLabel(obj)
     end
 end
 
--- فحص كل Workspace أولًا
-checkAll(workspace)
-
--- يراقب أي عنصر جديد يضاف
+-- مراقبة أي عنصر جديد يضاف
 workspace.DescendantAdded:Connect(function(obj)
     if obj.Name == TARGET_NAME then
         createLabel(obj)
