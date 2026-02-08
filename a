@@ -1,104 +1,47 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--------------------------------------------------
--- GUI
--------------------------------------------------
+-- Container لكل الـ Overlays
+local overlayGui = Instance.new("ScreenGui")
+overlayGui.Name = "GUIOverlayDebugger"
+overlayGui.ResetOnSpawn = false
+overlayGui.Parent = player:WaitForChild("PlayerGui")
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "FinderGUI"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+-- دالة لإنشاء Overlay لكل GUIObject
+local function createOverlay(guiObject)
+	if not guiObject:IsA("GuiObject") then return end
+	if guiObject == overlayGui then return end -- نتجنب نفسه
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.fromOffset(320,400)
-frame.Position = UDim2.fromScale(0.02,0.15)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-frame.Active = true
-frame.Draggable = true
-frame.Parent = gui
+	local pos, size = guiObject.AbsolutePosition, guiObject.AbsoluteSize
+	if size.X == 0 or size.Y == 0 then return end -- تجاهل العناصر المخفية
 
-Instance.new("UICorner", frame)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.fromOffset(size.X, size.Y)
+	frame.Position = UDim2.fromOffset(pos.X, pos.Y)
+	frame.BackgroundColor3 = Color3.fromRGB(255,0,0)
+	frame.BackgroundTransparency = 0.5
+	frame.BorderSizePixel = 1
+	frame.Parent = overlayGui
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1,0,0,30)
-title.BackgroundTransparency = 1
-title.Text = "SLAP Finder"
-title.TextScaled = true
-title.TextColor3 = Color3.new(1,1,1)
-title.Parent = frame
-
--------------------------------------------------
--- Scroll
--------------------------------------------------
-
-local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1,-10,1,-40)
-scroll.Position = UDim2.fromOffset(5,35)
-scroll.CanvasSize = UDim2.new(0,0,0,0)
-scroll.ScrollBarThickness = 6
-scroll.BackgroundTransparency = 1
-scroll.Parent = frame
-
-local layout = Instance.new("UIListLayout", scroll)
-layout.Padding = UDim.new(0,4)
-
--------------------------------------------------
--- دالة إضافة زر نسخ
--------------------------------------------------
-
-local function addItem(text)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1,-5,0,28)
-	btn.Text = text
-	btn.TextScaled = true
-	btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.Parent = scroll
-
-	-- لما تضغط ينسخ الاسم
-	btn.MouseButton1Click:Connect(function()
-		if setclipboard then
-			setclipboard(text)
-		end
-		btn.Text = "Copied ✓"
-		task.wait(0.7)
-		btn.Text = text
-	end)
+	-- TextLabel يظهر اسم العنصر
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1,0.2)
+	label.Position = UDim2.fromOffset(0,0)
+	label.BackgroundTransparency = 0.6
+	label.BackgroundColor3 = Color3.fromRGB(0,0,0)
+	label.TextColor3 = Color3.new(1,1,1)
+	label.TextScaled = true
+	label.Text = guiObject:GetFullName()
+	label.Parent = frame
 end
 
--------------------------------------------------
--- البحث في كل الـ GUI
--------------------------------------------------
-
-local function search()
-	scroll:ClearAllChildren()
-	layout.Parent = scroll
-
-	local count = 0
-
-	for _,v in ipairs(player.PlayerGui:GetDescendants()) do
-		if v:IsA("GuiObject") then
-			local nameLower = string.lower(v.Name)
-
-			if string.find(nameLower, "slap") then
-				count += 1
-				addItem(v:GetFullName())
-			end
-		end
-	end
-
-	scroll.CanvasSize = UDim2.new(0,0,0,count * 32)
+-- إنشاء Overlay لجميع العناصر الحالية
+for _,v in ipairs(player.PlayerGui:GetDescendants()) do
+	createOverlay(v)
 end
 
--------------------------------------------------
--- تحديث تلقائي
--------------------------------------------------
-
-search()
-
--- يحدث كل ما ينضاف GUI جديد
-player.PlayerGui.DescendantAdded:Connect(function()
-	task.wait(0.2)
-	search()
+-- يحدث Overlay لكل عنصر جديد ينضاف
+player.PlayerGui.DescendantAdded:Connect(function(v)
+	task.wait(0.1)
+	createOverlay(v)
 end)
