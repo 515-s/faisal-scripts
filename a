@@ -1,9 +1,24 @@
-local TARGET_MODEL_NAME = "080274da-7548-4b51-87a7-8f75da758f37"
+--// Services
+local Players = game:GetService("Players")
+local workspace = game:GetService("Workspace")
+local player = Players.LocalPlayer
 
+--// الموديل اللي يطلع فوقه نص Rare
+local TARGET_MODEL_ID = "080274da-7548-4b51-87a7-8f75da758f37"
+
+--// نسخ الاسم
+local function copy(text)
+    if setclipboard then
+        setclipboard(text)
+    end
+end
+
+--// إنشاء البارت الأحمر + Rare فقط للموديل المطلوب
 local function createMarker(model)
     local main = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
     if not main then return end
 
+    -- البارت الأحمر الطويل
     local part = Instance.new("Part")
     part.Size = Vector3.new(1,30,1)
     part.Color = Color3.fromRGB(255,0,0)
@@ -13,21 +28,21 @@ local function createMarker(model)
     part.Name = "Marker"
     part.CFrame = main.CFrame * CFrame.new(0, 20, 0)
 
+    -- يربطه بالموديل
     local weld = Instance.new("WeldConstraint")
     weld.Part0 = part
     weld.Part1 = main
     weld.Parent = part
 
+    -- ClickDetector لنسخ الاسم
     local click = Instance.new("ClickDetector", part)
     click.MaxActivationDistance = 50
     click.MouseClick:Connect(function()
-        if model then
-            setclipboard(model.Name)
-        end
+        copy(model.Name)
     end)
 
-    -- فقط إذا الاسم يطابق تمامًا
-    if model:GetFullName():find(TARGET_MODEL_NAME) then
+    -- إذا هذا الموديل هو الـ TARGET بالفعل
+    if model:GetDebugId() == TARGET_MODEL_ID then
         local billboard = Instance.new("BillboardGui", part)
         billboard.Adornee = part
         billboard.Size = UDim2.new(0,100,0,40)
@@ -45,3 +60,18 @@ local function createMarker(model)
 
     part.Parent = workspace
 end
+
+--// فحص كل الموديلات في الـ Workspace
+local added = {}
+local function check(obj)
+    if obj:IsA("Model") and #obj.Name > 20 and not added[obj] then
+        added[obj] = true
+        createMarker(obj)
+    end
+end
+
+for _,v in ipairs(workspace:GetDescendants()) do
+    check(v)
+end
+
+workspace.DescendantAdded:Connect(check)
