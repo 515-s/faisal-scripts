@@ -2,7 +2,6 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
 
 --// نسخ الاسم
 local function copy(text)
@@ -11,9 +10,9 @@ local function copy(text)
 	end
 end
 
---// دالة تقريب اللون (يشوف إذا قريب من لون معين)
+--// تقريب اللون
 local function isColorClose(c1, c2, tolerance)
-	tolerance = tolerance or 0.1 -- 0.1 = فرق صغير
+	tolerance = tolerance or 0.1
 	return math.abs(c1.R - c2.R) <= tolerance
 	   and math.abs(c1.G - c2.G) <= tolerance
 	   and math.abs(c1.B - c2.B) <= tolerance
@@ -21,13 +20,8 @@ end
 
 --// نص فوق البارت
 local function createLabel(part, text)
-	-- تحقق إذا النص موجود لتجنب التكرار
 	local existing = part:FindFirstChild("ColorLabel")
-	if existing then
-		existing.TextLabel.Text = text
-		return
-	end
-
+	if existing then return end -- يمنع التكرار
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "ColorLabel"
 	billboard.Adornee = part
@@ -52,7 +46,7 @@ local function createMarker(model)
 
 	local part = Instance.new("Part")
 	part.Size = Vector3.new(1,30,1)
-	part.Color = Color3.fromRGB(128,128,128) -- رمادي افتراضي
+	part.Color = Color3.fromRGB(128,128,128) -- اللون الطبيعي (رمادي)
 	part.Material = Enum.Material.Neon
 	part.CanCollide = false
 	part.Anchored = false
