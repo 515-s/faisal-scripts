@@ -1,32 +1,23 @@
 --// Services
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+local workspace = game:GetService("Workspace")
 
---// UI بسيطة
-local gui = Instance.new("ScreenGui", player.PlayerGui)
-
-local scroll = Instance.new("ScrollingFrame", gui)
-scroll.Size = UDim2.fromScale(0.35,0.5)
-scroll.Position = UDim2.fromScale(0.03,0.25)
-scroll.CanvasSize = UDim2.new(0,0,0,0)
-
-local layout = Instance.new("UIListLayout", scroll)
-
---// نسخ
+--// نسخ الاسم
 local function copy(text)
 	if setclipboard then
 		setclipboard(text)
 	end
 end
 
---// بارت طويل + ضغط = نسخ
+--// بارت طويل + ضغط = نسخ الاسم
 local function createMarker(model)
 	local main = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
 	if not main then return end
 
 	local part = Instance.new("Part")
 	part.Size = Vector3.new(1, 30, 1) -- عمود طويل
-	part.Color = Color3.fromRGB(255,0,0)
+	part.Color = Color3.fromRGB(128,128,128) -- رمادي
 	part.Material = Enum.Material.Neon
 	part.CanCollide = false
 	part.Anchored = false
@@ -40,10 +31,9 @@ local function createMarker(model)
 	weld.Part1 = main
 	weld.Parent = part
 
-	-- كشف الضغط
+	-- كشف الضغط لنسخ الاسم
 	local click = Instance.new("ClickDetector", part)
 	click.MaxActivationDistance = 50
-
 	click.MouseClick:Connect(function()
 		copy(model.Name)
 	end)
@@ -51,28 +41,12 @@ local function createMarker(model)
 	part.Parent = model
 end
 
---// إضافة زر للقائمة
-local function addItem(name)
-	local btn = Instance.new("TextButton", scroll)
-	btn.Size = UDim2.new(1,0,0,30)
-	btn.Text = name .. " | Copy"
-
-	btn.MouseButton1Click:Connect(function()
-		copy(name)
-	end)
-end
-
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
-end)
-
---// فحص
+--// فحص الموديلات
 local added = {}
 
 local function check(obj)
 	if obj:IsA("Model") and #obj.Name > 20 and not added[obj] then
 		added[obj] = true
-		addItem(obj.Name)
 		createMarker(obj)
 	end
 end
