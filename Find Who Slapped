@@ -1,120 +1,88 @@
--- LocalScript: Fake forced camera using a ViewportFrame
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+-- LocalScript
 
+local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+
+-------------------------------------------------
+-- GUI
+-------------------------------------------------
+
 local gui = Instance.new("ScreenGui")
-gui.Name = "FakeForcedCameraGUI"
+gui.Name = "TouchProfileGUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Viewport full-screen
-local vp = Instance.new("ViewportFrame")
-vp.Size = UDim2.new(1,0,1,0)
-vp.Position = UDim2.new(0,0,0,0)
-vp.BackgroundTransparency = 1
-vp.BorderSizePixel = 0
-vp.Parent = gui
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0,200,0,80)
+frame.Position = UDim2.new(0.5,-100,0.75,0)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.Visible = false
+frame.Parent = gui
 
--- زر صغير للتبديل
-local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(0,180,0,40)
-btn.Position = UDim2.new(0,10,0,10)
-btn.BackgroundTransparency = 0.3
-btn.TextScaled = true
-btn.Text = "إيقاف/تفعيل الكاميرا الوهمية"
-btn.Parent = gui
-btn.ZIndex = 10
+local corner = Instance.new("UICorner", frame)
 
--- كاميرا مستقلة للـ ViewportFrame
-local cam = Instance.new("Camera")
-cam.Parent = vp
-vp.CurrentCamera = cam
+local image = Instance.new("ImageLabel")
+image.Size = UDim2.new(0,70,0,70)
+image.Position = UDim2.new(0,5,0,5)
+image.BackgroundTransparency = 1
+image.Parent = frame
 
--- تابع الشخصية
-local function getHRP()
-	local char = player.Character
-	if char then
-		return char:FindFirstChild("HumanoidRootPart")
-	end
-	return nil
+local nameLabel = Instance.new("TextLabel")
+nameLabel.Size = UDim2.new(1,-80,1,0)
+nameLabel.Position = UDim2.new(0,80,0,0)
+nameLabel.BackgroundTransparency = 1
+nameLabel.TextColor3 = Color3.new(1,1,1)
+nameLabel.TextScaled = true
+nameLabel.Font = Enum.Font.SourceSansBold
+nameLabel.Parent = frame
+
+-------------------------------------------------
+-- دالة إظهار البروفايل 3 ثواني
+-------------------------------------------------
+
+local showing = false
+
+local function showProfile(targetPlayer)
+	if showing then return end
+	showing = true
+
+	nameLabel.Text = targetPlayer.Name
+
+	local thumb, _ = Players:GetUserThumbnailAsync(
+		targetPlayer.UserId,
+		Enum.ThumbnailType.HeadShot,
+		Enum.ThumbnailSize.Size180x180
+	)
+
+	image.Image = thumb
+	frame.Visible = true
+
+	task.wait(3)
+
+	frame.Visible = false
+	showing = false
 end
 
--- نعمل نسخة خفيفة من الشخصية داخل الـ Viewport (نمسح السكربتات)
-local function makeViewportClone(character)
-	if not character then return nil end
-	local clone = character:Clone()
+-------------------------------------------------
+-- تتبع آخر لاعب لمسنا
+-------------------------------------------------
 
-	-- إزالة السكربتات والموديولات لحماية الأداء
-	for _,v in ipairs(clone:GetDescendants()) do
-		if v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
-			v:Destroy()
+local function hookCharacter(char)
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	hrp.Touched:Connect(function(hit)
+		local otherChar = hit:FindFirstAncestorOfClass("Model")
+		if not otherChar then return end
+
+		local otherPlayer = Players:GetPlayerFromCharacter(otherChar)
+		if otherPlayer and otherPlayer ~= player then
+			showProfile(otherPlayer)
 		end
-		-- ننهي الأصوات والparticles لو موجودة
-		if v:IsA("Sound") or v:IsA("ParticleEmitter") then
-			v:Destroy()
-		end
-	end
-
-	-- نتأكد من وجود PrimaryPart
-	local hrpClone = clone:FindFirstChild("HumanoidRootPart") or clone.PrimaryPart
-	if hrpClone then
-		clone.PrimaryPart = hrpClone
-	else
-		-- لو ما فيه، نرجع nil
-		clone:Destroy()
-		return nil
-	end
-
-	-- نضعه داخل الـ ViewportFrame
-	clone.Parent = vp
-	return clone
-end
-
--- متغيرات
-local viewportClone = nil
-local enabled = true
-
--- زر التبديل
-btn.MouseButton1Click:Connect(function()
-	enabled = not enabled
-	vp.Visible = enabled
-end)
-
--- إعادة إنشاء الكلون كل ما تتغير الشخصية
-local function onCharacterAdded(char)
-	-- ننتظر حتى تكون الشخصية جاهزة
-	local hrp = char:WaitForChild("HumanoidRootPart", 5)
-	-- ننظف القديم
-	if viewportClone then
-		viewportClone:Destroy()
-		viewportClone = nil
-	end
-	-- نخلق نسخة
-	viewportClone = makeViewportClone(char)
+	end)
 end
 
 if player.Character then
-	onCharacterAdded(player.Character)
+	hookCharacter(player.Character)
 end
-player.CharacterAdded:Connect(onCharacterAdded)
 
--- تحديث الكاميرا الوهمية والكلون كل فريم بحيث تتبع نفس الوضعية
-RunService.RenderStepped:Connect(function()
-	if not enabled then return end
-	local hrp = getHRP()
-	if not hrp or not viewportClone or not viewportClone.PrimaryPart then return end
-
-	-- نحافظ على نسخة الكلون عند نفس موقع الشخصية
-	pcall(function()
-		viewportClone:SetPrimaryPartCFrame(hrp.CFrame)
-	end)
-
-	-- حساب موقع الكاميرا: 15 ستود قدام، 5 فوق
-	local forward = hrp.CFrame.LookVector
-	local camPos = hrp.Position + forward * 15 + Vector3.new(0,5,0)
-	-- إجعل الكاميرا تنظر للـ HRP (نستخدم CFrame.new(pos, target))
-	pcall(function()
-		cam.CFrame = CFrame.new(camPos, hrp.Position)
-	end)
-end)
+player.CharacterAdded:Connect(hookCharacter)
