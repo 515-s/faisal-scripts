@@ -1,61 +1,105 @@
--- LocalScript داخل StarterPlayerScripts
-
+-- LocalScript: ضع داخل StarterPlayerScripts
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
-local RunService = game:GetService("RunService")
 
--- إنشاء البارت الخاوي (فقط مكانه)
-local part = Instance.new("Part")
-part.Name = "CameraPart"
-part.Size = Vector3.new(2,2,1)
-part.Anchored = true
-part.CanCollide = false
-part.Transparency = 1 -- خاوي، ما يبين
-part.Parent = workspace
+-- تحكّم بالتمكين (true = يثبت الكاميرا من البداية)
+local enabled = true
 
--- إنشاء GUI فارغ
+-- إنشاء الموديل والبارت (ظاهر أخضر + شريط أبيض)
+local model = Instance.new("Model")
+model.Name = "ForcedCameraModel"
+model.Parent = workspace
+
+local base = Instance.new("Part")
+base.Name = "BasePart"
+base.Size = Vector3.new(2, 2, 1)
+base.Anchored = true
+base.CanCollide = false
+base.Material = Enum.Material.SmoothPlastic
+base.Color = Color3.fromRGB(0, 180, 0) -- أخضر
+base.Transparency = 0
+base.Parent = model
+
+local stripe = Instance.new("Part")
+stripe.Name = "WhiteStripe"
+stripe.Size = Vector3.new(2, 0.35, 1)
+stripe.Anchored = true
+stripe.CanCollide = false
+stripe.Material = Enum.Material.SmoothPlastic
+stripe.Color = Color3.fromRGB(255, 255, 255) -- أبيض
+stripe.Transparency = 0
+stripe.Parent = model
+
+-- GUI زر التشغيل/الإيقاف
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CameraControlGUI"
+screenGui.Name = "CamToggleGUI"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,200,0,100)
+frame.Size = UDim2.new(0,180,0,50)
 frame.Position = UDim2.new(0,10,0,10)
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-frame.Visible = true -- تقدر تخليه false إذا تبغاه مخفي أولًا
+frame.BackgroundTransparency = 0.3
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 frame.Parent = screenGui
 
--- زر لتفعيل/إيقاف تثبيت الكاميرا
-local cameraButton = Instance.new("TextButton")
-cameraButton.Size = UDim2.new(0,180,0,40)
-cameraButton.Position = UDim2.new(0,10,0,10)
-cameraButton.Text = "تفعيل الكاميرا"
-cameraButton.Parent = frame
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0,160,0,36)
+button.Position = UDim2.new(0,10,0,7)
+button.TextScaled = true
+button.Font = Enum.Font.SourceSansBold
+button.TextColor3 = Color3.new(1,1,1)
+button.Parent = frame
 
-local cameraEnabled = false
+local function updateButtonText()
+	button.Text = enabled and "إيقاف تثبيت الكاميرا" or "تفعيل تثبيت الكاميرا"
+end
+updateButtonText()
 
-cameraButton.MouseButton1Click:Connect(function()
-	cameraEnabled = not cameraEnabled
-	if cameraEnabled then
-		cameraButton.Text = "إيقاف الكاميرا"
-	else
-		cameraButton.Text = "تفعيل الكاميرا"
-		camera.CameraType = Enum.CameraType.Custom -- يرجع التحكم العادي
+button.MouseButton1Click:Connect(function()
+	enabled = not enabled
+	if not enabled then
+		-- ارجع الكاميرا للوضع الطبيعي
+		if camera then
+			pcall(function() camera.CameraType = Enum.CameraType.Custom end)
+		end
 	end
+	updateButtonText()
 end)
 
--- تحديث البارت والكاميرا كل فريم (لو مفعل)
+-- متابعة الشخصية (عند الموت/إعادة الظهور)
+local hrp
+local function onCharacterAdded(char)
+	hrp = char:WaitForChild("HumanoidRootPart", 10)
+end
+
+if player.Character then
+	onCharacterAdded(player.Character)
+end
+player.CharacterAdded:Connect(onCharacterAdded)
+
+-- تحديث كل فريم: وضع البارت + إجبار الكاميرا إذا مفعل
 RunService.RenderStepped:Connect(function()
-	if cameraEnabled then
-		local char = player.Character
-		if char and char:FindFirstChild("HumanoidRootPart") then
-			local hrp = char.HumanoidRootPart
-			-- موقع البارت 15 قدام و5 فوق
-			part.Position = hrp.Position + hrp.CFrame.LookVector * 15 + Vector3.new(0,5,0)
+	if not hrp or not hrp.Parent then return end
+
+	local forward = hrp.CFrame.LookVector
+	local partPos = hrp.Position + forward * 15 + Vector3.new(0,5,0)
+
+	-- ضع البارت ويواجه نفس الاتجاه
+	base.CFrame = CFrame.new(partPos, partPos + forward)
+	local yOffset = (base.Size.Y/2) - (stripe.Size.Y/2)
+	stripe.CFrame = base.CFrame * CFrame.new(0, yOffset, 0)
+
+	if enabled then
+		-- إجبار الكاميرا لتكون من البارت وتطالع اللاعب
+		if camera then
 			camera.CameraType = Enum.CameraType.Scriptable
-			camera.CameraSubject = nil
-			camera.CFrame = CFrame.new(part.Position, hrp.Position)
+			-- تأكد ما فيه Subject يغيرها
+			pcall(function() camera.CameraSubject = nil end)
+			camera.CFrame = CFrame.new(partPos, hrp.Position)
 		end
 	end
 end)
