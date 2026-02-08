@@ -1,40 +1,23 @@
--- سكربت يقيّم "ندرہ" الموديلات عن طريق فحص خصائصها (mesh, decals, materials, تكرار البصمة...)
--- ضع هذا كـ LocalScript داخل StarterPlayerScripts
-
+-- LocalScript: يفحص فقط الموديلات المتحركة ويغيّر أي اسم "common" إلى "كومون"
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
-local player = game:GetService("Players").LocalPlayer
+local task = task
 
--- =========== إعدادات قابلة للتعديل ===========
-local SCAN_INTERVAL = 10          -- كل كم ثانية نعيد الفحص الكامل (لأداء)
-local MARKER_NAME = "Marker"      -- اسم البارت اللي نستخدمه لعرض النتيجة
-local SHOW_ON_MARKER = true       -- لو true يعرض التصنيف فوق Marker، لو false نعرضه فوق الـ primary part
-local OVERRIDES = {
-    --["080274da-7548-4b51-87a7-8f75da758f37"] = "أسطوري", -- مثال: اسم الموديل -> تصنيف ثابت
-}
+-- إعدادات
+local SCAN_INTERVAL = 15     -- إعادة بناء خريطة التواتر كل كم ثانية
+local POLL_INTERVAL = 1      -- كيف كثير نتحقق من الحركة (ثانية)
+local MOVE_THRESHOLD = 0.1   -- تحرك يعتبر حركة (متر تقريبي)
+local MARKER_NAME = "Marker"  -- اسم البارت للماركر/العلامة
 
--- وزن الإشارات (عدل لو تبي)
-local WEIGHTS = {
-    uniqueness = 0.35,
-    mesh = 0.25,
-    decals = 0.10,
-    material = 0.15,
-    name = 0.15,
-}
-
--- =========== دوال مساعدة ===========
+-- ===== دوال مساعدة (مأخوذة ومبسطة من السكربت السابق) =====
 local function isBasePart(obj) return obj and obj:IsA("BasePart") end
 
 local function findAnyMeshIds(model)
     local ids = {}
     for _,v in ipairs(model:GetDescendants()) do
-        if v:IsA("SpecialMesh") or v:IsA("MeshPart") then
-            local id = v.MeshId or (v:IsA("MeshPart") and v.MeshId) or ""
-            if id ~= "" then ids[id] = true end
-        end
-        if v:IsA("Mesh") then
-            local id = v.MeshId or ""
-            if id ~= "" then ids[id] = true end
+        if v:IsA("SpecialMesh") or v:IsA("MeshPart") or v:IsA("Mesh") then
+            local id = v.MeshId or (v:IsA("MeshPart") and v.MeshId) or v.MeshId
+            if id and id ~= "" then ids[id] = true end
         end
     end
     local list = {}
@@ -75,8 +58,7 @@ local function hasGoldishColor(model)
 end
 
 local function primaryPartOrAny(model)
-    local p = model.PrimaryPart
-    if p then return p end
+    if model.PrimaryPart then return model.PrimaryPart end
     for _,v in ipairs(model:GetDescendants()) do
         if isBasePart(v) then return v end
     end
@@ -96,7 +78,7 @@ local function sizeAndComplexity(model)
 end
 
 local function nameScore(name)
-    local n = name:lower()
+    local n = tostring(name):lower()
     local score = 0
     if n:find("gold") or n:find("ذهبي") then score = score + 1 end
     if n:find("rare") or n:find("نادر") then score = score + 1 end
@@ -104,9 +86,7 @@ local function nameScore(name)
     return math.clamp(score / 3, 0, 1)
 end
 
--- =========== مرحلة المسح لبناء خريطة التواتر ===========
 local function buildFingerprint(model)
-    -- بصمة بسيطة: مجموعة meshIds + تقريب للحجم + عدد الأجزاء
     local meshIds = findAnyMeshIds(model)
     table.sort(meshIds)
     local parts, volume = sizeAndComplexity(model)
@@ -114,70 +94,42 @@ local function buildFingerprint(model)
     return key
 end
 
-local function scanWorkspaceForFingerprints()
-    local freq = {}        -- fingerprint -> count
-    local models = {}      -- جدول حفظ المراجع (lists of models per fingerprint)
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") then
-            local fp = buildFingerprint(obj)
-            freq[fp] = (freq[fp] or 0) + 1
-            models[obj] = fp
-        end
-    end
-    return freq, models
-end
+-- أوزان (ممكن تعديل)
+local WEIGHTS = {
+    uniqueness = 0.35,
+    mesh = 0.25,
+    decals = 0.10,
+    material = 0.15,
+    name = 0.15,
+}
 
--- =========== حساب درجة الندرة لكل موديل ===========
 local function computeRarityScore(model, freqMap, modelsMap)
-    -- override سريع
-    local override = OVERRIDES[model.Name]
-    if override then
-        -- نعطي قيمة عالية لو override = "أسطوري"
-        if override == "أسطوري" then return 0.98 end
-        if override == "نادر" then return 0.75 end
-        if override == "غير شائع" then return 0.5 end
-        if override == "شائع" then return 0.2 end
-    end
-
     local fp = modelsMap[model] or buildFingerprint(model)
     local fcount = freqMap[fp] or 1
+    local uniqueness = 1 / fcount
 
-    -- uniqueness score: 1 - normalize(freq)
-    local uniqueness = 1 / fcount -- إذا 1 نسخة => 1.0، إذا 10 نسخ => 0.1
-
-    -- mesh score
     local meshCount = #findAnyMeshIds(model)
-    local meshScore = math.clamp(meshCount / 5, 0, 1) -- أكثر من 5 ميشات يعتبر قوي
+    local meshScore = math.clamp(meshCount / 5, 0, 1)
 
-    -- decals score
     local decCount = countDecalsAndTextures(model)
     local decalScore = math.clamp(decCount / 10, 0, 1)
 
-    -- material/gold score
     local specialMatCount = countSpecialMaterials(model)
     local materialScore = math.clamp(specialMatCount / 5, 0, 1)
-    if hasGoldishColor(model) then
-        materialScore = math.min(1, materialScore + 0.4)
-    end
+    if hasGoldishColor(model) then materialScore = math.min(1, materialScore + 0.4) end
 
-    -- name hint
     local nscore = nameScore(model.Name)
-
-    -- حجم وتعقيد: جزء بسيط (نموذجية)
     local parts, volume = sizeAndComplexity(model)
     local complexityScore = math.clamp(parts / 50, 0, 1)
 
-    -- اجمع كل الإشارات بالأوزان (عدل WEIGHTS إذا تريد)
     local total = 0
     total = total + uniqueness * WEIGHTS.uniqueness
     total = total + meshScore * WEIGHTS.mesh
     total = total + decalScore * WEIGHTS.decals
     total = total + materialScore * WEIGHTS.material
     total = total + nscore * WEIGHTS.name
-    -- نضيف بعض من التعقيد (خفيف)
     total = total + complexityScore * 0.05
 
-    -- نطبع في مجال 0..1
     if total > 1 then total = 1 end
     if total < 0 then total = 0 end
     return total
@@ -190,9 +142,8 @@ local function scoreToLabel(score)
     return "شائع"
 end
 
--- =========== عرض النتيجة على الموديل ===========
+-- ===== إدارة الواجهة (عرض التسمية) =====
 local function showRarityOnModel(model, labelText)
-    -- نضع Billboard على الـ Marker لو موجود، وإلا على الـ primary part
     local markerPart = nil
     for _,v in ipairs(model:GetDescendants()) do
         if isBasePart(v) and v.Name == MARKER_NAME then markerPart = v break end
@@ -200,14 +151,13 @@ local function showRarityOnModel(model, labelText)
     local parentPart = markerPart or primaryPartOrAny(model)
     if not parentPart then return end
 
-    -- نستخدم نفس دالة العرض البسيطة
     local billboard = parentPart:FindFirstChild("RarityLabelGui")
     if not billboard then
         billboard = Instance.new("BillboardGui")
         billboard.Name = "RarityLabelGui"
         billboard.Adornee = parentPart
         billboard.Size = UDim2.new(0,160,0,50)
-        billboard.StudsOffset = Vector3.new(0, parentPart.Size.Y/2 + 1.5, 0)
+        billboard.StudsOffset = Vector3.new(0, parentPart.Size.Y/2 + 1.2, 0)
         billboard.AlwaysOnTop = true
         billboard.Parent = parentPart
 
@@ -224,24 +174,132 @@ local function showRarityOnModel(model, labelText)
     if lbl then lbl.Text = labelText end
 end
 
--- =========== المسح والتقييم الدوري ===========
-local function fullScanAndEvaluate()
-    local freq, modelsMap = scanWorkspaceForFingerprints()
-    for model, fp in pairs(modelsMap) do
-        -- compute rarity
-        local score = computeRarityScore(model, freq, modelsMap)
-        local label = scoreToLabel(score)
-        showRarityOnModel(model, label)
+-- ===== تغيير أي كائن اسمه "common" إلى "كومون" (كبيرة/صغيرة ما يهم) =====
+local function renameCommonsInModel(model)
+    for _,v in ipairs(model:GetDescendants()) do
+        local ok, name = pcall(function() return v.Name end)
+        if ok and tostring(name):lower() == "common" then
+            -- نغيّر اسم العنصر نفسه
+            v.Name = "كومون"
+        end
     end
 end
 
--- أول فحص سريع عند التشغيل
-fullScanAndEvaluate()
+-- ===== بناء خريطة التواتر (كل الموديلات) =====
+local function scanWorkspaceForFingerprints()
+    local freq = {}
+    local modelsMap = {}
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") then
+            local fp = buildFingerprint(obj)
+            freq[fp] = (freq[fp] or 0) + 1
+            modelsMap[obj] = fp
+        end
+    end
+    return freq, modelsMap
+end
 
--- إعادة التقييم دوريًا (بالحجم اللي تختاره)
+-- ===== اكتشاف الحركة: نحتفظ بمواقع سابقة ونقيس التغير =====
+local lastPositions = {} -- model -> Vector3 (آخر موقع لجزء مرجعي)
+local function sampleModelPosition(model)
+    local p = primaryPartOrAny(model)
+    if not p then return nil end
+    return p.Position
+end
+
+local function hasMoved(model)
+    local last = lastPositions[model]
+    local current = sampleModelPosition(model)
+    if not current then return false end
+    if not last then
+        lastPositions[model] = current
+        return false
+    end
+    local dist2 = (current - last).Magnitude
+    lastPositions[model] = current
+    return dist2 > MOVE_THRESHOLD
+end
+
+-- ===== إنشاء Marker لو ما موجود (لا نغيّر لونه) =====
+local function ensureMarker(model)
+    for _,v in ipairs(model:GetDescendants()) do
+        if isBasePart(v) and v.Name == MARKER_NAME then return v end
+    end
+    -- ما موجود، ننشئ واحد بسيط (طول 10)
+    local main = primaryPartOrAny(model)
+    if not main then return nil end
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(1,10,1)
+    part.Color = Color3.fromRGB(128,128,128)
+    part.Material = Enum.Material.Neon
+    part.CanCollide = false
+    part.Anchored = false
+    part.Name = MARKER_NAME
+    part.CFrame = main.CFrame * CFrame.new(0,20,0)
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = part
+    weld.Part1 = main
+    weld.Parent = part
+    part.Parent = model
+    return part
+end
+
+-- ===== العملية الرئيسية =====
+local freqMap, modelsMap = scanWorkspaceForFingerprints()
+
+-- دالة تقوم بفحص حركة الموديلات ثم تقييمها عند الحركة
 task.spawn(function()
     while true do
+        -- كل SCAN_INTERVAL نعيد بناء خريطة التواتر (لأن التكرارات تتغير)
+        freqMap, modelsMap = scanWorkspaceForFingerprints()
+
+        -- نمشي على كل الموديلات (بسرعة) لكن نقيّم فقط المتحركة
+        for _, model in ipairs(Workspace:GetDescendants()) do
+            if model:IsA("Model") then
+                -- أولًا: لو في أي عنصر اسمه "common" نغيره إلى "كومون"
+                renameCommonsInModel(model)
+
+                -- نتأكد أن عنده جزء مرجعي
+                local main = primaryPartOrAny(model)
+                if not main then
+                    -- نخزن nil ونكمل
+                else
+                    -- لو تحرّك الموديل منذ آخر فحص نقيّمه
+                    if hasMoved(model) then
+                        -- نضمن وجود ماركر
+                        local marker = ensureMarker(model)
+                        -- نحسب ندرته ونظهر النتيجة
+                        local score = computeRarityScore(model, freqMap, modelsMap)
+                        local label = scoreToLabel(score)
+                        showRarityOnModel(model, label)
+                    end
+                end
+            end
+        end
+
         task.wait(SCAN_INTERVAL)
-        fullScanAndEvaluate()
+    end
+end)
+
+-- نراقب إضافات جديدة بسرعة ونسجّل مواقعها
+Workspace.DescendantAdded:Connect(function(obj)
+    if obj:IsA("Model") then
+        -- فور الإضافة نهيئ آخر موقع لو فيه BasePart
+        local p = primaryPartOrAny(obj)
+        if p then lastPositions[obj] = p.Position end
+    elseif isBasePart(obj) and obj.Name == MARKER_NAME then
+        -- لو حد أضاف Marker يدويًا نسجيله
+    end
+end)
+
+-- تنظيف جداول كل فترة (يحذف مراجع الموديلات المحذوفة)
+task.spawn(function()
+    while true do
+        local toremove = {}
+        for m,_ in pairs(lastPositions) do
+            if not m.Parent then toremove[#toremove+1] = m end
+        end
+        for _,m in ipairs(toremove) do lastPositions[m] = nil end
+        task.wait(60)
     end
 end)
