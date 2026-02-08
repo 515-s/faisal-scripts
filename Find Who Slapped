@@ -1,15 +1,14 @@
 -- LocalScript: ضع داخل StarterPlayerScripts
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-
 local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+local camera = workspace:WaitForChild("CurrentCamera")
 
--- تحكّم بالتمكين (true = يثبت الكاميرا من البداية)
+-- إعداد التفعيل (true = يثبت الكاميرا من البداية)
 local enabled = true
 
--- إنشاء الموديل والبارت (ظاهر أخضر + شريط أبيض)
+-- إنشاء موديل وبارت ظاهر أخضر + شريط أبيض
 local model = Instance.new("Model")
 model.Name = "ForcedCameraModel"
 model.Parent = workspace
@@ -20,8 +19,7 @@ base.Size = Vector3.new(2, 2, 1)
 base.Anchored = true
 base.CanCollide = false
 base.Material = Enum.Material.SmoothPlastic
-base.Color = Color3.fromRGB(0, 180, 0) -- أخضر
-base.Transparency = 0
+base.Color = Color3.fromRGB(0, 180, 0)
 base.Parent = model
 
 local stripe = Instance.new("Part")
@@ -30,8 +28,7 @@ stripe.Size = Vector3.new(2, 0.35, 1)
 stripe.Anchored = true
 stripe.CanCollide = false
 stripe.Material = Enum.Material.SmoothPlastic
-stripe.Color = Color3.fromRGB(255, 255, 255) -- أبيض
-stripe.Transparency = 0
+stripe.Color = Color3.fromRGB(255, 255, 255)
 stripe.Parent = model
 
 -- GUI زر التشغيل/الإيقاف
@@ -62,27 +59,46 @@ updateButtonText()
 button.MouseButton1Click:Connect(function()
 	enabled = not enabled
 	if not enabled then
-		-- ارجع الكاميرا للوضع الطبيعي
-		if camera then
-			pcall(function() camera.CameraType = Enum.CameraType.Custom end)
-		end
+		-- إرجاع الحالة الطبيعية بأدب
+		pcall(function() camera.CameraType = Enum.CameraType.Custom; camera.CameraSubject = player.Character and player.Character:FindFirstChild("Humanoid") or nil end)
 	end
 	updateButtonText()
 end)
 
--- متابعة الشخصية (عند الموت/إعادة الظهور)
+-- دالة تجبر الكاميرا على الوضع المطلوب
+local function forceCamera(partPos, targetPos)
+	-- ضع القيم داخل pcall عشان ما يوقف السكربت لو صار خطأ
+	pcall(function()
+		camera.CameraType = Enum.CameraType.Scriptable
+		camera.CameraSubject = nil
+		camera.CFrame = CFrame.new(partPos, targetPos)
+	end)
+end
+
+-- لو الكاميرا أحدهم يغير خصائصها، نعيدها فورًا
+camera:GetPropertyChangedSignal("CameraType"):Connect(function()
+	if enabled and camera.CameraType ~= Enum.CameraType.Scriptable then
+		camera.CameraType = Enum.CameraType.Scriptable
+	end
+end)
+camera:GetPropertyChangedSignal("CameraSubject"):Connect(function()
+	if enabled and camera.CameraSubject ~= nil then
+		camera.CameraSubject = nil
+	end
+end)
+
+-- تابع الشخصية واحصل على HumanoidRootPart
 local hrp
 local function onCharacterAdded(char)
 	hrp = char:WaitForChild("HumanoidRootPart", 10)
 end
 
-if player.Character then
-	onCharacterAdded(player.Character)
-end
+if player.Character then onCharacterAdded(player.Character) end
 player.CharacterAdded:Connect(onCharacterAdded)
 
--- تحديث كل فريم: وضع البارت + إجبار الكاميرا إذا مفعل
-RunService.RenderStepped:Connect(function()
+-- أهم جزء: BindToRenderStep بالأولوية Last عشان يشتغل بعد بقية السكربتات
+RunService:BindToRenderStep("ForceCameraLast", Enum.RenderPriority.Last.Value, function(dt)
+	if not enabled then return end
 	if not hrp or not hrp.Parent then return end
 
 	local forward = hrp.CFrame.LookVector
@@ -93,13 +109,6 @@ RunService.RenderStepped:Connect(function()
 	local yOffset = (base.Size.Y/2) - (stripe.Size.Y/2)
 	stripe.CFrame = base.CFrame * CFrame.new(0, yOffset, 0)
 
-	if enabled then
-		-- إجبار الكاميرا لتكون من البارت وتطالع اللاعب
-		if camera then
-			camera.CameraType = Enum.CameraType.Scriptable
-			-- تأكد ما فيه Subject يغيرها
-			pcall(function() camera.CameraSubject = nil end)
-			camera.CFrame = CFrame.new(partPos, hrp.Position)
-		end
-	end
+	-- إجبار الكاميرا
+	forceCamera(partPos, hrp.Position)
 end)
