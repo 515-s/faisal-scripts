@@ -1,119 +1,245 @@
---// Services
+-- مراقب ذكي لألوان بارتات "Marker" (لا يغيّر البارت نفسه أبداً)
+local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
 
---// نسخ الاسم
+-- نسخ الاسم (لو متاح)
 local function copy(text)
-	if setclipboard then setclipboard(text) end
+    if setclipboard then
+        setclipboard(text)
+    end
 end
 
---// دالة تعرف اللون بالعربي أو Gold/Rainbow
-local function colorNameFromColor3(color, part)
-	-- Gold تقريبا: R=1, G>0.8, B<0.2
-	if color.R > 0.9 and color.G > 0.7 and color.B < 0.3 then
-		return "ذهبي"
-	end
-	-- Rainbow: نقدر نفحص اذا Material = Neons وتغير مستمر (تقريب)
-	if part:FindFirstChildWhichIsA("ColorSequence") or part.Material == Enum.Material.Neon then
-		return "متعدد"
-	end
-
-	-- نحسب لو رمادي
-	local r,g,b = color.R, color.G, color.B
-	local maxDiff = math.max(math.abs(r-g), math.abs(r-b), math.abs(g-b))
-	if maxDiff < 0.05 then
-		if r < 0.1 then return "أسود"
-		elseif r > 0.9 then return "أبيض"
-		else return "رمادي" end
-	end
-
-	-- باقي الألوان بالتقريب
-	if r > g and r > b then return "أحمر"
-	elseif g > r and g > b then return "أخضر"
-	elseif b > r and b > g then return "أزرق"
-	elseif r > 0.8 and g > 0.8 and b < 0.3 then return "أصفر"
-	else return "غير معروف"
-	end
+-- تحويل RGB -> HSV
+local function rgbToHsv(r,g,b)
+    local maxv = math.max(r,g,b)
+    local minv = math.min(r,g,b)
+    local v = maxv
+    local d = maxv - minv
+    local s = 0
+    if maxv > 0 then s = d / maxv end
+    local h = 0
+    if d == 0 then
+        h = 0
+    else
+        if maxv == r then
+            h = (g - b) / d
+            if g < b then h = h + 6 end
+        elseif maxv == g then
+            h = (b - r) / d + 2
+        else
+            h = (r - g) / d + 4
+        end
+        h = h / 6
+    end
+    return h, s, v
 end
 
---// إنشاء نص فوق البارت
+-- مسافة ألوان (مربع المسافة في RGB)
+local function colorDist2(a,b)
+    local dr = a.R - b.R
+    local dg = a.G - b.G
+    local db = a.B - b.B
+    return dr*dr + dg*dg + db*db
+end
+
+-- نأخذ عينات سريعة من لون البارت لنعرف إذا فيه تغيير ديناميكي (rainbow)
+local function isRainbow(part, samples, delay, varianceThreshold)
+    samples = samples or 6
+    delay = delay or 0.05
+    varianceThreshold = varianceThreshold or 0.0025 -- حساس
+    local first = part.Color
+    local sumR, sumG, sumB = first.R, first.G, first.B
+    local vals = {{first.R, first.G, first.B}}
+    for i=2, samples do
+        task.wait(delay)
+        if not part.Parent then return false end
+        local c = part.Color
+        table.insert(vals, {c.R, c.G, c.B})
+        sumR = sumR + c.R
+        sumG = sumG + c.G
+        sumB = sumB + c.B
+    end
+    -- حساب التباين العام (متوسط مربع الفرق)
+    local meanR, meanG, meanB = sumR/samples, sumG/samples, sumB/samples
+    local var = 0
+    for _,v in ipairs(vals) do
+        local dr = v[1] - meanR
+        local dg = v[2] - meanG
+        local db = v[3] - meanB
+        var = var + (dr*dr + dg*dg + db*db)
+    end
+    var = var / samples
+    return var > varianceThreshold
+end
+
+-- تحويل لون إلى اسم عربي دقيق أكثر (مع التمييز الرمادي والذهبي)
+local function colorNameFromColor3(color)
+    local r,g,b = color.R, color.G, color.B
+    -- رمادي: R,G,B متقاربة
+    local maxDiff = math.max(math.abs(r-g), math.abs(r-b), math.abs(g-b))
+    if maxDiff < 0.035 then
+        if r < 0.08 then return "أسود" end
+        if r > 0.92 then return "أبيض" end
+        return "رمادي"
+    end
+
+    -- ذهبي تقريبياً: أحمر قوي وأخضر قوي نسبياً و أزرق قليل
+    if r > 0.85 and g > 0.6 and b < 0.4 then
+        return "ذهبي"
+    end
+
+    -- استخدم HSV لتحديد اللون الأساسي بدقة أكثر
+    local h,s,v = rgbToHsv(r,g,b)
+    h = h * 360 -- درجات
+    -- الأحمر (قريب من 0 أو 360)
+    if (h < 20 or h > 340) and s > 0.25 then return "أحمر" end
+    if h >= 20 and h < 70 and s > 0.25 then return "أصفر" end
+    if h >= 70 and h < 170 and s > 0.25 then return "أخضر" end
+    if h >= 170 and h < 260 and s > 0.25 then return "أزرق" end
+    if s < 0.25 and v > 0.92 then return "أبيض" end
+
+    return "غير معروف"
+end
+
+-- إنشاء/تحديث Billboard (النص كبير)
 local function setLabelOnPart(part, text)
-	if not part or not part.Parent then return end
-	local billboard = part:FindFirstChild("ColorLabelGui")
-	if not billboard then
-		billboard = Instance.new("BillboardGui")
-		billboard.Name = "ColorLabelGui"
-		billboard.Adornee = part
-		billboard.Size = UDim2.new(0,150,0,50)
-		billboard.StudsOffset = Vector3.new(0, part.Size.Y/2 + 2, 0)
-		billboard.AlwaysOnTop = true
-		billboard.Parent = part
+    if not part or not part.Parent then return end
+    local billboard = part:FindFirstChild("ColorLabelGui")
+    if not billboard then
+        billboard = Instance.new("BillboardGui")
+        billboard.Name = "ColorLabelGui"
+        billboard.Adornee = part
+        billboard.Size = UDim2.new(0,180,0,60)
+        billboard.StudsOffset = Vector3.new(0, part.Size.Y/2 + 1.5, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = part
 
-		local label = Instance.new("TextLabel")
-		label.Name = "ColorLabel"
-		label.Size = UDim2.new(1,0,1,0)
-		label.BackgroundTransparency = 1
-		label.TextColor3 = Color3.fromRGB(255,255,255)
-		label.TextScaled = true
-		label.Font = Enum.Font.SourceSansBold
-		label.Parent = billboard
-	end
-
-	local lbl = billboard:FindFirstChild("ColorLabel")
-	if lbl then lbl.Text = text end
+        local label = Instance.new("TextLabel")
+        label.Name = "ColorLabel"
+        label.Size = UDim2.new(1,0,1,0)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.fromRGB(255,255,255)
+        label.TextScaled = true
+        label.Font = Enum.Font.SourceSansBold
+        label.Parent = billboard
+    end
+    local lbl = billboard:FindFirstChild("ColorLabel")
+    if lbl then lbl.Text = text end
 end
 
---// إنشاء البارت
+-- إنشاء الـ Marker (لا نلمس لون البارت)
 local function createMarker(model)
-	local main = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-	if not main then return nil end
+    local main = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+    if not main then return nil end
 
-	local part = Instance.new("Part")
-	part.Size = Vector3.new(1,10,1) -- طول البارت 10
-	part.Color = Color3.fromRGB(128,128,128) -- لا يتلون
-	part.Material = Enum.Material.Neon
-	part.CanCollide = false
-	part.Anchored = false
-	part.Name = "Marker"
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(1,10,1) -- طول 10
+    part.Color = Color3.fromRGB(128,128,128) -- بداية محايدة (لكن السكربت لا يغيّره لاحقاً)
+    part.Material = Enum.Material.Neon
+    part.CanCollide = false
+    part.Anchored = false
+    part.Name = "Marker"
 
-	part.CFrame = main.CFrame * CFrame.new(0,20,0)
+    part.CFrame = main.CFrame * CFrame.new(0, 20, 0)
 
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = part
-	weld.Part1 = main
-	weld.Parent = part
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = part
+    weld.Part1 = main
+    weld.Parent = part
 
-	local click = Instance.new("ClickDetector", part)
-	click.MaxActivationDistance = 50
-	click.MouseClick:Connect(function() copy(model.Name) end)
+    local click = Instance.new("ClickDetector", part)
+    click.MaxActivationDistance = 50
+    click.MouseClick:Connect(function() copy(model.Name) end)
 
-	part.Parent = model
-	return part
+    part.Parent = model
+    return part
 end
 
---// فحص الموديلات وإنشاء البارت
-local added = {}
-local markers = {}
+-- جدول تتبع
+local tracked = {} -- part -> {lastLabel = "", lastColor = Color3, lastUpdate = time}
 
-local function check(obj)
-	if obj:IsA("Model") and #obj.Name > 20 and not added[obj] then
-		added[obj] = true
-		local part = createMarker(obj)
-		if part then table.insert(markers, part) end
-	end
+-- نضيف Marker الموجودين مسبقاً
+for _, obj in ipairs(Workspace:GetDescendants()) do
+    if obj:IsA("Model") and #obj.Name > 20 then
+        local ok = false
+        -- لو الموديل فيه Marker مسبقًا لا نضيف ثاني (تفادي التكرار)
+        for _,c in ipairs(obj:GetDescendants()) do
+            if c:IsA("BasePart") and c.Name == "Marker" then
+                if not tracked[c] then
+                    tracked[c] = { lastLabel = "", lastColor = c.Color, lastUpdate = tick() }
+                end
+                ok = true
+                break
+            end
+        end
+        if not ok then
+            local p = createMarker(obj)
+            if p then tracked[p] = { lastLabel = "", lastColor = p.Color, lastUpdate = tick() } end
+        end
+    end
 end
 
-for _,v in ipairs(Workspace:GetDescendants()) do check(v) end
-Workspace.DescendantAdded:Connect(check)
+-- تتابع إضافات جديدة
+Workspace.DescendantAdded:Connect(function(obj)
+    if obj:IsA("Model") and #obj.Name > 20 then
+        -- تأكد ما في Marker أصلاً ثم نضيف
+        task.delay(0.1, function()
+            if not obj.Parent then return end
+            for _,c in ipairs(obj:GetDescendants()) do
+                if c:IsA("BasePart") and c.Name == "Marker" then
+                    if not tracked[c] then tracked[c] = { lastLabel = "", lastColor = c.Color, lastUpdate = tick() } end
+                    return
+                end
+            end
+            local p = createMarker(obj)
+            if p then tracked[p] = { lastLabel = "", lastColor = p.Color, lastUpdate = tick() } end
+        end)
+    elseif obj:IsA("BasePart") and obj.Name == "Marker" then
+        if not tracked[obj] then tracked[obj] = { lastLabel = "", lastColor = obj.Color, lastUpdate = tick() } end
+    end
+end)
 
---// مراقبة لون البارت كل ثانية
-spawn(function()
-	while true do
-		for _, part in ipairs(markers) do
-			if part and part.Parent then
-				local name = colorNameFromColor3(part.Color, part)
-				setLabelOnPart(part, name)
-			end
-		end
-		wait(1)
-	end
+-- تنظيف أجزاء محذوفة
+local function cleanup()
+    for part, _ in pairs(tracked) do
+        if not part.Parent then tracked[part] = nil end
+    end
+end
+
+-- الحلقة الرئيسية: تفحص كل ثانية، يكشف Rainbow عبر عينات قصيرة
+task.spawn(function()
+    while true do
+        cleanup()
+        for part, data in pairs(tracked) do
+            if part.Parent then
+                local current = part.Color
+                -- كشف Rainbow بأخذ عينات سريعة (لا يتغير لون البارت هنا، نقرأ فقط)
+                local is_rainbow = false
+                -- نجرب أخذ عينات فقط لو يبدو أن اللون يتغير عن اللون المخزن (لأداء أفضل)
+                if colorDist2(current, data.lastColor) > (0.001) then
+                    -- نأخذ عينات قصيرة لنتأكد هل التغيير مستمر ومتذبذب
+                    is_rainbow = isRainbow(part, 6, 0.04, 0.0025)
+                end
+
+                local label = nil
+                if is_rainbow then
+                    label = "متعدد"
+                else
+                    label = colorNameFromColor3(current)
+                end
+
+                -- نكتب النص فقط لو اختلف عن النص السابق
+                if label ~= data.lastLabel then
+                    setLabelOnPart(part, label)
+                    data.lastLabel = label
+                end
+
+                data.lastColor = current
+                data.lastUpdate = tick()
+            end
+        end
+        task.wait(1)
+    end
 end)
