@@ -10,50 +10,28 @@ local function copy(text)
 	end
 end
 
---// إيجاد أكثر لون متكرر داخل الموديل
-local function mostFrequentColor(model)
-	local count = {}
-	for _, part in ipairs(model:GetDescendants()) do
-		if part:IsA("BasePart") then
-			local key = string.format("%d,%d,%d", part.Color.R*255, part.Color.G*255, part.Color.B*255)
-			count[key] = (count[key] or 0) + 1
-		end
-	end
-	local maxCount = 0
-	local mostColor = Color3.fromRGB(128,128,128)
-	for k, v in pairs(count) do
-		if v > maxCount then
-			maxCount = v
-			local r,g,b = k:match("(%d+),(%d+),(%d+)")
-			mostColor = Color3.fromRGB(tonumber(r), tonumber(g), tonumber(b))
-		end
-	end
-	return mostColor
-end
-
---// إنشاء بارت طويل فوق الموديل
+--// بارت طويل + ضغط = نسخ الاسم
 local function createMarker(model)
 	local main = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
 	if not main then return end
 
 	local part = Instance.new("Part")
-	part.Size = Vector3.new(1,30,1)
+	part.Size = Vector3.new(1, 30, 1) -- عمود طويل
+	part.Color = Color3.fromRGB(255,0,0)
 	part.Material = Enum.Material.Neon
 	part.CanCollide = false
 	part.Anchored = false
 	part.Name = "Marker"
-	part.CFrame = main.CFrame * CFrame.new(0,20,0)
 
-	-- لون البارت حسب أكثر لون متكرر داخل الموديل
-	part.Color = mostFrequentColor(model)
+	part.CFrame = main.CFrame * CFrame.new(0, 20, 0)
 
-	-- ربط البارت بالموديل
+	-- ربط مع الموديل عشان يتحرك معه
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = part
 	weld.Part1 = main
 	weld.Parent = part
 
-	-- ضغط لنسخ الاسم
+	-- كشف الضغط لنسخ الاسم
 	local click = Instance.new("ClickDetector", part)
 	click.MaxActivationDistance = 50
 	click.MouseClick:Connect(function()
@@ -63,19 +41,16 @@ local function createMarker(model)
 	part.Parent = model
 end
 
---// فحص كل الموديلات
+--// فحص الموديلات
 local added = {}
 local function check(obj)
-	if obj:IsA("Model") and not added[obj] then
+	if obj:IsA("Model") and #obj.Name > 20 and not added[obj] then
 		added[obj] = true
-		local nameLower = obj.Name:lower()
-		if nameLower:find("gold") or nameLower:find("common") then
-			createMarker(obj)
-		end
+		createMarker(obj)
 	end
 end
 
--- فحص كل Workspace أولًا
+-- فحص كل الموديلات الموجودة
 for _,v in ipairs(workspace:GetDescendants()) do
 	check(v)
 end
