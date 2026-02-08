@@ -1,60 +1,71 @@
--- LocalScript
-
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+
+-------------------------------------------------
+-- حفظ الموقع
+-------------------------------------------------
+
+local savedPos = UDim2.new(0.75,0,0.8,0) -- مكان افتراضي أول مرة
 
 -------------------------------------------------
 -- GUI
 -------------------------------------------------
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "TouchProfileGUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,200,0,80)
-frame.Position = UDim2.new(0.5,-100,0.75,0)
+frame.Size = UDim2.fromOffset(140,55) -- أصغر
+frame.Position = savedPos
 frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.Active = true
+frame.Draggable = true -- <<< يخليه ينمسك وينسحب
 frame.Visible = false
 frame.Parent = gui
 
-local corner = Instance.new("UICorner", frame)
+Instance.new("UICorner", frame)
+
+-- احفظ المكان بعد كل تحريك
+frame:GetPropertyChangedSignal("Position"):Connect(function()
+	savedPos = frame.Position
+end)
 
 local image = Instance.new("ImageLabel")
-image.Size = UDim2.new(0,70,0,70)
-image.Position = UDim2.new(0,5,0,5)
+image.Size = UDim2.fromOffset(45,45)
+image.Position = UDim2.fromOffset(5,5)
 image.BackgroundTransparency = 1
 image.Parent = frame
 
-local nameLabel = Instance.new("TextLabel")
-nameLabel.Size = UDim2.new(1,-80,1,0)
-nameLabel.Position = UDim2.new(0,80,0,0)
-nameLabel.BackgroundTransparency = 1
-nameLabel.TextColor3 = Color3.new(1,1,1)
-nameLabel.TextScaled = true
-nameLabel.Font = Enum.Font.SourceSansBold
-nameLabel.Parent = frame
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(1,-55,1,0)
+label.Position = UDim2.fromOffset(55,0)
+label.BackgroundTransparency = 1
+label.TextColor3 = Color3.new(1,1,1)
+label.TextScaled = true
+label.Font = Enum.Font.SourceSansBold
+label.Parent = frame
 
 -------------------------------------------------
--- دالة إظهار البروفايل 3 ثواني
+-- عرض البروفايل
 -------------------------------------------------
 
 local showing = false
 
-local function showProfile(targetPlayer)
+local function showProfile(plr)
 	if showing then return end
 	showing = true
 
-	nameLabel.Text = targetPlayer.Name
+	label.Text = plr.Name
 
-	local thumb, _ = Players:GetUserThumbnailAsync(
-		targetPlayer.UserId,
+	local img = Players:GetUserThumbnailAsync(
+		plr.UserId,
 		Enum.ThumbnailType.HeadShot,
 		Enum.ThumbnailSize.Size180x180
 	)
 
-	image.Image = thumb
+	image.Image = img
+	frame.Position = savedPos
 	frame.Visible = true
 
 	task.wait(3)
@@ -64,19 +75,18 @@ local function showProfile(targetPlayer)
 end
 
 -------------------------------------------------
--- تتبع آخر لاعب لمسنا
+-- تتبع اللمس
 -------------------------------------------------
 
 local function hookCharacter(char)
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
 	hrp.Touched:Connect(function(hit)
-		local otherChar = hit:FindFirstAncestorOfClass("Model")
-		if not otherChar then return end
+		local model = hit:FindFirstAncestorOfClass("Model")
+		local other = model and Players:GetPlayerFromCharacter(model)
 
-		local otherPlayer = Players:GetPlayerFromCharacter(otherChar)
-		if otherPlayer and otherPlayer ~= player then
-			showProfile(otherPlayer)
+		if other and other ~= player then
+			showProfile(other)
 		end
 	end)
 end
@@ -84,5 +94,4 @@ end
 if player.Character then
 	hookCharacter(player.Character)
 end
-
 player.CharacterAdded:Connect(hookCharacter)
