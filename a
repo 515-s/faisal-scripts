@@ -1,98 +1,69 @@
+--// Services
 local Workspace = game:GetService("Workspace")
-local task = task
 
-local FIND_NAME = "common"
-local RENAMED = "كومون"
-local MARKER_TEXT = "كومون"
-local GREEN = Color3.fromRGB(0,255,0)
-local NEON_MATERIAL = Enum.Material.Neon
+-- حجم مربعات العرض
+local BOX_SIZE = Vector3.new(2,2,2)
+local GAP = 0.3
+local HEIGHT_OFFSET = 5
 
-local function createBillboardOnPart(part, text)
-    if not part or not part.Parent then return end
-    local gui = part:FindFirstChild("CommonLabelGui")
-    if not gui then
-        gui = Instance.new("BillboardGui")
-        gui.Name = "CommonLabelGui"
-        gui.Adornee = part
-        gui.Size = UDim2.new(0,140,0,50)
-        gui.StudsOffset = Vector3.new(0, part.Size.Y/2 + 1.5, 0)
-        gui.AlwaysOnTop = true
-        gui.Parent = part
+-- دالة تجيب كل الألوان بدون تكرار
+local function getColors(model)
+	local colors = {}
 
-        local label = Instance.new("TextLabel")
-        label.Name = "Label"
-        label.Size = UDim2.new(1,0,1,0)
-        label.BackgroundTransparency = 1
-        label.TextScaled = true
-        label.TextColor3 = Color3.fromRGB(255,255,255)
-        label.Font = Enum.Font.SourceSansBold
-        label.Text = text
-        label.Parent = gui
-    else
-        local label = gui:FindFirstChild("Label")
-        if label then label.Text = text end
-    end
+	for _, obj in ipairs(model:GetDescendants()) do
+		if obj:IsA("BasePart") then
+			local c = obj.Color
+			local key = tostring(c)
+
+			if not colors[key] then
+				colors[key] = c
+			end
+		end
+	end
+
+	return colors
 end
 
-local function colorObject(obj)
-    if obj:IsA("BasePart") then
-        obj.Color = GREEN
-        obj.Material = NEON_MATERIAL
-    elseif obj:IsA("Model") then
-        for _,v in ipairs(obj:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.Color = GREEN
-                v.Material = NEON_MATERIAL
-            end
-        end
-    end
+-- دالة تنشئ مربعات فوق الموديل
+local function showColors(model)
+	if not model.PrimaryPart then return end
+
+	local colors = getColors(model)
+
+	local list = {}
+	for _, c in pairs(colors) do
+		table.insert(list, c)
+	end
+
+	-- ترتيب حسب السطوع (شكل أجمل)
+	table.sort(list, function(a,b)
+		return (a.R + a.G + a.B) < (b.R + b.G + b.B)
+	end)
+
+	local basePos = model.PrimaryPart.Position
+	local startX = -(#list/2) * (BOX_SIZE.X + GAP)
+
+	for i, color in ipairs(list) do
+		local part = Instance.new("Part")
+		part.Size = BOX_SIZE
+		part.Anchored = true
+		part.CanCollide = false
+		part.Color = color
+		part.Name = "ColorPreview"
+		part.Parent = model
+
+		part.Position =
+			basePos +
+			Vector3.new(startX + (i*(BOX_SIZE.X+GAP)), HEIGHT_OFFSET, 0)
+	end
 end
 
-local function primaryPartOrAny(obj)
-    if obj:IsA("Model") then
-        if obj.PrimaryPart then return obj.PrimaryPart end
-        for _,v in ipairs(obj:GetDescendants()) do
-            if v:IsA("BasePart") then return v end
-        end
-        return nil
-    elseif obj:IsA("BasePart") then
-        return obj
-    else
-        return nil
-    end
+-- فحص كل الموديلات
+for _, obj in ipairs(Workspace:GetDescendants()) do
+	if obj:IsA("Model") then
+		-- يعتبر متحرك إذا فيه Humanoid أو PrimaryPart
+		if obj:FindFirstChildOfClass("Humanoid") or obj.PrimaryPart then
+			showColors(obj)
+		end
+	end
 end
-
-local function scanForCommon()
-    local found = false
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        local ok, name = pcall(function() return tostring(obj.Name) end)
-        if ok and name:lower() == FIND_NAME:lower() then
-            found = true
-            pcall(function() obj.Name = RENAMED end)
-            pcall(function() colorObject(obj) end)
-
-            local partRef = primaryPartOrAny(obj)
-            -- إذا ما في BasePart، نعمل Part مؤقت صغير
-            if not partRef then
-                partRef = Instance.new("Part")
-                partRef.Size = Vector3.new(1,1,1)
-                partRef.Anchored = true
-                partRef.CanCollide = false
-                partRef.CFrame = CFrame.new(Vector3.new(0,50,0)) -- بعيد عن الأرض
-                partRef.Parent = Workspace
-            end
-            createBillboardOnPart(partRef, MARKER_TEXT)
-        end
-    end
-    if not found then
-        -- لو ما لقى شيء نقدر نعرض رسالة
-        print("غير موجود")
-    end
-end
-
-task.spawn(function()
-    while true do
-        pcall(scanForCommon)
-        task.wait(0.5)
-    end
-end)
