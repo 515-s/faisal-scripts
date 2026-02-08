@@ -1,127 +1,46 @@
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
--- Container GUI
+local player = Players.LocalPlayer
+
+-- ScreenGui للعرض
 local gui = Instance.new("ScreenGui")
-gui.Name = "DragDetector"
+gui.Name = "MousePosDisplay"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- المربع الأسود القابل للسحب
-local frame = Instance.new("Frame")
-frame.Size = UDim2.fromOffset(250,400)
-frame.Position = UDim2.fromScale(0.1,0.1)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.Active = true
-frame.Draggable = true
-frame.Parent = gui
+-- TextLabel جنب الماوس
+local label = Instance.new("TextLabel")
+label.Size = UDim2.fromOffset(120, 25)
+label.BackgroundColor3 = Color3.fromRGB(0,0,0)
+label.BackgroundTransparency = 0.5
+label.TextColor3 = Color3.new(1,1,1)
+label.Font = Enum.Font.SourceSansBold
+label.TextScaled = true
+label.Text = "X:0 Y:0"
+label.ZIndex = 999
+label.Parent = gui
 
-local corner = Instance.new("UICorner", frame)
-
--- عنوان المربع
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1,0,0,30)
-title.BackgroundTransparency = 1
-title.Text = "GUI Detector"
-title.TextColor3 = Color3.fromRGB(255,255,255)
-title.Font = Enum.Font.SourceSansBold
-title.TextScaled = true
-title.Parent = frame
-
--- Scrollable List
-local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1,-10,1,-40)
-scroll.Position = UDim2.fromOffset(5,35)
-scroll.BackgroundTransparency = 0.2
-scroll.BackgroundColor3 = Color3.fromRGB(10,10,10)
-scroll.CanvasSize = UDim2.new(0,0,0,0)
-scroll.ScrollBarThickness = 6
-scroll.Parent = frame
-
-local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0,4)
-layout.Parent = scroll
-
--- دالة لإضافة عنصر في القائمة مع زر نسخ
-local function addItem(name)
-	-- تحقق إذا الاسم موجود مسبقًا
-	for _,v in ipairs(scroll:GetChildren()) do
-		if v:IsA("Frame") and v.Name == name then return end
-	end
-
-	local container = Instance.new("Frame")
-	container.Size = UDim2.new(1,0,0,28)
-	container.BackgroundTransparency = 0.3
-	container.BackgroundColor3 = Color3.fromRGB(40,40,40)
-	container.Name = name
-	container.Parent = scroll
-
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(0.7,0,1,0)
-	label.Position = UDim2.new(0,0,0,0)
-	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.new(1,1,1)
-	label.Text = name
-	label.TextScaled = true
-	label.Font = Enum.Font.SourceSans
-	label.Parent = container
-
-	local copyBtn = Instance.new("TextButton")
-	copyBtn.Size = UDim2.new(0.3,0,1,0)
-	copyBtn.Position = UDim2.new(0.7,0,0,0)
-	copyBtn.Text = "Copy"
-	copyBtn.TextScaled = true
-	copyBtn.Font = Enum.Font.SourceSansBold
-	copyBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
-	copyBtn.TextColor3 = Color3.new(1,1,1)
-	copyBtn.Parent = container
-
-	copyBtn.MouseButton1Click:Connect(function()
-		if setclipboard then
-			setclipboard(name)
-		end
-		copyBtn.Text = "Copied ✓"
-		task.wait(0.7)
-		copyBtn.Text = "Copy"
-	end)
-
-	scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
-end
-
--- دالة للكشف عن GUI تحت المربع داخل المسار المحدد
-local function detectGui()
+-- تحديث موقع النص مع الماوس
+RunService.RenderStepped:Connect(function()
 	local mousePos = UserInputService:GetMouseLocation()
-	local targetParent = player.PlayerGui:FindFirstChild("Frames")
-	if not targetParent then return end
-	targetParent = targetParent:FindFirstChild("CenterSide")
-	if not targetParent then return end
-
-	for _, guiObject in ipairs(targetParent:GetDescendants()) do
-		if guiObject:IsA("GuiObject") and guiObject.Visible and guiObject.AbsoluteSize.X>0 and guiObject.AbsoluteSize.Y>0 then
-			local pos = guiObject.AbsolutePosition
-			local size = guiObject.AbsoluteSize
-			if mousePos.X >= pos.X and mousePos.X <= pos.X+size.X and
-			   mousePos.Y >= pos.Y and mousePos.Y <= pos.Y+size.Y then
-				addItem(guiObject:GetFullName())
-				break
-			end
-		end
-	end
-end
-
--- تحقق عند تحريك المربع
-local dragging = false
-
-frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-	end
+	label.Position = UDim2.fromOffset(mousePos.X + 15, mousePos.Y + 15) -- تحرك النص جنب الماوس
+	label.Text = "X:"..math.floor(mousePos.X).." Y:"..math.floor(mousePos.Y)
 end)
 
-frame.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-		detectGui()
+-- نسخ الإحداثيات عند الضغط على حرف T
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.T then
+		local coords = label.Text
+		if setclipboard then
+			setclipboard(coords)
+		end
+		label.Text = coords.." Copied ✓"
+		task.wait(0.5)
+		-- ارجع للنص العادي
+		local mousePos = UserInputService:GetMouseLocation()
+		label.Text = "X:"..math.floor(mousePos.X).." Y:"..math.floor(mousePos.Y)
 	end
 end)
