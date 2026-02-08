@@ -1,60 +1,117 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 
--- ScreenGui overlay
-local overlayGui = Instance.new("ScreenGui")
-overlayGui.Name = "GUIOverlayDebugger"
-overlayGui.ResetOnSpawn = false
-overlayGui.Parent = player:WaitForChild("PlayerGui")
+-- GUI Container
+local gui = Instance.new("ScreenGui")
+gui.Name = "DragDetectGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
-local function createOverlayLabel(guiObject)
-	if not guiObject:IsA("GuiObject") then return end
-	if guiObject == overlayGui then return end
+-- المربع الأسود القابل للسحب
+local frame = Instance.new("Frame")
+frame.Size = UDim2.fromOffset(250, 400)
+frame.Position = UDim2.fromScale(0.1,0.1)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
 
-	-- نص Label
+local corner = Instance.new("UICorner", frame)
+
+-- عنوان المربع
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,30)
+title.BackgroundTransparency = 1
+title.Text = "GUI Detector"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Font = Enum.Font.SourceSansBold
+title.TextScaled = true
+title.Parent = frame
+
+-- Scrollable List
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1,-10,1,-40)
+scroll.Position = UDim2.fromOffset(5,35)
+scroll.BackgroundTransparency = 0.2
+scroll.BackgroundColor3 = Color3.fromRGB(10,10,10)
+scroll.CanvasSize = UDim2.new(0,0,0,0)
+scroll.ScrollBarThickness = 6
+scroll.Parent = frame
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0,4)
+layout.Parent = scroll
+
+-- دالة لإضافة عنصر في القائمة مع زر نسخ
+local function addItem(name)
+	local container = Instance.new("Frame")
+	container.Size = UDim2.new(1,0,0,28)
+	container.BackgroundTransparency = 0.3
+	container.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	container.Parent = scroll
+
 	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0.7,0,1,0)
+	label.Position = UDim2.new(0,0,0,0)
 	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.new(1,1,1) -- أبيض
-	label.TextStrokeColor3 = Color3.new(0,0,0) -- إطار أسود
-	label.TextStrokeTransparency = 0
+	label.TextColor3 = Color3.new(1,1,1)
+	label.Text = name
 	label.TextScaled = true
-	label.Font = Enum.Font.SourceSansBold
-	label.TextXAlignment = Enum.TextXAlignment.Center
-	label.TextYAlignment = Enum.TextYAlignment.Center
-	label.ZIndex = 999
-	label.Parent = overlayGui
+	label.Font = Enum.Font.SourceSans
+	label.Parent = container
 
-	local function update()
-		if not guiObject.Parent then
-			label:Destroy()
-			return
+	local copyBtn = Instance.new("TextButton")
+	copyBtn.Size = UDim2.new(0.3,0,1,0)
+	copyBtn.Position = UDim2.new(0.7,0,0,0)
+	copyBtn.Text = "Copy"
+	copyBtn.TextScaled = true
+	copyBtn.Font = Enum.Font.SourceSansBold
+	copyBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	copyBtn.TextColor3 = Color3.new(1,1,1)
+	copyBtn.Parent = container
+
+	copyBtn.MouseButton1Click:Connect(function()
+		if setclipboard then
+			setclipboard(name)
 		end
-		if guiObject.Visible and guiObject.AbsoluteSize.X > 0 and guiObject.AbsoluteSize.Y > 0 then
-			label.Position = UDim2.fromOffset(guiObject.AbsolutePosition.X, guiObject.AbsolutePosition.Y)
-			label.Size = UDim2.fromOffset(guiObject.AbsoluteSize.X, 18)
-			label.Text = guiObject:GetFullName()
-			label.Visible = true
-		else
-			label.Visible = false
+		copyBtn.Text = "Copied ✓"
+		task.wait(0.7)
+		copyBtn.Text = "Copy"
+	end)
+
+	-- تحديث CanvasSize
+	scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
+end
+
+-- دالة للكشف عن GUI تحت المربع
+local function detectGui()
+	local mousePos = UserInputService:GetMouseLocation()
+	for _, guiObject in ipairs(player.PlayerGui:GetDescendants()) do
+		if guiObject:IsA("GuiObject") and guiObject.Visible and guiObject.AbsoluteSize.X>0 and guiObject.AbsoluteSize.Y>0 then
+			local pos = guiObject.AbsolutePosition
+			local size = guiObject.AbsoluteSize
+			if mousePos.X >= pos.X and mousePos.X <= pos.X+size.X and
+			   mousePos.Y >= pos.Y and mousePos.Y <= pos.Y+size.Y then
+				addItem(guiObject:GetFullName())
+				break
+			end
 		end
 	end
-
-	-- حدث للتحديث المستمر
-	guiObject:GetPropertyChangedSignal("AbsolutePosition"):Connect(update)
-	guiObject:GetPropertyChangedSignal("AbsoluteSize"):Connect(update)
-	guiObject:GetPropertyChangedSignal("Visible"):Connect(update)
-
-	-- تحديث أول مرة
-	update()
 end
 
--- كل العناصر الحالية
-for _,v in ipairs(player.PlayerGui:GetDescendants()) do
-	createOverlayLabel(v)
-end
+-- تحقق عند تحريك المربع
+local dragging = false
 
--- العناصر الجديدة
-player.PlayerGui.DescendantAdded:Connect(function(v)
-	task.wait(0.05)
-	createOverlayLabel(v)
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+	end
+end)
+
+frame.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+		detectGui() -- تحقق عند إفلات المربع
+	end
 end)
