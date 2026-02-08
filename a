@@ -1,29 +1,23 @@
---// Services
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local workspace = game:GetService("Workspace")
-
---// نسخ الاسم
-local function copy(text)
-    if setclipboard then
-        setclipboard(text)
-    end
-end
-
---// يضيف البارت الأحمر مع نص Rare فوق الحيوان
 local function createMarker(model)
     local main = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
     if not main then return end
 
-    -- البارت الأحمر الطويل
     local part = Instance.new("Part")
     part.Size = Vector3.new(1,30,1)
-    part.Color = Color3.fromRGB(255,0,0)
     part.Material = Enum.Material.Neon
     part.CanCollide = false
     part.Anchored = false
     part.Name = "Marker"
-    part.CFrame = main.CFrame * CFrame.new(0, 20, 0)
+    part.CFrame = main.CFrame * CFrame.new(0,20,0)
+
+    -- يلون البارت حسب نوع الموديل
+    if model.Name == "Gold" then
+        part.Color = Color3.fromRGB(255,255,0) -- أصفر
+    elseif model.Name == "Secret" then
+        part.Color = Color3.fromRGB(0,0,0) -- أسود
+    else
+        part.Color = Color3.fromRGB(255,0,0) -- أحمر
+    end
 
     -- يربطه بالموديل
     local weld = Instance.new("WeldConstraint")
@@ -31,42 +25,5 @@ local function createMarker(model)
     weld.Part1 = main
     weld.Parent = part
 
-    -- ClickDetector لنسخ الاسم عند الضغط
-    local click = Instance.new("ClickDetector", part)
-    click.MaxActivationDistance = 50
-    click.MouseClick:Connect(function()
-        copy(model.Name)
-    end)
-
-    -- نص فوق البارت "Rare"
-    local billboard = Instance.new("BillboardGui", part)
-    billboard.Adornee = part
-    billboard.Size = UDim2.new(0,100,0,40)
-    billboard.StudsOffset = Vector3.new(0,35,0)
-    billboard.AlwaysOnTop = true
-
-    local label = Instance.new("TextLabel", billboard)
-    label.Size = UDim2.new(1,0,1,0)
-    label.BackgroundTransparency = 1
-    label.Text = "Rare"
-    label.TextColor3 = Color3.fromRGB(255,255,0)
-    label.TextScaled = true
-    label.Font = Enum.Font.SourceSansBold
-
     part.Parent = workspace
 end
-
---// فحص كل الموديلات في الـ Workspace
-local added = {}
-local function check(obj)
-    if obj:IsA("Model") and #obj.Name > 20 and not added[obj] then
-        added[obj] = true
-        createMarker(obj)
-    end
-end
-
-for _,v in ipairs(workspace:GetDescendants()) do
-    check(v)
-end
-
-workspace.DescendantAdded:Connect(check)
