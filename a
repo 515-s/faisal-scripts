@@ -5,54 +5,86 @@ local workspace = game:GetService("Workspace")
 
 --// نسخ الاسم
 local function copy(text)
-	if setclipboard then
-		setclipboard(text)
-	end
+    if setclipboard then
+        setclipboard(text)
+    end
 end
 
---// بارت طويل + ضغط = نسخ الاسم
+--// دالة لإيجاد اللون الأكثر تكرارًا داخل الموديل
+local function mostFrequentColor(model)
+    local count = {}
+    for _, part in ipairs(model:GetDescendants()) do
+        if part:IsA("BasePart") then
+            local rgb = tostring(part.Color)
+            count[rgb] = (count[rgb] or 0) + 1
+        end
+    end
+    local maxColor, maxCount = nil, 0
+    for color, c in pairs(count) do
+        if c > maxCount then
+            maxColor = color
+            maxCount = c
+        end
+    end
+    if maxColor then
+        local r,g,b = maxColor:match("Color3%.new%(([%d%.]+),([%d%.]+),([%d%.]+)%)")
+        return Color3.new(tonumber(r), tonumber(g), tonumber(b))
+    else
+        return Color3.fromRGB(128,128,128) -- رمادي افتراضي
+    end
+end
+
+--// إنشاء البارت فوق الموديل
 local function createMarker(model)
-	local main = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-	if not main then return end
+    local main = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+    if not main then return end
 
-	local part = Instance.new("Part")
-	part.Size = Vector3.new(1, 30, 1) -- عمود طويل
-	part.Color = Color3.fromRGB(128,128,128) -- رمادي
-	part.Material = Enum.Material.Neon
-	part.CanCollide = false
-	part.Anchored = false
-	part.Name = "Marker"
+    -- البارت الطويل
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(1,30,1)
+    part.Material = Enum.Material.Neon
+    part.CanCollide = false
+    part.Anchored = false
+    part.Name = "Marker"
+    part.CFrame = main.CFrame * CFrame.new(0,20,0)
 
-	part.CFrame = main.CFrame * CFrame.new(0, 20, 0)
+    -- لون البارت حسب أكثر لون داخل الموديل
+    part.Color = mostFrequentColor(model)
 
-	-- ربط مع الموديل عشان يتحرك معه
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = part
-	weld.Part1 = main
-	weld.Parent = part
+    -- ربط البارت بالموديل
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = part
+    weld.Part1 = main
+    weld.Parent = part
 
-	-- كشف الضغط لنسخ الاسم
-	local click = Instance.new("ClickDetector", part)
-	click.MaxActivationDistance = 50
-	click.MouseClick:Connect(function()
-		copy(model.Name)
-	end)
+    -- ضغط لنسخ الاسم
+    local click = Instance.new("ClickDetector", part)
+    click.MaxActivationDistance = 50
+    click.MouseClick:Connect(function()
+        copy(model.Name)
+    end)
 
-	part.Parent = model
+    part.Parent = model
 end
 
---// فحص الموديلات
+--// فحص كل موديلات الـ Workspace
 local added = {}
-
 local function check(obj)
-	if obj:IsA("Model") and #obj.Name > 20 and not added[obj] then
-		added[obj] = true
-		createMarker(obj)
-	end
+    if obj:IsA("Model") and not added[obj] then
+        added[obj] = true
+
+        -- يتحقق إذا الاسم يحتوي "Gold" أو "Common"
+        local nameLower = obj.Name:lower()
+        if nameLower:find("gold") or nameLower:find("common") then
+            createMarker(obj)
+        end
+    end
 end
 
+-- فحص كل الـ Workspace أولًا
 for _,v in ipairs(workspace:GetDescendants()) do
-	check(v)
+    check(v)
 end
 
+-- مراقبة أي موديل جديد يضاف
 workspace.DescendantAdded:Connect(check)
