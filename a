@@ -1,47 +1,40 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- Container لكل الـ Overlays
 local overlayGui = Instance.new("ScreenGui")
 overlayGui.Name = "GUIOverlayDebugger"
 overlayGui.ResetOnSpawn = false
 overlayGui.Parent = player:WaitForChild("PlayerGui")
 
--- دالة لإنشاء Overlay لكل GUIObject
-local function createOverlay(guiObject)
+-- دالة لإنشاء Overlay Label لكل GUIObject
+local function createOverlayLabel(guiObject)
 	if not guiObject:IsA("GuiObject") then return end
-	if guiObject == overlayGui then return end -- نتجنب نفسه
+	if guiObject == overlayGui then return end
 
+	-- Position و Size بالنسبة للشاشة
 	local pos, size = guiObject.AbsolutePosition, guiObject.AbsoluteSize
-	if size.X == 0 or size.Y == 0 then return end -- تجاهل العناصر المخفية
+	if size.X == 0 or size.Y == 0 then return end
 
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.fromOffset(size.X, size.Y)
-	frame.Position = UDim2.fromOffset(pos.X, pos.Y)
-	frame.BackgroundColor3 = Color3.fromRGB(255,0,0)
-	frame.BackgroundTransparency = 0.5
-	frame.BorderSizePixel = 1
-	frame.Parent = overlayGui
-
-	-- TextLabel يظهر اسم العنصر
+	-- Label صغير يظهر الاسم فوق العنصر
 	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1,0.2)
-	label.Position = UDim2.fromOffset(0,0)
+	label.Size = UDim2.new(0, size.X, 0, 18) -- ارتفاع صغير
+	label.Position = UDim2.fromOffset(pos.X, pos.Y)
 	label.BackgroundTransparency = 0.6
 	label.BackgroundColor3 = Color3.fromRGB(0,0,0)
-	label.TextColor3 = Color3.new(1,1,1)
+	label.TextColor3 = Color3.new(1,1,0)
 	label.TextScaled = true
 	label.Text = guiObject:GetFullName()
-	label.Parent = frame
+	label.ZIndex = 999 -- فوق كل شيء
+	label.Parent = overlayGui
 end
 
--- إنشاء Overlay لجميع العناصر الحالية
+-- Overlay لجميع العناصر الحالية
 for _,v in ipairs(player.PlayerGui:GetDescendants()) do
-	createOverlay(v)
+	createOverlayLabel(v)
 end
 
--- يحدث Overlay لكل عنصر جديد ينضاف
+-- كل عنصر جديد يضاف، يظهر Label فوقه
 player.PlayerGui.DescendantAdded:Connect(function(v)
 	task.wait(0.1)
-	createOverlay(v)
+	createOverlayLabel(v)
 end)
