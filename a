@@ -1,7 +1,6 @@
 --// Services
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local workspace = game:GetService("Workspace")
+local Workspace = game:GetService("Workspace")
 
 --// نسخ الاسم
 local function copy(text)
@@ -10,33 +9,56 @@ local function copy(text)
 	end
 end
 
---// تقريب اللون
-local function isColorClose(c1, c2, tolerance)
-	tolerance = tolerance or 0.1
-	return math.abs(c1.R - c2.R) <= tolerance
-	   and math.abs(c1.G - c2.G) <= tolerance
-	   and math.abs(c1.B - c2.B) <= tolerance
+--// تحويل لون RGB إلى اسم تقريبي بالعربي
+local function colorNameFromColor3(color)
+	local r,g,b = color.R*255, color.G*255, color.B*255
+	if r > 200 and g < 50 and b < 50 then
+		return "أحمر"
+	elseif r < 50 and g > 200 and b < 50 then
+		return "أخضر"
+	elseif r < 50 and g < 50 and b > 200 then
+		return "أزرق"
+	elseif r > 200 and g > 200 and b < 50 then
+		return "أصفر"
+	elseif r > 200 and g > 200 and b > 200 then
+		return "أبيض"
+	elseif r < 50 and g < 50 and b < 50 then
+		return "أسود"
+	elseif r > 100 and g > 100 and b > 100 then
+		return "رمادي"
+	else
+		return "غير معروف"
+	end
 end
 
---// نص فوق البارت
-local function createLabel(part, text)
-	local existing = part:FindFirstChild("ColorLabel")
-	if existing then return end -- يمنع التكرار
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "ColorLabel"
-	billboard.Adornee = part
-	billboard.Size = UDim2.new(0,100,0,40)
-	billboard.StudsOffset = Vector3.new(0,35,0)
-	billboard.AlwaysOnTop = true
-	billboard.Parent = part
+--// إنشاء النص فوق البارت
+local function setLabelOnPart(part, text)
+	if not part or not part.Parent then return end
+	local billboard = part:FindFirstChild("ColorLabelGui")
+	if not billboard then
+		billboard = Instance.new("BillboardGui")
+		billboard.Name = "ColorLabelGui"
+		billboard.Adornee = part
+		billboard.Size = UDim2.new(0,150,0,50)
+		billboard.StudsOffset = Vector3.new(0, part.Size.Y/2 + 2, 0)
+		billboard.AlwaysOnTop = true
+		billboard.Parent = part
 
-	local label = Instance.new("TextLabel", billboard)
-	label.Size = UDim2.new(1,0,1,0)
-	label.BackgroundTransparency = 1
-	label.Text = text
-	label.TextColor3 = Color3.fromRGB(255,255,255)
-	label.TextScaled = true
-	label.Font = Enum.Font.SourceSansBold
+		local label = Instance.new("TextLabel")
+		label.Name = "ColorLabel"
+		label.Size = UDim2.new(1,0,1,0)
+		label.BackgroundTransparency = 1
+		label.TextColor3 = Color3.fromRGB(255,255,255)
+		label.TextScaled = true -- خلي النص كبير
+		label.Font = Enum.Font.SourceSansBold
+		label.Parent = billboard
+	end
+
+	billboard.ColorLabel.Text = text
+	local lbl = billboard:FindFirstChild("ColorLabel")
+	if lbl then
+		lbl.Text = text
+	end
 end
 
 --// إنشاء البارت الأساسي
@@ -45,8 +67,8 @@ local function createMarker(model)
 	if not main then return nil end
 
 	local part = Instance.new("Part")
-	part.Size = Vector3.new(1,30,1)
-	part.Color = Color3.fromRGB(128,128,128) -- اللون الطبيعي (رمادي)
+	part.Size = Vector3.new(1,10,1) -- طول البارت 10
+	part.Color = Color3.fromRGB(128,128,128)
 	part.Material = Enum.Material.Neon
 	part.CanCollide = false
 	part.Anchored = false
@@ -79,23 +101,25 @@ local function check(obj)
 		local part = createMarker(obj)
 		if part then
 			table.insert(markers, part)
-			-- بدء مراقبة اللون بعد 3 ثواني فقط
-			spawn(function()
-				wait(3)
-				if part.Parent then
-					if isColorClose(part.Color, Color3.fromRGB(0,255,0), 0.1) then
-						createLabel(part, "Uncommon")
-					elseif isColorClose(part.Color, Color3.fromRGB(128,128,128), 0.1) then
-						createLabel(part, "Common")
-					end
-				end
-			end)
 		end
 	end
 end
 
-for _,v in ipairs(workspace:GetDescendants()) do
+for _,v in ipairs(Workspace:GetDescendants()) do
 	check(v)
 end
 
-workspace.DescendantAdded:Connect(check)
+Workspace.DescendantAdded:Connect(check)
+
+--// مراقبة لون البارت كل ثانية
+spawn(function()
+	while true do
+		for _, part in ipairs(markers) do
+			if part and part.Parent then
+				local name = colorNameFromColor3(part.Color)
+				setLabelOnPart(part, name)
+			end
+		end
+		wait(1)
+	end
+end)
