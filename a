@@ -2,7 +2,7 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
---// UI مختصر
+--// UI بسيطة
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 
 local scroll = Instance.new("ScrollingFrame", gui)
@@ -19,13 +19,13 @@ local function copy(text)
 	end
 end
 
---// بارت طويل ويتحرك مع الموديل
+--// بارت طويل + ضغط = نسخ
 local function createMarker(model)
 	local main = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
 	if not main then return end
 
 	local part = Instance.new("Part")
-	part.Size = Vector3.new(1, 30, 1) -- طويل
+	part.Size = Vector3.new(1, 30, 1) -- عمود طويل
 	part.Color = Color3.fromRGB(255,0,0)
 	part.Material = Enum.Material.Neon
 	part.CanCollide = false
@@ -34,15 +34,24 @@ local function createMarker(model)
 
 	part.CFrame = main.CFrame * CFrame.new(0, 20, 0)
 
+	-- ربط مع الموديل عشان يتحرك معه
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = part
 	weld.Part1 = main
 	weld.Parent = part
 
-	part.Parent = model -- عشان يتحذف معه
+	-- كشف الضغط
+	local click = Instance.new("ClickDetector", part)
+	click.MaxActivationDistance = 50
+
+	click.MouseClick:Connect(function()
+		copy(model.Name)
+	end)
+
+	part.Parent = model
 end
 
---// إضافة للقائمة
+--// إضافة زر للقائمة
 local function addItem(name)
 	local btn = Instance.new("TextButton", scroll)
 	btn.Size = UDim2.new(1,0,0,30)
