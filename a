@@ -1,313 +1,92 @@
---// تشغيل السكربت فقط داخل التجربة المحددة
-if game.PlaceId ~= 131623223084840 then return end
-
 --// Services
-local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local workspace = game:GetService("Workspace")
-local HttpService = game:GetService("HttpService")
-local MarketplaceService = game:GetService("MarketplaceService")
-local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
 
---// Webhook
-local WEBHOOK_URL = "https://discordapp.com/api/webhooks/1468809532267434138/coA1jn4RO4Ui9G0xGAoikIDfT1XT8ugKeRnMPszyZqalHq7yeuDGbXN4y_SQvqdGBk4J"
-local req = (syn and syn.request) or http_request or request or (fluxus and fluxus.request)
+--// UI
+local gui = Instance.new("ScreenGui")
+gui.Parent = player:WaitForChild("PlayerGui")
+gui.Name = "LongNamesViewer"
 
-if req then
-	task.spawn(function()
-		local gameName = "Unknown"
-		pcall(function() gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name end)
-		local displayName = player.DisplayName
-		local userId = tostring(player.UserId)
-		local accountAge = tostring(player.AccountAge).." Days"
-		local timeNow = os.date("%I:%M %p")
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromScale(0.35, 0.5)
+frame.Position = UDim2.fromScale(0.03, 0.25)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.BorderSizePixel = 0
 
-		pcall(function()
-			req({
-				Url = WEBHOOK_URL,
-				Method = "POST",
-				Headers = {["Content-Type"]="application/json"},
-				Body = HttpService:JSONEncode({
-					content = "@everyone دخول جديد",
-					embeds = {{
-						description = "**Open script now !**",
-						color = 65280,
-						fields = {
-							{name="Display Name",value=displayName,inline=true},
-							{name="User ID",value=userId,inline=false},
-							{name="Account Age",value=accountAge,inline=false},
-							{name="Game",value=gameName,inline=false},
-							{name="Time",value=timeNow,inline=false}
-						},
-						timestamp = DateTime.now():ToIsoDate()
-					}}
-				})
-			})
-		end)
-	end)
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0,12)
+
+local scroll = Instance.new("ScrollingFrame", frame)
+scroll.Size = UDim2.fromScale(1,1)
+scroll.CanvasSize = UDim2.new(0,0,0,0)
+scroll.ScrollBarImageTransparency = 0.3
+scroll.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout", scroll)
+layout.Padding = UDim.new(0,6)
+
+--// Copy function
+local function copy(text)
+    if setclipboard then
+        setclipboard(text)
+        StarterGui:SetCore("SendNotification", {
+            Title = "Copied",
+            Text = text,
+            Duration = 2
+        })
+    end
 end
 
---// Main GUI
-local topHeight, buttonHeight = 26, 28
-local isMobile = (UserInputService.TouchEnabled or UserInputService.GamepadEnabled) and not UserInputService.KeyboardEnabled
-local mainWidth = isMobile and 100 or 200
+--// Add item
+local function addItem(name)
+    local holder = Instance.new("Frame")
+    holder.Size = UDim2.new(1,-6,0,32)
+    holder.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    holder.Parent = scroll
 
-local gui = Instance.new("ScreenGui", player.PlayerGui)
-gui.Name = "FaisalUI"
-gui.ResetOnSpawn = false
+    Instance.new("UICorner", holder).CornerRadius = UDim.new(0,8)
 
-local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromOffset(mainWidth, topHeight)
-main.Position = UDim2.new(0.02,0,0.35,0)
-main.BackgroundColor3 = Color3.fromRGB(15,15,15)
-main.BorderSizePixel = 0
-main.Active, main.Draggable = true, true
-Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
+    local label = Instance.new("TextLabel", holder)
+    label.Size = UDim2.new(0.7,0,1,0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Color3.new(1,1,1)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextScaled = true
 
-local top = Instance.new("Frame", main)
-top.Size = UDim2.new(1,0,0,topHeight)
-top.BackgroundColor3 = Color3.fromRGB(25,25,25)
-top.BorderSizePixel = 0
-Instance.new("UICorner", top).CornerRadius = UDim.new(0,10)
+    local btn = Instance.new("TextButton", holder)
+    btn.Size = UDim2.new(0.3,-4,1,-4)
+    btn.Position = UDim2.new(0.7,4,0,2)
+    btn.Text = "Copy"
+    btn.TextScaled = true
+    btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    btn.TextColor3 = Color3.new(1,1,1)
 
-local title = Instance.new("TextLabel", top)
-title.Size = UDim2.new(1,0,1,0)
-title.BackgroundTransparency = 1
-title.Text = "faisal-script"
-title.TextColor3 = Color3.fromRGB(230,230,230)
-title.TextSize = 12
-title.Font = Enum.Font.GothamBold
-title.TextXAlignment = Enum.TextXAlignment.Center
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
 
---// Content frame
-local content = Instance.new("Frame", main)
-content.Position = UDim2.new(0,0,0,topHeight)
-content.Size = UDim2.new(1,0,0,0)
-content.BackgroundTransparency = 1
+    btn.MouseButton1Click:Connect(function()
+        copy(name)
+    end)
+end
 
-local layout = Instance.new("UIListLayout", content)
-layout.Padding = UDim.new(0,5)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.VerticalAlignment = Enum.VerticalAlignment.Top
-
---// Arrow toggle
-local arrow = Instance.new("TextButton", top)
-arrow.Size = UDim2.fromOffset(topHeight,topHeight)
-arrow.Position = UDim2.new(1,-topHeight,0,0)
-arrow.Text = "▼"
-arrow.BackgroundTransparency = 1
-arrow.TextSize = 12
-arrow.Font = Enum.Font.GothamBold
-arrow.TextColor3 = Color3.fromRGB(220,220,220)
-
-local opened = true
-local openSize = main.Size
-local closeSize = UDim2.fromOffset(mainWidth,topHeight)
-
-arrow.MouseButton1Click:Connect(function()
-	opened = not opened
-	arrow.Text = opened and "▼" or "▲"
-	content.Visible = opened
-	TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size = opened and openSize or closeSize}):Play()
+--// Resize canvas
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 6)
 end)
 
-local function updateMainHeight()
-	local totalHeight = topHeight + layout.AbsoluteContentSize.Y + 10
-	main.Size = UDim2.fromOffset(mainWidth, totalHeight)
-	openSize = main.Size
-	closeSize = UDim2.fromOffset(mainWidth, topHeight)
+--// Scan workspace
+local added = {}
+
+local function check(obj)
+    if obj:IsA("Model") and #obj.Name > 20 and not added[obj] then
+        added[obj] = true
+        addItem(obj.Name)
+    end
 end
 
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateMainHeight)
-updateMainHeight()
-
---// Instant Take & Unlock Zoom
-local function setPromptInstant(prompt)
-	if prompt:IsA("ProximityPrompt") then
-		prompt.HoldDuration = 0
-	end
+for _,v in pairs(workspace:GetDescendants()) do
+    check(v)
 end
 
-for _, v in ipairs(workspace:GetDescendants()) do
-	setPromptInstant(v)
-end
-
-workspace.DescendantAdded:Connect(function(v)
-	setPromptInstant(v)
-end)
-
-player.CameraMaxZoomDistance = 500
-player.CameraMinZoomDistance = 0
-player.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Invisicam
-player:GetPropertyChangedSignal("CameraMaxZoomDistance"):Connect(function() player.CameraMaxZoomDistance=500 end)
-player:GetPropertyChangedSignal("CameraMinZoomDistance"):Connect(function() player.CameraMinZoomDistance=0 end)
-player:GetPropertyChangedSignal("DevCameraOcclusionMode"):Connect(function() player.DevCameraOcclusionMode=Enum.DevCameraOcclusionMode.Invisicam end)
-
---// Buttons
-local instantBtn = Instance.new("TextButton", content)
-instantBtn.Size = UDim2.new(0,0,0,0)
-instantBtn.Visible = false
-instantBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-instantBtn.Text = "Instant Take"
-instantBtn.TextColor3 = Color3.fromRGB(230,230,230)
-instantBtn.TextSize = 11
-instantBtn.Font = Enum.Font.GothamBold
-instantBtn.BorderSizePixel = 0
-Instance.new("UICorner", instantBtn).CornerRadius = UDim.new(0,6)
-instantBtn.MouseButton1Click:Connect(function()
-	for _, v in ipairs(workspace:GetDescendants()) do
-		setPromptInstant(v)
-	end
-end)
-
-local refreshBtn = Instance.new("TextButton", content)
-refreshBtn.Size = UDim2.new(0, mainWidth-10,0,buttonHeight)
-refreshBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-refreshBtn.Text = "🔄️ESP+Refresh"
-refreshBtn.TextColor3 = Color3.fromRGB(230,230,230)
-refreshBtn.TextSize = 11
-refreshBtn.Font = Enum.Font.GothamBold
-refreshBtn.BorderSizePixel = 0
-Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0,6)
-
---// Blocks
-local orderedBlocks = {
-	-- Natural
-	{model="NaturalSpawnLuckyBlock_Common",color=Color3.fromRGB(200,200,200)},
-	{model="NaturalSpawnLuckyBlock_Uncommon",color=Color3.fromRGB(0,255,0)},
-	{model="NaturalSpawnLuckyBlock_Rare",color=Color3.fromRGB(0,150,255)},
-	{model="NaturalSpawnLuckyBlock_Epic",color=Color3.fromRGB(128,0,128)},
-	{model="NaturalSpawnLuckyBlock_Legendary",color=Color3.fromRGB(255,255,0)},
-	{model="NaturalSpawnLuckyBlock_Mythical",color=Color3.fromRGB(128,0,128)},
-	{model="NaturalSpawnLuckyBlock_Cosmic",color=Color3.fromRGB(0,0,0)},
-	{model="NaturalSpawnLuckyBlock_Secret",color=Color3.fromRGB(255,0,0)},
-	{model="NaturalSpawnLuckyBlock_UFO",color=Color3.fromRGB(0,255,127)},
-	{model="NaturalSpawnLuckyBlock_Money",color=Color3.fromRGB(255,255,0)},
-	{model="NaturalSpawnLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
-	{model="NaturalSpawnLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
-	{model="NaturalSpawnLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
-	-- Event
-	{model="EventSpawnLuckyBlock_Common",color=Color3.fromRGB(180,180,180)},
-	{model="EventSpawnLuckyBlock_Uncommon",color=Color3.fromRGB(0,200,0)},
-	{model="EventSpawnLuckyBlock_Rare",color=Color3.fromRGB(0,120,255)},
-	{model="EventSpawnLuckyBlock_Epic",color=Color3.fromRGB(128,0,128)},
-	{model="EventSpawnLuckyBlock_Legendary",color=Color3.fromRGB(255,230,0)},
-	{model="EventSpawnLuckyBlock_Mythical",color=Color3.fromRGB(128,0,128)},
-	{model="EventSpawnLuckyBlock_Cosmic",color=Color3.fromRGB(40,40,40)},
-	{model="EventSpawnLuckyBlock_Secret",color=Color3.fromRGB(255,50,50)},
-	{model="EventSpawnLuckyBlock_Celestial",color=Color3.fromRGB(0,200,255)},
-	{model="EventSpawnLuckyBlock_UFO",color=Color3.fromRGB(0,255,127)},
-	{model="EventSpawnLuckyBlock_Money",color=Color3.fromRGB(255,255,0)},
-	{model="EventSpawnLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
-	{model="EventSpawnLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
-	{model="EventSpawnLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
-	-- Global
-	{model="GlobalSpawnLuckyBlock_Common",color=Color3.fromRGB(160,160,160)},
-	{model="GlobalSpawnLuckyBlock_Uncommon",color=Color3.fromRGB(0,255,120)},
-	{model="GlobalSpawnLuckyBlock_Rare",color=Color3.fromRGB(0,170,255)},
-	{model="GlobalSpawnLuckyBlock_Epic",color=Color3.fromRGB(128,0,128)},
-	{model="GlobalSpawnLuckyBlock_Legendary",color=Color3.fromRGB(255,200,0)},
-	{model="GlobalSpawnLuckyBlock_Mythical",color=Color3.fromRGB(128,0,128)},
-	{model="GlobalSpawnLuckyBlock_Cosmic",color=Color3.fromRGB(70,70,70)},
-	{model="GlobalSpawnLuckyBlock_Secret",color=Color3.fromRGB(255,80,80)},
-	{model="GlobalSpawnLuckyBlock_Money",color=Color3.fromRGB(255,255,0)},
-	{model="GlobalSpawnLuckyBlock_Radioactive",color=Color3.fromRGB(0,255,0)},
-	{model="GlobalSpawnLuckyBlock_Admin",color=Color3.fromRGB(255,0,255)},
-	{model="GlobalSpawnLuckyBlock_UFO",color=Color3.fromRGB(0,255,127)},
-	{model="GlobalSpawnLuckyBlock_Divine",color=Color3.fromRGB(255,255,0)},
-}
-
-local highlightedModels = {}
-local blockNamesAdded = {}
-
-for _, block in ipairs(orderedBlocks) do
-	highlightedModels[block.model] = {}
-end
-
-local function highlightModel(model,color)
-	if highlightedModels[model.Name][model] then return end
-	highlightedModels[model.Name][model] = true
-	for _, part in pairs(model:GetDescendants()) do
-		if part:IsA("BasePart") then
-			for _, child in pairs(part:GetChildren()) do
-				if child:IsA("BoxHandleAdornment") or child:IsA("BillboardGui") then
-					child:Destroy()
-				end
-			end
-			local adorn = Instance.new("BoxHandleAdornment")
-			adorn.Adornee = part
-			adorn.AlwaysOnTop = true
-			adorn.ZIndex = 10
-			adorn.Size = part.Size
-			adorn.Transparency = 0.3
-			adorn.Color3 = color
-			adorn.Parent = part
-			if not blockNamesAdded[model] then
-				local billboard = Instance.new("BillboardGui")
-				billboard.Adornee = part
-				billboard.Size = UDim2.new(0,150,0,40)
-				billboard.AlwaysOnTop = true
-				billboard.StudsOffset = Vector3.new(0, part.Size.Y/2 + 1, 0)
-				local textLabel = Instance.new("TextLabel", billboard)
-				textLabel.Size = UDim2.new(1,0,1,0)
-				textLabel.BackgroundTransparency = 1
-				textLabel.TextColor3 = color
-				textLabel.Font = Enum.Font.GothamBold
-				textLabel.TextSize = 12
-				textLabel.Text = model.Name:match(".*LuckyBlock_(.*)")
-				textLabel.TextScaled = true
-				billboard.Parent = part
-				blockNamesAdded[model] = true
-			end
-		end
-	end
-end
-
-refreshBtn.MouseButton1Click:Connect(function()
-	blockNamesAdded = {}
-	local allModels = workspace:GetDescendants()
-	task.spawn(function()
-		for _, obj in pairs(allModels) do
-			if obj:IsA("Model") and highlightedModels[obj.Name] then
-				for _, block in ipairs(orderedBlocks) do
-					if obj.Name == block.model then
-						highlightModel(obj, block.color)
-					end
-				end
-			end
-		end
-	end)
-end)
-
---// Notifications & Discord + VIPWalls
-task.spawn(function()
-	StarterGui:SetCore("SendNotification", {
-		Title = "Unlock Zoom, Instant Take",
-		Text = "Active ✅",
-		Duration = 10
-	})
-
-	local discordLink = "https://discord.gg/w72Zy75xQU"
-	if setclipboard then setclipboard(discordLink) end
-	StarterGui:SetCore("SendNotification", {
-		Title = "Discord Link",
-		Text = "تم نسخ رابط الديسكورد",
-		Duration = 10
-	})
-
-	-- حذف VIPWalls
-	for _, v in pairs(workspace:GetDescendants()) do
-		if v.Name == "VIPWalls" then
-			v:Destroy()
-		end
-	end
-
-	-- إشعار VIPWalls
-	StarterGui:SetCore("SendNotification", {
-		Title = "VIPWALLS",
-		Text = "Unlock",
-		Duration = 10
-	})
-end)
+workspace.DescendantAdded:Connect(check)
