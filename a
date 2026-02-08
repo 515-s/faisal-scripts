@@ -1,70 +1,52 @@
 --// Services
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local StarterGui = game:GetService("StarterGui")
 
---// UI
+--// UI مختصر
 local gui = Instance.new("ScreenGui", player.PlayerGui)
-gui.Name = "LongNamesViewer"
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromScale(0.35,0.5)
-frame.Position = UDim2.fromScale(0.03,0.25)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-frame.BorderSizePixel = 0
-Instance.new("UICorner", frame)
-
-local scroll = Instance.new("ScrollingFrame", frame)
-scroll.Size = UDim2.fromScale(1,1)
+local scroll = Instance.new("ScrollingFrame", gui)
+scroll.Size = UDim2.fromScale(0.35,0.5)
+scroll.Position = UDim2.fromScale(0.03,0.25)
 scroll.CanvasSize = UDim2.new(0,0,0,0)
-scroll.BackgroundTransparency = 1
 
 local layout = Instance.new("UIListLayout", scroll)
-layout.Padding = UDim.new(0,6)
 
---// copy
+--// نسخ
 local function copy(text)
 	if setclipboard then
 		setclipboard(text)
 	end
 end
 
---// يصنع بارت أحمر فوق الموديل
+--// بارت طويل ويتحرك مع الموديل
 local function createMarker(model)
+	local main = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+	if not main then return end
+
 	local part = Instance.new("Part")
-	part.Size = Vector3.new(20,3,20) -- كبير
+	part.Size = Vector3.new(1, 30, 1) -- طويل
 	part.Color = Color3.fromRGB(255,0,0)
 	part.Material = Enum.Material.Neon
-	part.Anchored = true
 	part.CanCollide = false
+	part.Anchored = false
 	part.Name = "Marker"
 
-	local cf, size = model:GetBoundingBox()
-	part.CFrame = cf + Vector3.new(0, size.Y/2 + 5, 0)
+	part.CFrame = main.CFrame * CFrame.new(0, 20, 0)
 
-	part.Parent = workspace
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = part
+	weld.Part1 = main
+	weld.Parent = part
+
+	part.Parent = model -- عشان يتحذف معه
 end
 
---// إضافة عنصر للـ UI
+--// إضافة للقائمة
 local function addItem(name)
-	local holder = Instance.new("Frame", scroll)
-	holder.Size = UDim2.new(1,-6,0,32)
-	holder.BackgroundColor3 = Color3.fromRGB(40,40,40)
-	Instance.new("UICorner", holder)
-
-	local label = Instance.new("TextLabel", holder)
-	label.Size = UDim2.new(0.7,0,1,0)
-	label.BackgroundTransparency = 1
-	label.Text = name
-	label.TextColor3 = Color3.new(1,1,1)
-	label.TextScaled = true
-	label.TextXAlignment = Enum.TextXAlignment.Left
-
-	local btn = Instance.new("TextButton", holder)
-	btn.Size = UDim2.new(0.3,-4,1,-4)
-	btn.Position = UDim2.new(0.7,4,0,2)
-	btn.Text = "Copy"
-	btn.TextScaled = true
+	local btn = Instance.new("TextButton", scroll)
+	btn.Size = UDim2.new(1,0,0,30)
+	btn.Text = name .. " | Copy"
 
 	btn.MouseButton1Click:Connect(function()
 		copy(name)
@@ -72,7 +54,7 @@ local function addItem(name)
 end
 
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 6)
+	scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
 end)
 
 --// فحص
