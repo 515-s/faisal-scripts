@@ -3,75 +3,43 @@ local Players = game:GetService("Players")
 local workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 
---// الموديل اللي يطلع فوقه نص Rare
-local TARGET_MODEL_ID = "080274da-7548-4b51-87a7-8f75da758f37"
+--// النص فوق أي عنصر اسمه "Common"
+local TARGET_NAME = "Common"
 
---// نسخ الاسم
-local function copy(text)
-    if setclipboard then
-        setclipboard(text)
+local function createLabel(obj)
+    local main = obj
+    if obj:IsA("Model") then
+        main = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
     end
-end
-
---// إنشاء البارت الأحمر + Rare فقط للموديل المطلوب
-local function createMarker(model)
-    local main = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
     if not main then return end
 
-    -- البارت الأحمر الطويل
-    local part = Instance.new("Part")
-    part.Size = Vector3.new(1,30,1)
-    part.Color = Color3.fromRGB(255,0,0)
-    part.Material = Enum.Material.Neon
-    part.CanCollide = false
-    part.Anchored = false
-    part.Name = "Marker"
-    part.CFrame = main.CFrame * CFrame.new(0, 20, 0)
+    -- BillboardGui للنص
+    local billboard = Instance.new("BillboardGui")
+    billboard.Adornee = main
+    billboard.Size = UDim2.new(0,100,0,40)
+    billboard.StudsOffset = Vector3.new(0,5,0) -- فوق العنصر
+    billboard.AlwaysOnTop = true
+    billboard.Parent = main
 
-    -- يربطه بالموديل
-    local weld = Instance.new("WeldConstraint")
-    weld.Part0 = part
-    weld.Part1 = main
-    weld.Parent = part
-
-    -- ClickDetector لنسخ الاسم
-    local click = Instance.new("ClickDetector", part)
-    click.MaxActivationDistance = 50
-    click.MouseClick:Connect(function()
-        copy(model.Name)
-    end)
-
-    -- إذا هذا الموديل هو الـ TARGET بالفعل
-    if model:GetDebugId() == TARGET_MODEL_ID then
-        local billboard = Instance.new("BillboardGui", part)
-        billboard.Adornee = part
-        billboard.Size = UDim2.new(0,100,0,40)
-        billboard.StudsOffset = Vector3.new(0,35,0)
-        billboard.AlwaysOnTop = true
-
-        local label = Instance.new("TextLabel", billboard)
-        label.Size = UDim2.new(1,0,1,0)
-        label.BackgroundTransparency = 1
-        label.Text = "Rare"
-        label.TextColor3 = Color3.fromRGB(255,255,0)
-        label.TextScaled = true
-        label.Font = Enum.Font.SourceSansBold
-    end
-
-    part.Parent = workspace
+    local label = Instance.new("TextLabel", billboard)
+    label.Size = UDim2.new(1,0,1,0)
+    label.BackgroundTransparency = 1
+    label.Text = "Common"
+    label.TextColor3 = Color3.fromRGB(0,255,0) -- أخضر
+    label.TextScaled = true
+    label.Font = Enum.Font.SourceSansBold
 end
 
---// فحص كل الموديلات في الـ Workspace
-local added = {}
-local function check(obj)
-    if obj:IsA("Model") and #obj.Name > 20 and not added[obj] then
-        added[obj] = true
-        createMarker(obj)
+--// فحص كل العناصر الموجودة مسبقًا
+for _, obj in ipairs(workspace:GetDescendants()) do
+    if obj.Name == TARGET_NAME then
+        createLabel(obj)
     end
 end
 
-for _,v in ipairs(workspace:GetDescendants()) do
-    check(v)
-end
-
-workspace.DescendantAdded:Connect(check)
+--// مراقبة أي عنصر جديد ينضاف
+workspace.DescendantAdded:Connect(function(obj)
+    if obj.Name == TARGET_NAME then
+        createLabel(obj)
+    end
+end)
