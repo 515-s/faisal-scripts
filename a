@@ -79,6 +79,17 @@ local function check(obj)
 		local part = createMarker(obj)
 		if part then
 			table.insert(markers, part)
+			-- بدء مراقبة اللون بعد 3 ثواني فقط
+			spawn(function()
+				wait(3)
+				if part.Parent then
+					if isColorClose(part.Color, Color3.fromRGB(0,255,0), 0.1) then
+						createLabel(part, "Uncommon")
+					elseif isColorClose(part.Color, Color3.fromRGB(128,128,128), 0.1) then
+						createLabel(part, "Common")
+					end
+				end
+			end)
 		end
 	end
 end
@@ -88,19 +99,3 @@ for _,v in ipairs(workspace:GetDescendants()) do
 end
 
 workspace.DescendantAdded:Connect(check)
-
---// مراقبة اللون كل ثانية
-spawn(function()
-	while true do
-		for _, part in ipairs(markers) do
-			if part.Parent then
-				if isColorClose(part.Color, Color3.fromRGB(0,255,0), 0.1) then
-					createLabel(part, "Uncommon")
-				elseif isColorClose(part.Color, Color3.fromRGB(128,128,128), 0.1) then
-					createLabel(part, "Common")
-				end
-			end
-		end
-		wait(1)
-	end
-end)
