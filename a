@@ -1,123 +1,218 @@
--- مراقب ذكي لألوان بارتات "Marker" (لا يغيّر البارت نفسه أبداً)
-local Players = game:GetService("Players")
+-- سكربت يقيّم "ندرہ" الموديلات عن طريق فحص خصائصها (mesh, decals, materials, تكرار البصمة...)
+-- ضع هذا كـ LocalScript داخل StarterPlayerScripts
+
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 
--- نسخ الاسم (لو متاح)
-local function copy(text)
-    if setclipboard then
-        setclipboard(text)
-    end
-end
+-- =========== إعدادات قابلة للتعديل ===========
+local SCAN_INTERVAL = 10          -- كل كم ثانية نعيد الفحص الكامل (لأداء)
+local MARKER_NAME = "Marker"      -- اسم البارت اللي نستخدمه لعرض النتيجة
+local SHOW_ON_MARKER = true       -- لو true يعرض التصنيف فوق Marker، لو false نعرضه فوق الـ primary part
+local OVERRIDES = {
+    --["080274da-7548-4b51-87a7-8f75da758f37"] = "أسطوري", -- مثال: اسم الموديل -> تصنيف ثابت
+}
 
--- تحويل RGB -> HSV
-local function rgbToHsv(r,g,b)
-    local maxv = math.max(r,g,b)
-    local minv = math.min(r,g,b)
-    local v = maxv
-    local d = maxv - minv
-    local s = 0
-    if maxv > 0 then s = d / maxv end
-    local h = 0
-    if d == 0 then
-        h = 0
-    else
-        if maxv == r then
-            h = (g - b) / d
-            if g < b then h = h + 6 end
-        elseif maxv == g then
-            h = (b - r) / d + 2
-        else
-            h = (r - g) / d + 4
+-- وزن الإشارات (عدل لو تبي)
+local WEIGHTS = {
+    uniqueness = 0.35,
+    mesh = 0.25,
+    decals = 0.10,
+    material = 0.15,
+    name = 0.15,
+}
+
+-- =========== دوال مساعدة ===========
+local function isBasePart(obj) return obj and obj:IsA("BasePart") end
+
+local function findAnyMeshIds(model)
+    local ids = {}
+    for _,v in ipairs(model:GetDescendants()) do
+        if v:IsA("SpecialMesh") or v:IsA("MeshPart") then
+            local id = v.MeshId or (v:IsA("MeshPart") and v.MeshId) or ""
+            if id ~= "" then ids[id] = true end
         end
-        h = h / 6
+        if v:IsA("Mesh") then
+            local id = v.MeshId or ""
+            if id ~= "" then ids[id] = true end
+        end
     end
-    return h, s, v
+    local list = {}
+    for k,_ in pairs(ids) do table.insert(list, k) end
+    return list
 end
 
--- مسافة ألوان (مربع المسافة في RGB)
-local function colorDist2(a,b)
-    local dr = a.R - b.R
-    local dg = a.G - b.G
-    local db = a.B - b.B
-    return dr*dr + dg*dg + db*db
+local function countDecalsAndTextures(model)
+    local c = 0
+    for _,v in ipairs(model:GetDescendants()) do
+        if v:IsA("Decal") or v:IsA("Texture") then c = c + 1 end
+    end
+    return c
 end
 
--- نأخذ عينات سريعة من لون البارت لنعرف إذا فيه تغيير ديناميكي (rainbow)
-local function isRainbow(part, samples, delay, varianceThreshold)
-    samples = samples or 6
-    delay = delay or 0.05
-    varianceThreshold = varianceThreshold or 0.0025 -- حساس
-    local first = part.Color
-    local sumR, sumG, sumB = first.R, first.G, first.B
-    local vals = {{first.R, first.G, first.B}}
-    for i=2, samples do
-        task.wait(delay)
-        if not part.Parent then return false end
-        local c = part.Color
-        table.insert(vals, {c.R, c.G, c.B})
-        sumR = sumR + c.R
-        sumG = sumG + c.G
-        sumB = sumB + c.B
+local function countSpecialMaterials(model)
+    local c = 0
+    for _,v in ipairs(model:GetDescendants()) do
+        if isBasePart(v) then
+            if v.Material == Enum.Material.Neon or v.Material == Enum.Material.ForceField then
+                c = c + 1
+            end
+        end
     end
-    -- حساب التباين العام (متوسط مربع الفرق)
-    local meanR, meanG, meanB = sumR/samples, sumG/samples, sumB/samples
-    local var = 0
-    for _,v in ipairs(vals) do
-        local dr = v[1] - meanR
-        local dg = v[2] - meanG
-        local db = v[3] - meanB
-        var = var + (dr*dr + dg*dg + db*db)
-    end
-    var = var / samples
-    return var > varianceThreshold
+    return c
 end
 
--- تحويل لون إلى اسم عربي دقيق أكثر (مع التمييز الرمادي والذهبي)
-local function colorNameFromColor3(color)
-    local r,g,b = color.R, color.G, color.B
-    -- رمادي: R,G,B متقاربة
-    local maxDiff = math.max(math.abs(r-g), math.abs(r-b), math.abs(g-b))
-    if maxDiff < 0.035 then
-        if r < 0.08 then return "أسود" end
-        if r > 0.92 then return "أبيض" end
-        return "رمادي"
+local function hasGoldishColor(model)
+    for _,v in ipairs(model:GetDescendants()) do
+        if isBasePart(v) then
+            local r,g,b = v.Color.R, v.Color.G, v.Color.B
+            if r > 0.85 and g > 0.6 and b < 0.4 then
+                return true
+            end
+        end
     end
-
-    -- ذهبي تقريبياً: أحمر قوي وأخضر قوي نسبياً و أزرق قليل
-    if r > 0.85 and g > 0.6 and b < 0.4 then
-        return "ذهبي"
-    end
-
-    -- استخدم HSV لتحديد اللون الأساسي بدقة أكثر
-    local h,s,v = rgbToHsv(r,g,b)
-    h = h * 360 -- درجات
-    -- الأحمر (قريب من 0 أو 360)
-    if (h < 20 or h > 340) and s > 0.25 then return "أحمر" end
-    if h >= 20 and h < 70 and s > 0.25 then return "أصفر" end
-    if h >= 70 and h < 170 and s > 0.25 then return "أخضر" end
-    if h >= 170 and h < 260 and s > 0.25 then return "أزرق" end
-    if s < 0.25 and v > 0.92 then return "أبيض" end
-
-    return "غير معروف"
+    return false
 end
 
--- إنشاء/تحديث Billboard (النص كبير)
-local function setLabelOnPart(part, text)
-    if not part or not part.Parent then return end
-    local billboard = part:FindFirstChild("ColorLabelGui")
+local function primaryPartOrAny(model)
+    local p = model.PrimaryPart
+    if p then return p end
+    for _,v in ipairs(model:GetDescendants()) do
+        if isBasePart(v) then return v end
+    end
+    return nil
+end
+
+local function sizeAndComplexity(model)
+    local parts, volume = 0, 0
+    for _,v in ipairs(model:GetDescendants()) do
+        if isBasePart(v) then
+            parts = parts + 1
+            local s = v.Size
+            volume = volume + (s.X * s.Y * s.Z)
+        end
+    end
+    return parts, volume
+end
+
+local function nameScore(name)
+    local n = name:lower()
+    local score = 0
+    if n:find("gold") or n:find("ذهبي") then score = score + 1 end
+    if n:find("rare") or n:find("نادر") then score = score + 1 end
+    if n:find("legend") or n:find("epic") or n:find("أسطوري") then score = score + 2 end
+    return math.clamp(score / 3, 0, 1)
+end
+
+-- =========== مرحلة المسح لبناء خريطة التواتر ===========
+local function buildFingerprint(model)
+    -- بصمة بسيطة: مجموعة meshIds + تقريب للحجم + عدد الأجزاء
+    local meshIds = findAnyMeshIds(model)
+    table.sort(meshIds)
+    local parts, volume = sizeAndComplexity(model)
+    local key = table.concat(meshIds, "|") .. ":" .. tostring(math.floor(parts)) .. ":" .. tostring(math.floor(volume))
+    return key
+end
+
+local function scanWorkspaceForFingerprints()
+    local freq = {}        -- fingerprint -> count
+    local models = {}      -- جدول حفظ المراجع (lists of models per fingerprint)
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") then
+            local fp = buildFingerprint(obj)
+            freq[fp] = (freq[fp] or 0) + 1
+            models[obj] = fp
+        end
+    end
+    return freq, models
+end
+
+-- =========== حساب درجة الندرة لكل موديل ===========
+local function computeRarityScore(model, freqMap, modelsMap)
+    -- override سريع
+    local override = OVERRIDES[model.Name]
+    if override then
+        -- نعطي قيمة عالية لو override = "أسطوري"
+        if override == "أسطوري" then return 0.98 end
+        if override == "نادر" then return 0.75 end
+        if override == "غير شائع" then return 0.5 end
+        if override == "شائع" then return 0.2 end
+    end
+
+    local fp = modelsMap[model] or buildFingerprint(model)
+    local fcount = freqMap[fp] or 1
+
+    -- uniqueness score: 1 - normalize(freq)
+    local uniqueness = 1 / fcount -- إذا 1 نسخة => 1.0، إذا 10 نسخ => 0.1
+
+    -- mesh score
+    local meshCount = #findAnyMeshIds(model)
+    local meshScore = math.clamp(meshCount / 5, 0, 1) -- أكثر من 5 ميشات يعتبر قوي
+
+    -- decals score
+    local decCount = countDecalsAndTextures(model)
+    local decalScore = math.clamp(decCount / 10, 0, 1)
+
+    -- material/gold score
+    local specialMatCount = countSpecialMaterials(model)
+    local materialScore = math.clamp(specialMatCount / 5, 0, 1)
+    if hasGoldishColor(model) then
+        materialScore = math.min(1, materialScore + 0.4)
+    end
+
+    -- name hint
+    local nscore = nameScore(model.Name)
+
+    -- حجم وتعقيد: جزء بسيط (نموذجية)
+    local parts, volume = sizeAndComplexity(model)
+    local complexityScore = math.clamp(parts / 50, 0, 1)
+
+    -- اجمع كل الإشارات بالأوزان (عدل WEIGHTS إذا تريد)
+    local total = 0
+    total = total + uniqueness * WEIGHTS.uniqueness
+    total = total + meshScore * WEIGHTS.mesh
+    total = total + decalScore * WEIGHTS.decals
+    total = total + materialScore * WEIGHTS.material
+    total = total + nscore * WEIGHTS.name
+    -- نضيف بعض من التعقيد (خفيف)
+    total = total + complexityScore * 0.05
+
+    -- نطبع في مجال 0..1
+    if total > 1 then total = 1 end
+    if total < 0 then total = 0 end
+    return total
+end
+
+local function scoreToLabel(score)
+    if score >= 0.9 then return "أسطوري" end
+    if score >= 0.6 then return "نادر" end
+    if score >= 0.35 then return "غير شائع" end
+    return "شائع"
+end
+
+-- =========== عرض النتيجة على الموديل ===========
+local function showRarityOnModel(model, labelText)
+    -- نضع Billboard على الـ Marker لو موجود، وإلا على الـ primary part
+    local markerPart = nil
+    for _,v in ipairs(model:GetDescendants()) do
+        if isBasePart(v) and v.Name == MARKER_NAME then markerPart = v break end
+    end
+    local parentPart = markerPart or primaryPartOrAny(model)
+    if not parentPart then return end
+
+    -- نستخدم نفس دالة العرض البسيطة
+    local billboard = parentPart:FindFirstChild("RarityLabelGui")
     if not billboard then
         billboard = Instance.new("BillboardGui")
-        billboard.Name = "ColorLabelGui"
-        billboard.Adornee = part
-        billboard.Size = UDim2.new(0,180,0,60)
-        billboard.StudsOffset = Vector3.new(0, part.Size.Y/2 + 1.5, 0)
+        billboard.Name = "RarityLabelGui"
+        billboard.Adornee = parentPart
+        billboard.Size = UDim2.new(0,160,0,50)
+        billboard.StudsOffset = Vector3.new(0, parentPart.Size.Y/2 + 1.5, 0)
         billboard.AlwaysOnTop = true
-        billboard.Parent = part
+        billboard.Parent = parentPart
 
         local label = Instance.new("TextLabel")
-        label.Name = "ColorLabel"
+        label.Name = "RarityLabel"
         label.Size = UDim2.new(1,0,1,0)
         label.BackgroundTransparency = 1
         label.TextColor3 = Color3.fromRGB(255,255,255)
@@ -125,121 +220,28 @@ local function setLabelOnPart(part, text)
         label.Font = Enum.Font.SourceSansBold
         label.Parent = billboard
     end
-    local lbl = billboard:FindFirstChild("ColorLabel")
-    if lbl then lbl.Text = text end
+    local lbl = billboard:FindFirstChild("RarityLabel")
+    if lbl then lbl.Text = labelText end
 end
 
--- إنشاء الـ Marker (لا نلمس لون البارت)
-local function createMarker(model)
-    local main = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-    if not main then return nil end
-
-    local part = Instance.new("Part")
-    part.Size = Vector3.new(1,10,1) -- طول 10
-    part.Color = Color3.fromRGB(128,128,128) -- بداية محايدة (لكن السكربت لا يغيّره لاحقاً)
-    part.Material = Enum.Material.Neon
-    part.CanCollide = false
-    part.Anchored = false
-    part.Name = "Marker"
-
-    part.CFrame = main.CFrame * CFrame.new(0, 20, 0)
-
-    local weld = Instance.new("WeldConstraint")
-    weld.Part0 = part
-    weld.Part1 = main
-    weld.Parent = part
-
-    local click = Instance.new("ClickDetector", part)
-    click.MaxActivationDistance = 50
-    click.MouseClick:Connect(function() copy(model.Name) end)
-
-    part.Parent = model
-    return part
-end
-
--- جدول تتبع
-local tracked = {} -- part -> {lastLabel = "", lastColor = Color3, lastUpdate = time}
-
--- نضيف Marker الموجودين مسبقاً
-for _, obj in ipairs(Workspace:GetDescendants()) do
-    if obj:IsA("Model") and #obj.Name > 20 then
-        local ok = false
-        -- لو الموديل فيه Marker مسبقًا لا نضيف ثاني (تفادي التكرار)
-        for _,c in ipairs(obj:GetDescendants()) do
-            if c:IsA("BasePart") and c.Name == "Marker" then
-                if not tracked[c] then
-                    tracked[c] = { lastLabel = "", lastColor = c.Color, lastUpdate = tick() }
-                end
-                ok = true
-                break
-            end
-        end
-        if not ok then
-            local p = createMarker(obj)
-            if p then tracked[p] = { lastLabel = "", lastColor = p.Color, lastUpdate = tick() } end
-        end
+-- =========== المسح والتقييم الدوري ===========
+local function fullScanAndEvaluate()
+    local freq, modelsMap = scanWorkspaceForFingerprints()
+    for model, fp in pairs(modelsMap) do
+        -- compute rarity
+        local score = computeRarityScore(model, freq, modelsMap)
+        local label = scoreToLabel(score)
+        showRarityOnModel(model, label)
     end
 end
 
--- تتابع إضافات جديدة
-Workspace.DescendantAdded:Connect(function(obj)
-    if obj:IsA("Model") and #obj.Name > 20 then
-        -- تأكد ما في Marker أصلاً ثم نضيف
-        task.delay(0.1, function()
-            if not obj.Parent then return end
-            for _,c in ipairs(obj:GetDescendants()) do
-                if c:IsA("BasePart") and c.Name == "Marker" then
-                    if not tracked[c] then tracked[c] = { lastLabel = "", lastColor = c.Color, lastUpdate = tick() } end
-                    return
-                end
-            end
-            local p = createMarker(obj)
-            if p then tracked[p] = { lastLabel = "", lastColor = p.Color, lastUpdate = tick() } end
-        end)
-    elseif obj:IsA("BasePart") and obj.Name == "Marker" then
-        if not tracked[obj] then tracked[obj] = { lastLabel = "", lastColor = obj.Color, lastUpdate = tick() } end
-    end
-end)
+-- أول فحص سريع عند التشغيل
+fullScanAndEvaluate()
 
--- تنظيف أجزاء محذوفة
-local function cleanup()
-    for part, _ in pairs(tracked) do
-        if not part.Parent then tracked[part] = nil end
-    end
-end
-
--- الحلقة الرئيسية: تفحص كل ثانية، يكشف Rainbow عبر عينات قصيرة
+-- إعادة التقييم دوريًا (بالحجم اللي تختاره)
 task.spawn(function()
     while true do
-        cleanup()
-        for part, data in pairs(tracked) do
-            if part.Parent then
-                local current = part.Color
-                -- كشف Rainbow بأخذ عينات سريعة (لا يتغير لون البارت هنا، نقرأ فقط)
-                local is_rainbow = false
-                -- نجرب أخذ عينات فقط لو يبدو أن اللون يتغير عن اللون المخزن (لأداء أفضل)
-                if colorDist2(current, data.lastColor) > (0.001) then
-                    -- نأخذ عينات قصيرة لنتأكد هل التغيير مستمر ومتذبذب
-                    is_rainbow = isRainbow(part, 6, 0.04, 0.0025)
-                end
-
-                local label = nil
-                if is_rainbow then
-                    label = "متعدد"
-                else
-                    label = colorNameFromColor3(current)
-                end
-
-                -- نكتب النص فقط لو اختلف عن النص السابق
-                if label ~= data.lastLabel then
-                    setLabelOnPart(part, label)
-                    data.lastLabel = label
-                end
-
-                data.lastColor = current
-                data.lastUpdate = tick()
-            end
-        end
-        task.wait(1)
+        task.wait(SCAN_INTERVAL)
+        fullScanAndEvaluate()
     end
 end)
