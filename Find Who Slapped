@@ -1,74 +1,61 @@
--- ضع هذا كـ LocalScript داخل StarterPlayerScripts
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+-- LocalScript داخل StarterPlayerScripts
 
+local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
 
-local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
+-- إنشاء البارت الخاوي (فقط مكانه)
+local part = Instance.new("Part")
+part.Name = "CameraPart"
+part.Size = Vector3.new(2,2,1)
+part.Anchored = true
+part.CanCollide = false
+part.Transparency = 1 -- خاوي، ما يبين
+part.Parent = workspace
 
--- إعداد الموديل والبارتين (أخضر + شريط أبيض)
-local model = Instance.new("Model")
-model.Name = "ForcedCameraPart"
-model.Parent = workspace
+-- إنشاء GUI فارغ
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CameraControlGUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
-local base = Instance.new("Part")
-base.Name = "Base"
-base.Size = Vector3.new(2, 2, 1)
-base.Anchored = true
-base.CanCollide = false
-base.Material = Enum.Material.SmoothPlastic
-base.Color = Color3.fromRGB(0, 180, 0) -- أخضر
-base.Parent = model
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0,200,0,100)
+frame.Position = UDim2.new(0,10,0,10)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.Visible = true -- تقدر تخليه false إذا تبغاه مخفي أولًا
+frame.Parent = screenGui
 
-local stripe = Instance.new("Part")
-stripe.Name = "Stripe"
-stripe.Size = Vector3.new(2, 0.3, 1)
-stripe.Anchored = true
-stripe.CanCollide = false
-stripe.Material = Enum.Material.SmoothPlastic
-stripe.Color = Color3.fromRGB(255, 255, 255) -- أبيض
-stripe.Parent = model
+-- زر لتفعيل/إيقاف تثبيت الكاميرا
+local cameraButton = Instance.new("TextButton")
+cameraButton.Size = UDim2.new(0,180,0,40)
+cameraButton.Position = UDim2.new(0,10,0,10)
+cameraButton.Text = "تفعيل الكاميرا"
+cameraButton.Parent = frame
 
--- متغير تحكم (لو تحب تطفيه بضغط زر 'K')
-local enabled = true
+local cameraEnabled = false
 
--- Toggle بزر K (اختياري للخروج)
-UserInputService.InputBegan:Connect(function(inp, gpe)
-	if gpe then return end
-	if inp.KeyCode == Enum.KeyCode.K then
-		enabled = not enabled
-		if not enabled then
-			-- استرجاع الكاميرا للـ default
-			camera.CameraType = Enum.CameraType.Custom
-		end
+cameraButton.MouseButton1Click:Connect(function()
+	cameraEnabled = not cameraEnabled
+	if cameraEnabled then
+		cameraButton.Text = "إيقاف الكاميرا"
+	else
+		cameraButton.Text = "تفعيل الكاميرا"
+		camera.CameraType = Enum.CameraType.Custom -- يرجع التحكم العادي
 	end
 end)
 
--- كل فريم نحسب موقع البارت ونجبر الكاميرا تكون من موقعه وتطالع اللاعب
+-- تحديث البارت والكاميرا كل فريم (لو مفعل)
 RunService.RenderStepped:Connect(function()
-	-- تأكد الشخصية موجودة
-	if not player.Character or not player.Character.Parent then
-		char = player.Character or player.CharacterAdded:Wait()
-		hrp = char:WaitForChild("HumanoidRootPart")
-	end
-	if not hrp then return end
-
-	-- موقع البارت: 15 ستود لقدام و 5 فوق
-	local forward = hrp.CFrame.LookVector
-	local partPos = hrp.Position + forward * 15 + Vector3.new(0, 5, 0)
-
-	-- وضع البارتين بحيث الشريط فوق
-	base.CFrame = CFrame.new(partPos, partPos + forward) -- يواجه نفس الاتجاه
-	local yOffset = (base.Size.Y/2) - (stripe.Size.Y/2)
-	stripe.CFrame = base.CFrame * CFrame.new(0, yOffset, 0)
-
-	-- إجبار الكاميرا (لو مفعل)
-	if enabled then
-		camera.CameraType = Enum.CameraType.Scriptable
-		camera.CameraSubject = nil
-		camera.CFrame = CFrame.new(partPos, hrp.Position) -- من البارت تطالع اللاعب
+	if cameraEnabled then
+		local char = player.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			local hrp = char.HumanoidRootPart
+			-- موقع البارت 15 قدام و5 فوق
+			part.Position = hrp.Position + hrp.CFrame.LookVector * 15 + Vector3.new(0,5,0)
+			camera.CameraType = Enum.CameraType.Scriptable
+			camera.CameraSubject = nil
+			camera.CFrame = CFrame.new(part.Position, hrp.Position)
+		end
 	end
 end)
