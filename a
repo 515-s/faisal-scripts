@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
 --// نسخ الاسم
 local function copy(text)
@@ -10,28 +11,60 @@ local function copy(text)
 	end
 end
 
---// بارت طويل + ضغط = نسخ الاسم
+--// دالة تقريب اللون (يشوف إذا قريب من لون معين)
+local function isColorClose(c1, c2, tolerance)
+	tolerance = tolerance or 0.1 -- 0.1 = فرق صغير
+	return math.abs(c1.R - c2.R) <= tolerance
+	   and math.abs(c1.G - c2.G) <= tolerance
+	   and math.abs(c1.B - c2.B) <= tolerance
+end
+
+--// نص فوق البارت
+local function createLabel(part, text)
+	-- تحقق إذا النص موجود لتجنب التكرار
+	local existing = part:FindFirstChild("ColorLabel")
+	if existing then
+		existing.TextLabel.Text = text
+		return
+	end
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "ColorLabel"
+	billboard.Adornee = part
+	billboard.Size = UDim2.new(0,100,0,40)
+	billboard.StudsOffset = Vector3.new(0,35,0)
+	billboard.AlwaysOnTop = true
+	billboard.Parent = part
+
+	local label = Instance.new("TextLabel", billboard)
+	label.Size = UDim2.new(1,0,1,0)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = Color3.fromRGB(255,255,255)
+	label.TextScaled = true
+	label.Font = Enum.Font.SourceSansBold
+end
+
+--// إنشاء البارت الأساسي
 local function createMarker(model)
 	local main = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-	if not main then return end
+	if not main then return nil end
 
 	local part = Instance.new("Part")
-	part.Size = Vector3.new(1, 30, 1) -- عمود طويل
-	part.Color = Color3.fromRGB(255,0,0)
+	part.Size = Vector3.new(1,30,1)
+	part.Color = Color3.fromRGB(128,128,128) -- رمادي افتراضي
 	part.Material = Enum.Material.Neon
 	part.CanCollide = false
 	part.Anchored = false
 	part.Name = "Marker"
 
-	part.CFrame = main.CFrame * CFrame.new(0, 20, 0)
+	part.CFrame = main.CFrame * CFrame.new(0,20,0)
 
-	-- ربط مع الموديل عشان يتحرك معه
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = part
 	weld.Part1 = main
 	weld.Parent = part
 
-	-- كشف الضغط لنسخ الاسم
 	local click = Instance.new("ClickDetector", part)
 	click.MaxActivationDistance = 50
 	click.MouseClick:Connect(function()
@@ -39,21 +72,41 @@ local function createMarker(model)
 	end)
 
 	part.Parent = model
+	return part
 end
 
---// فحص الموديلات
+--// فحص الموديلات وإنشاء البارت
 local added = {}
+local markers = {}
+
 local function check(obj)
 	if obj:IsA("Model") and #obj.Name > 20 and not added[obj] then
 		added[obj] = true
-		createMarker(obj)
+		local part = createMarker(obj)
+		if part then
+			table.insert(markers, part)
+		end
 	end
 end
 
--- فحص كل الموديلات الموجودة
 for _,v in ipairs(workspace:GetDescendants()) do
 	check(v)
 end
 
--- مراقبة أي موديل جديد يضاف
 workspace.DescendantAdded:Connect(check)
+
+--// مراقبة اللون كل ثانية
+spawn(function()
+	while true do
+		for _, part in ipairs(markers) do
+			if part.Parent then
+				if isColorClose(part.Color, Color3.fromRGB(0,255,0), 0.1) then
+					createLabel(part, "Uncommon")
+				elseif isColorClose(part.Color, Color3.fromRGB(128,128,128), 0.1) then
+					createLabel(part, "Common")
+				end
+			end
+		end
+		wait(1)
+	end
+end)
