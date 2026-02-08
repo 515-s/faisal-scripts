@@ -1,44 +1,41 @@
 --// Services
-local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
 --// نسخ الاسم
 local function copy(text)
-	if setclipboard then
-		setclipboard(text)
-	end
+	if setclipboard then setclipboard(text) end
 end
 
---// دالة تحول لون RGB إلى اسم تقريبي بالعربي مع التمييز الرمادي
-local function colorNameFromColor3(color)
+--// دالة تعرف اللون بالعربي أو Gold/Rainbow
+local function colorNameFromColor3(color, part)
+	-- Gold تقريبا: R=1, G>0.8, B<0.2
+	if color.R > 0.9 and color.G > 0.7 and color.B < 0.3 then
+		return "ذهبي"
+	end
+	-- Rainbow: نقدر نفحص اذا Material = Neons وتغير مستمر (تقريب)
+	if part:FindFirstChildWhichIsA("ColorSequence") or part.Material == Enum.Material.Neon then
+		return "متعدد"
+	end
+
+	-- نحسب لو رمادي
 	local r,g,b = color.R, color.G, color.B
-	-- نحسب إذا اللون رمادي (فرق صغير بين R,G,B)
 	local maxDiff = math.max(math.abs(r-g), math.abs(r-b), math.abs(g-b))
 	if maxDiff < 0.05 then
-		if r < 0.1 then
-			return "أسود"
-		elseif r > 0.9 then
-			return "أبيض"
-		else
-			return "رمادي" -- بدون ذكر ندره
-		end
+		if r < 0.1 then return "أسود"
+		elseif r > 0.9 then return "أبيض"
+		else return "رمادي" end
 	end
 
 	-- باقي الألوان بالتقريب
-	if r > g and r > b then
-		return "أحمر"
-	elseif g > r and g > b then
-		return "أخضر"
-	elseif b > r and b > g then
-		return "أزرق"
-	elseif r > 0.8 and g > 0.8 and b < 0.3 then
-		return "أصفر"
-	else
-		return "غير معروف"
+	if r > g and r > b then return "أحمر"
+	elseif g > r and g > b then return "أخضر"
+	elseif b > r and b > g then return "أزرق"
+	elseif r > 0.8 and g > 0.8 and b < 0.3 then return "أصفر"
+	else return "غير معروف"
 	end
 end
 
---// إنشاء النص فوق البارت
+--// إنشاء نص فوق البارت
 local function setLabelOnPart(part, text)
 	if not part or not part.Parent then return end
 	local billboard = part:FindFirstChild("ColorLabelGui")
@@ -62,19 +59,17 @@ local function setLabelOnPart(part, text)
 	end
 
 	local lbl = billboard:FindFirstChild("ColorLabel")
-	if lbl then
-		lbl.Text = text
-	end
+	if lbl then lbl.Text = text end
 end
 
---// إنشاء البارت الأساسي
+--// إنشاء البارت
 local function createMarker(model)
 	local main = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
 	if not main then return nil end
 
 	local part = Instance.new("Part")
 	part.Size = Vector3.new(1,10,1) -- طول البارت 10
-	part.Color = Color3.fromRGB(128,128,128) -- اللون الطبيعي
+	part.Color = Color3.fromRGB(128,128,128) -- لا يتلون
 	part.Material = Enum.Material.Neon
 	part.CanCollide = false
 	part.Anchored = false
@@ -89,9 +84,7 @@ local function createMarker(model)
 
 	local click = Instance.new("ClickDetector", part)
 	click.MaxActivationDistance = 50
-	click.MouseClick:Connect(function()
-		copy(model.Name)
-	end)
+	click.MouseClick:Connect(function() copy(model.Name) end)
 
 	part.Parent = model
 	return part
@@ -105,16 +98,11 @@ local function check(obj)
 	if obj:IsA("Model") and #obj.Name > 20 and not added[obj] then
 		added[obj] = true
 		local part = createMarker(obj)
-		if part then
-			table.insert(markers, part)
-		end
+		if part then table.insert(markers, part) end
 	end
 end
 
-for _,v in ipairs(Workspace:GetDescendants()) do
-	check(v)
-end
-
+for _,v in ipairs(Workspace:GetDescendants()) do check(v) end
 Workspace.DescendantAdded:Connect(check)
 
 --// مراقبة لون البارت كل ثانية
@@ -122,7 +110,7 @@ spawn(function()
 	while true do
 		for _, part in ipairs(markers) do
 			if part and part.Parent then
-				local name = colorNameFromColor3(part.Color)
+				local name = colorNameFromColor3(part.Color, part)
 				setLabelOnPart(part, name)
 			end
 		end
