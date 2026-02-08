@@ -1,111 +1,150 @@
+-- LocalScript: فحص حرفي لكل شيء في Workspace للبحث عن "common"
+local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
 local task = task
 
-local POLL_INTERVAL = 1 -- كل كم ثانية نتحقق من الحركة
-local MOVE_THRESHOLD = 0.1
-local MARKER_NAME = "Marker"
+-- إعدادات
+local SCAN_DELAY = 0.5    -- كل كم ثانية نعيد الفحص
+local TIMEOUT = 30        -- يقف بعد كم ثانية لو ما لقى شيء (لتجنب حلقة لا نهائية)
+local FIND_NAME = "common" -- الاسم اللي نبحث عنه (case-insensitive)
+local RENAMED = "كومون"    -- الاسم اللي نحوله له
+local MARKER_TEXT = "كومون"
+local GREEN = Color3.fromRGB(0, 255, 0)
+local NEON_MATERIAL = Enum.Material.Neon
 
-local lastPositions = {}
-
-local function isBasePart(obj) return obj and obj:IsA("BasePart") end
-
-local function primaryPartOrAny(model)
-    if model.PrimaryPart then return model.PrimaryPart end
-    for _,v in ipairs(model:GetDescendants()) do
-        if isBasePart(v) then return v end
+-- دالة تساعد نلاقي "جزء مرجعي" داخل موديل أو الجزء نفسه
+local function primaryPartOrAny(obj)
+    if obj:IsA("Model") and obj.PrimaryPart then
+        return obj.PrimaryPart
+    end
+    if obj:IsA("BasePart") then
+        return obj
+    end
+    for _,c in ipairs(obj:GetDescendants()) do
+        if c:IsA("BasePart") then return c end
     end
     return nil
 end
 
--- تغيير أي "common" إلى "كومون"
-local function renameCommonsInModel(model)
-    for _,v in ipairs(model:GetDescendants()) do
-        if tostring(v.Name):lower() == "common" then
-            v.Name = "كومون"
-        end
+-- يحط Billboard فوق part مع النص المعطى
+local function putBillboard(part, text)
+    if not part or not part.Parent then return end
+    local existing = part:FindFirstChild("CommonLabelGui")
+    if existing and existing:FindFirstChild("Label") then
+        existing.Label.Text = text
+        return
     end
+
+    local bg = Instance.new("BillboardGui")
+    bg.Name = "CommonLabelGui"
+    bg.Adornee = part
+    bg.Size = UDim2.new(0,140,0,50)
+    bg.StudsOffset = Vector3.new(0, part.Size.Y/2 + 1.5, 0)
+    bg.AlwaysOnTop = true
+    bg.Parent = part
+
+    local label = Instance.new("TextLabel")
+    label.Name = "Label"
+    label.Size = UDim2.new(1,0,1,0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextScaled = true
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.Font = Enum.Font.SourceSansBold
+    label.Parent = bg
 end
 
-local function sampleModelPosition(model)
-    local p = primaryPartOrAny(model)
-    if not p then return nil end
-    return p.Position
-end
-
-local function hasMoved(model)
-    local last = lastPositions[model]
-    local current = sampleModelPosition(model)
-    if not current then return false end
-    if not last then
-        lastPositions[model] = current
-        return false
+-- يلون جزء أو كل أجزاء موديل بالأخضر Neon
+local function colorModelGreen(obj)
+    if obj:IsA("BasePart") then
+        obj.Color = GREEN
+        obj.Material = NEON_MATERIAL
+        return
     end
-    local dist2 = (current - last).Magnitude
-    lastPositions[model] = current
-    return dist2 > MOVE_THRESHOLD
-end
-
-local function ensureMarker(model)
-    for _,v in ipairs(model:GetDescendants()) do
-        if isBasePart(v) and v.Name == MARKER_NAME then return v end
-    end
-    local main = primaryPartOrAny(model)
-    if not main then return nil end
-    local part = Instance.new("Part")
-    part.Size = Vector3.new(1,10,1)
-    part.Color = Color3.fromRGB(128,128,128)
-    part.Material = Enum.Material.Neon
-    part.CanCollide = false
-    part.Anchored = false
-    part.Name = MARKER_NAME
-    part.CFrame = main.CFrame * CFrame.new(0,20,0)
-    local weld = Instance.new("WeldConstraint")
-    weld.Part0 = part
-    weld.Part1 = main
-    weld.Parent = part
-    part.Parent = model
-    return part
-end
-
--- نص فوق الموديل
-local function showLabel(model, text)
-    local main = primaryPartOrAny(model)
-    if not main then return end
-    local gui = main:FindFirstChild("RarityLabelGui")
-    if not gui then
-        gui = Instance.new("BillboardGui")
-        gui.Name = "RarityLabelGui"
-        gui.Adornee = main
-        gui.Size = UDim2.new(0,120,0,40)
-        gui.StudsOffset = Vector3.new(0,main.Size.Y/2 + 1.5,0)
-        gui.AlwaysOnTop = true
-        gui.Parent = main
-        local label = Instance.new("TextLabel")
-        label.Name = "RarityLabel"
-        label.Size = UDim2.new(1,0,1,0)
-        label.BackgroundTransparency = 1
-        label.TextColor3 = Color3.fromRGB(255,255,255)
-        label.TextScaled = true
-        label.Font = Enum.Font.SourceSansBold
-        label.Parent = gui
-    end
-    local label = gui:FindFirstChild("RarityLabel")
-    if label then label.Text = text end
-end
-
--- العملية الرئيسية
-task.spawn(function()
-    while true do
-        for _,model in ipairs(Workspace:GetDescendants()) do
-            if model:IsA("Model") then
-                renameCommonsInModel(model)
-                if hasMoved(model) then
-                    ensureMarker(model)
-                    showLabel(model, "تحرك") -- تقدر تغيّر النص لأي حاجة
-                end
+    if obj:IsA("Model") then
+        for _,d in ipairs(obj:GetDescendants()) do
+            if d:IsA("BasePart") then
+                d.Color = GREEN
+                d.Material = NEON_MATERIAL
             end
         end
-        task.wait(POLL_INTERVAL)
+        return
+    end
+    -- لو كان عنصر غير BasePart (مثل Decal أو UI) نحاول تجاهله حفاظًا على السلامة
+end
+
+-- يظهر رسالة صغيرة للاعب (ScreenGui) تقول "غير موجود"
+local function showNotFoundNotification()
+    if not player or not player:FindFirstChild("PlayerGui") then return end
+    local gui = Instance.new("ScreenGui")
+    gui.ResetOnSpawn = false
+    gui.Name = "CommonCheckNotification"
+    gui.Parent = player.PlayerGui
+
+    local frame = Instance.new("Frame", gui)
+    frame.AnchorPoint = Vector2.new(0.5, 0)
+    frame.Position = UDim2.new(0.5, 0, 0.05, 0)
+    frame.Size = UDim2.new(0, 300, 0, 60)
+    frame.BackgroundTransparency = 0.2
+    frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    frame.BorderSizePixel = 0
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1, -8, 1, -8)
+    label.Position = UDim2.new(0,4,0,4)
+    label.BackgroundTransparency = 1
+    label.Text = "غير موجود"
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.TextScaled = true
+    label.Font = Enum.Font.SourceSansBold
+
+    -- يمسح بعد 3 ثواني
+    task.delay(3, function()
+        pcall(function() gui:Destroy() end)
+    end)
+end
+
+-- الفحص الكامل (واحد) — يرجّع true لو لقى شيء وعدّل
+local function scanOnceAndHandle()
+    local foundAny = false
+    -- نفحص كل شيء حرفياً
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        local ok, name = pcall(function() return tostring(obj.Name) end)
+        if ok and name and name:lower() == FIND_NAME:lower() then
+            foundAny = true
+            -- غيّر الاسم للعربي
+            pcall(function() obj.Name = RENAMED end)
+            -- لون الجزء/الموديل أخضر
+            pcall(function() colorModelGreen(obj) end)
+            -- ضع Billboard على جزء مرجعي للموديل أو على العنصر نفسه
+            local partRef = primaryPartOrAny(obj)
+            if partRef then
+                putBillboard(partRef, MARKER_TEXT)
+            end
+            -- نكمل الفحص عشان نعالج كل عناصر common الممكنة
+        end
+    end
+    return foundAny
+end
+
+-- الفحص المتكرر لين يتأكد (أو حتى timeout)
+task.spawn(function()
+    local startTime = tick()
+    while true do
+        local found = false
+        pcall(function()
+            found = scanOnceAndHandle()
+        end)
+        if found then
+            -- إذا لقى أي شيء: انتهى الفحص بنجاح
+            break
+        end
+        if tick() - startTime >= TIMEOUT then
+            -- لو انتهت المدة بدون أي نتيجة: نعرض "غير موجود"
+            pcall(showNotFoundNotification)
+            break
+        end
+        task.wait(SCAN_DELAY)
     end
 end)
