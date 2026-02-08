@@ -2,15 +2,15 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 
--- GUI Container
+-- Container GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "DragDetectGUI"
+gui.Name = "DragDetector"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
 -- المربع الأسود القابل للسحب
 local frame = Instance.new("Frame")
-frame.Size = UDim2.fromOffset(250, 400)
+frame.Size = UDim2.fromOffset(250,400)
 frame.Position = UDim2.fromScale(0.1,0.1)
 frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 frame.Active = true
@@ -45,10 +45,16 @@ layout.Parent = scroll
 
 -- دالة لإضافة عنصر في القائمة مع زر نسخ
 local function addItem(name)
+	-- تحقق إذا الاسم موجود مسبقًا
+	for _,v in ipairs(scroll:GetChildren()) do
+		if v:IsA("Frame") and v.Name == name then return end
+	end
+
 	local container = Instance.new("Frame")
 	container.Size = UDim2.new(1,0,0,28)
 	container.BackgroundTransparency = 0.3
 	container.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	container.Name = name
 	container.Parent = scroll
 
 	local label = Instance.new("TextLabel")
@@ -80,14 +86,18 @@ local function addItem(name)
 		copyBtn.Text = "Copy"
 	end)
 
-	-- تحديث CanvasSize
 	scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
 end
 
--- دالة للكشف عن GUI تحت المربع
+-- دالة للكشف عن GUI تحت المربع داخل المسار المحدد
 local function detectGui()
 	local mousePos = UserInputService:GetMouseLocation()
-	for _, guiObject in ipairs(player.PlayerGui:GetDescendants()) do
+	local targetParent = player.PlayerGui:FindFirstChild("Frames")
+	if not targetParent then return end
+	targetParent = targetParent:FindFirstChild("CenterSide")
+	if not targetParent then return end
+
+	for _, guiObject in ipairs(targetParent:GetDescendants()) do
 		if guiObject:IsA("GuiObject") and guiObject.Visible and guiObject.AbsoluteSize.X>0 and guiObject.AbsoluteSize.Y>0 then
 			local pos = guiObject.AbsolutePosition
 			local size = guiObject.AbsoluteSize
@@ -112,6 +122,6 @@ end)
 frame.InputEnded:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = false
-		detectGui() -- تحقق عند إفلات المربع
+		detectGui()
 	end
 end)
