@@ -4,89 +4,90 @@ local player = Players.LocalPlayer
 local StarterGui = game:GetService("StarterGui")
 
 --// UI
-local gui = Instance.new("ScreenGui")
-gui.Parent = player:WaitForChild("PlayerGui")
+local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "LongNamesViewer"
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromScale(0.35, 0.5)
-frame.Position = UDim2.fromScale(0.03, 0.25)
+frame.Size = UDim2.fromScale(0.35,0.5)
+frame.Position = UDim2.fromScale(0.03,0.25)
 frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 frame.BorderSizePixel = 0
-
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0,12)
+Instance.new("UICorner", frame)
 
 local scroll = Instance.new("ScrollingFrame", frame)
 scroll.Size = UDim2.fromScale(1,1)
 scroll.CanvasSize = UDim2.new(0,0,0,0)
-scroll.ScrollBarImageTransparency = 0.3
 scroll.BackgroundTransparency = 1
 
 local layout = Instance.new("UIListLayout", scroll)
 layout.Padding = UDim.new(0,6)
 
---// Copy function
+--// copy
 local function copy(text)
-    if setclipboard then
-        setclipboard(text)
-        StarterGui:SetCore("SendNotification", {
-            Title = "Copied",
-            Text = text,
-            Duration = 2
-        })
-    end
+	if setclipboard then
+		setclipboard(text)
+	end
 end
 
---// Add item
+--// يصنع بارت أحمر فوق الموديل
+local function createMarker(model)
+	local part = Instance.new("Part")
+	part.Size = Vector3.new(20,3,20) -- كبير
+	part.Color = Color3.fromRGB(255,0,0)
+	part.Material = Enum.Material.Neon
+	part.Anchored = true
+	part.CanCollide = false
+	part.Name = "Marker"
+
+	local cf, size = model:GetBoundingBox()
+	part.CFrame = cf + Vector3.new(0, size.Y/2 + 5, 0)
+
+	part.Parent = workspace
+end
+
+--// إضافة عنصر للـ UI
 local function addItem(name)
-    local holder = Instance.new("Frame")
-    holder.Size = UDim2.new(1,-6,0,32)
-    holder.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    holder.Parent = scroll
+	local holder = Instance.new("Frame", scroll)
+	holder.Size = UDim2.new(1,-6,0,32)
+	holder.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	Instance.new("UICorner", holder)
 
-    Instance.new("UICorner", holder).CornerRadius = UDim.new(0,8)
+	local label = Instance.new("TextLabel", holder)
+	label.Size = UDim2.new(0.7,0,1,0)
+	label.BackgroundTransparency = 1
+	label.Text = name
+	label.TextColor3 = Color3.new(1,1,1)
+	label.TextScaled = true
+	label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local label = Instance.new("TextLabel", holder)
-    label.Size = UDim2.new(0.7,0,1,0)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = Color3.new(1,1,1)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.TextScaled = true
+	local btn = Instance.new("TextButton", holder)
+	btn.Size = UDim2.new(0.3,-4,1,-4)
+	btn.Position = UDim2.new(0.7,4,0,2)
+	btn.Text = "Copy"
+	btn.TextScaled = true
 
-    local btn = Instance.new("TextButton", holder)
-    btn.Size = UDim2.new(0.3,-4,1,-4)
-    btn.Position = UDim2.new(0.7,4,0,2)
-    btn.Text = "Copy"
-    btn.TextScaled = true
-    btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
-    btn.TextColor3 = Color3.new(1,1,1)
-
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
-
-    btn.MouseButton1Click:Connect(function()
-        copy(name)
-    end)
+	btn.MouseButton1Click:Connect(function()
+		copy(name)
+	end)
 end
 
---// Resize canvas
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 6)
+	scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 6)
 end)
 
---// Scan workspace
+--// فحص
 local added = {}
 
 local function check(obj)
-    if obj:IsA("Model") and #obj.Name > 20 and not added[obj] then
-        added[obj] = true
-        addItem(obj.Name)
-    end
+	if obj:IsA("Model") and #obj.Name > 20 and not added[obj] then
+		added[obj] = true
+		addItem(obj.Name)
+		createMarker(obj)
+	end
 end
 
-for _,v in pairs(workspace:GetDescendants()) do
-    check(v)
+for _,v in ipairs(workspace:GetDescendants()) do
+	check(v)
 end
 
 workspace.DescendantAdded:Connect(check)
