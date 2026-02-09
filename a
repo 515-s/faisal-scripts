@@ -1,79 +1,92 @@
--- Faisal Simple TOUCH
-
+--// Services
 local Players = game:GetService("Players")
-local VirtualInputManager = game:GetService("VirtualInputManager")
+local UIS = game:GetService("UserInputService")
+local VIM = game:GetService("VirtualInputManager")
 
 local player = Players.LocalPlayer
 
--------------------------------------------------
--- SETTINGS (غير الإحداثيات لو تبي)
+--// GUI
+local gui = Instance.new("ScreenGui")
+gui.Parent = player:WaitForChild("PlayerGui")
+gui.Name = "AutoClickUI"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromScale(0.3, 0.12)
+frame.Position = UDim2.fromScale(0.35, 0.85)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.BorderSizePixel = 0
+frame.AnchorPoint = Vector2.new(0.5,0.5)
+frame.Position = UDim2.new(0.5,0,0.9,0)
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0,15)
+
+--// TextBox
+local box = Instance.new("TextBox", frame)
+box.Size = UDim2.fromScale(0.55, 0.8)
+box.Position = UDim2.fromScale(0.02, 0.1)
+box.PlaceholderText = "1 - 150"
+box.Text = "50"
+box.TextScaled = true
+box.BackgroundColor3 = Color3.fromRGB(50,50,50)
+Instance.new("UICorner", box)
+
+--// Button
+local button = Instance.new("TextButton", frame)
+button.Size = UDim2.fromScale(0.38, 0.8)
+button.Position = UDim2.fromScale(0.6, 0.1)
+button.Text = "تأكيد"
+button.TextScaled = true
+button.BackgroundColor3 = Color3.fromRGB(0,170,255)
+Instance.new("UICorner", button)
+
 -------------------------------------------------
 
-local CLICK_X = 960
-local CLICK_Y = 874
+local clicksToDo = 0
+local waitingForFirstClick = false
 
--------------------------------------------------
--- CLICK
--------------------------------------------------
+-- عند الضغط على تأكيد
+button.MouseButton1Click:Connect(function()
+	local num = tonumber(box.Text)
 
-local function clickAt()
-	VirtualInputManager:SendMouseButtonEvent(CLICK_X,CLICK_Y,0,true,game,0)
-	task.wait(0.02)
-	VirtualInputManager:SendMouseButtonEvent(CLICK_X,CLICK_Y,0,false,game,0)
+	if not num then return end
+	num = math.clamp(num,1,150)
+
+	clicksToDo = num
+	waitingForFirstClick = true
+
+	button.Text = "اضغط بأي مكان..."
+end)
+
+-- تنفيذ الضغطات
+local function doClicks(pos)
+	if clicksToDo <= 0 then return end
+
+	local totalTime = 2 -- ثانيتين
+	local delayTime = totalTime / clicksToDo
+
+	for i = 1, clicksToDo do
+		VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 0)
+		VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 0)
+		task.wait(delayTime)
+	end
+
+	waitingForFirstClick = false
+	button.Text = "تأكيد"
 end
 
--------------------------------------------------
--- GUI صغير جدًا
--------------------------------------------------
+-- أول ضغطة (ماوس + جوال)
+UIS.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if not waitingForFirstClick then return end
 
-pcall(function()
-	player.PlayerGui:FindFirstChild("FaisalTouch"):Destroy()
-end)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "FaisalTouch"
-gui.ResetOnSpawn = false
-gui.Parent = player.PlayerGui
-
-local main = Instance.new("Frame")
-main.Parent = gui
-main.Size = UDim2.fromOffset(100,40)
-main.Position = UDim2.fromScale(0.15,0.2)
-main.BackgroundColor3 = Color3.fromRGB(15,15,15)
-main.Active = true
-main.Draggable = true
-main.BorderSizePixel = 0
-
--------------------------------------------------
--- BUTTON
--------------------------------------------------
-
-local btn = Instance.new("TextButton")
-btn.Parent = main
-btn.Size = UDim2.new(1,0,1,0)
-btn.Text = "TOUCH OFF"
-btn.TextScaled = true
-btn.TextColor3 = Color3.new(1,1,1)
-btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-
--------------------------------------------------
--- TOUCH LOOP
--------------------------------------------------
-
-local on = false
-
-btn.MouseButton1Click:Connect(function()
-	on = not on
-	btn.Text = on and "TOUCH ON" or "TOUCH OFF"
-end)
-
-task.spawn(function()
-	while true do
-		if on then
-			clickAt()
-			task.wait(0.35) -- سرعة آمنة (لا يقفل الماوس)
-		else
-			task.wait(0.2)
-		end
+		local pos = UIS:GetMouseLocation()
+		task.spawn(function()
+			doClicks(pos)
+		end)
 	end
 end)
