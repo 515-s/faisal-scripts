@@ -5,7 +5,7 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 
 --------------------------------------------------
--- CLICK
+-- CLICK FUNCTION
 --------------------------------------------------
 
 local CLICK_X, CLICK_Y = 960, 874
@@ -16,49 +16,61 @@ local function clickAt()
 end
 
 --------------------------------------------------
--- GUI صغير draggable
+-- GUI نظيف جدًا
 --------------------------------------------------
 
-local gui = Instance.new("ScreenGui", player.PlayerGui)
-gui.ResetOnSpawn = false
+-- نحذف القديم لو موجود
+pcall(function()
+	player.PlayerGui:FindFirstChild("FaisalMenu"):Destroy()
+end)
 
-local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromOffset(130,80)
+local gui = Instance.new("ScreenGui")
+gui.Name = "FaisalMenu"
+gui.ResetOnSpawn = false
+gui.Parent = player.PlayerGui
+
+local main = Instance.new("Frame")
+main.Parent = gui
+main.Size = UDim2.fromOffset(110,70)
 main.Position = UDim2.fromScale(0.15,0.2)
-main.BackgroundColor3 = Color3.fromRGB(15,15,15)
+main.BackgroundColor3 = Color3.fromRGB(20,20,20)
+main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
-Instance.new("UICorner", main)
-
-local layout = Instance.new("UIListLayout", main)
-layout.Padding = UDim.new(0,5)
 
 --------------------------------------------------
--- SLAP
+-- SLAP BUTTON
 --------------------------------------------------
 
-local slap = Instance.new("TextButton", main)
-slap.Size = UDim2.new(1,-10,0,30)
+local slap = Instance.new("TextButton")
+slap.Parent = main
+slap.Size = UDim2.fromOffset(100,28)
+slap.Position = UDim2.fromOffset(5,5)
 slap.Text = "SLAP"
-slap.TextScaled = true
-slap.BackgroundColor3 = Color3.fromRGB(30,30,30)
 slap.TextColor3 = Color3.new(1,1,1)
+slap.BackgroundColor3 = Color3.fromRGB(35,35,35)
+slap.TextScaled = true
 
 slap.MouseButton1Click:Connect(clickAt)
 
 --------------------------------------------------
--- TOUCH (ضغط لا نهائي)
+-- TOUCH BUTTON (لا نهائي)
 --------------------------------------------------
 
 local touchOn = false
 
-local touch = slap:Clone()
-touch.Text = "TOUCH: OFF"
+local touch = Instance.new("TextButton")
 touch.Parent = main
+touch.Size = UDim2.fromOffset(100,28)
+touch.Position = UDim2.fromOffset(5,37)
+touch.Text = "TOUCH OFF"
+touch.TextColor3 = Color3.new(1,1,1)
+touch.BackgroundColor3 = Color3.fromRGB(35,35,35)
+touch.TextScaled = true
 
 touch.MouseButton1Click:Connect(function()
 	touchOn = not touchOn
-	touch.Text = touchOn and "TOUCH: ON" or "TOUCH: OFF"
+	touch.Text = touchOn and "TOUCH ON" or "TOUCH OFF"
 end)
 
 task.spawn(function()
@@ -71,53 +83,38 @@ task.spawn(function()
 end)
 
 --------------------------------------------------
--- 🔥 BAR AUTO DETECT (عمودي)
+-- BAR AUTO (عمودي بدون تخريب)
 --------------------------------------------------
-
-local detectedBar = nil
-
-local function isVerticalBar(obj)
-	if not obj:IsA("Frame") and not obj:IsA("ImageLabel") then
-		return false
-	end
-
-	local size = obj.AbsoluteSize
-
-	-- طويل أكثر من عرضه = عمودي
-	if size.Y > size.X * 2 and size.Y > 40 then
-		return true
-	end
-
-	return false
-end
 
 task.spawn(function()
 
-	-- نبحث عن البار تلقائي
-	while not detectedBar do
+	local function isVerticalBar(obj)
+		if not obj:IsA("Frame") and not obj:IsA("ImageLabel") then return false end
+		local s = obj.AbsoluteSize
+		return s.Y > s.X * 2 and s.Y > 40
+	end
+
+	local bar
+
+	while not bar do
 		for _,v in ipairs(player.PlayerGui:GetDescendants()) do
 			if isVerticalBar(v) then
-				detectedBar = v
-				print("VERTICAL BAR DETECTED:", v:GetFullName())
+				bar = v
+				print("BAR:", v:GetFullName())
 				break
 			end
 		end
 		task.wait(0.4)
 	end
 
-	local lastY = detectedBar.AbsolutePosition.Y
+	local lastY = bar.AbsolutePosition.Y
 
-	detectedBar:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+	bar:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+		local nowY = bar.AbsolutePosition.Y
 
-		local nowY = detectedBar.AbsolutePosition.Y
-
-		-- يتحرك للأعلى
 		if nowY < lastY then
-			local topEdge = nowY
-			local parentTop = detectedBar.Parent.AbsolutePosition.Y
-
-			-- وصل أعلى شي
-			if topEdge <= parentTop + 2 then
+			local top = bar.Parent.AbsolutePosition.Y
+			if nowY <= top + 2 then
 				clickAt()
 			end
 		end
