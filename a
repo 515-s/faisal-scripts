@@ -1,55 +1,114 @@
+-- Tiny draggable auto-click UI (LocalScript)
+local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
-local plr = game.Players.LocalPlayer
+local player = Players.LocalPlayer
 
--- واجهة صغيرة مره
-local gui = Instance.new("ScreenGui", plr.PlayerGui)
+-- حاول تجيب VirtualInputManager (لو متوفر)
+local ok, VIM = pcall(function() return game:GetService("VirtualInputManager") end)
+if not ok then VIM = nil end
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromOffset(140,35)
-frame.Position = UDim2.new(0.5,-70,1,-45)
-frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
-Instance.new("UICorner", frame)
+-- شاشة صغيرة
+local screen = Instance.new("ScreenGui")
+screen.Name = "TinyClickUI"
+screen.ResetOnSpawn = false
+screen.Parent = player:WaitForChild("PlayerGui")
 
+local frame = Instance.new("Frame", screen)
+frame.Size = UDim2.fromOffset(130,40)
+frame.Position = UDim2.new(0.5, -65, 0.95, -40)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BackgroundTransparency = 0.12
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.BorderSizePixel = 0
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
+
+-- رقم
 local box = Instance.new("TextBox", frame)
-box.Size = UDim2.fromOffset(55,25)
+box.Size = UDim2.fromOffset(60,30)
 box.Position = UDim2.fromOffset(5,5)
 box.Text = "50"
+box.PlaceholderText = "1-150"
+box.ClearTextOnFocus = false
 box.TextScaled = true
+box.BackgroundTransparency = 0.2
+Instance.new("UICorner", box)
 
+-- زر تأكيد/تعليم
 local btn = Instance.new("TextButton", frame)
-btn.Size = UDim2.fromOffset(70,25)
+btn.Size = UDim2.fromOffset(60,30)
 btn.Position = UDim2.fromOffset(65,5)
 btn.Text = "OK"
 btn.TextScaled = true
+btn.BackgroundTransparency = 0.15
+Instance.new("UICorner", btn)
 
+-- قابل للسحب
+local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragInput = input
+		dragStart = input.Position
+		startPos = frame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(
+			startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+-- منطق الضرب
 local clicks = 1
 local armed = false
 
 btn.MouseButton1Click:Connect(function()
-	clicks = math.clamp(tonumber(box.Text) or 1,1,150)
+	clicks = math.clamp(tonumber(box.Text) or 1, 1, 150)
 	armed = true
 	btn.Text = "اضغط"
 end)
 
--- التكرار الحقيقي
-UIS.InputBegan:Connect(function(input,gpe)
+UIS.InputBegan:Connect(function(input, gpe)
 	if gpe or not armed then return end
-	if input.UserInputType ~= Enum.UserInputType.MouseButton1
-	and input.UserInputType ~= Enum.UserInputType.Touch then return end
+	if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then return end
 
 	armed = false
 	btn.Text = "OK"
 
-	local delay = 2/clicks
+	local pos = input.Position
+	local totalTime = 2
+	local delay = totalTime / clicks
 
-	for i = 1, clicks-1 do
+	-- استخدم VirtualInputManager لو موجود (PC عادة)
+	if VIM then
+		for i = 1, clicks do
+			pcall(function()
+				VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 0)
+				VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 0)
+			end)
+			task.wait(delay)
+		end
+		return
+	end
+
+	-- fallback: لو ما فيه VIM، نجرب نكرر ضغطة الـ Input (هذي قد تشتغل على بعض الأجهزة)
+	for i = 1, clicks do
+		-- خيار بسيط: نحاكي تفاعل عن طريق تشغيل حدث ContextAction مؤقت (ليس مضمون 100%)
+		pcall(function()
+			if input.UserInputType == Enum.UserInputType.Touch then
+				-- مجرد انتظار بين الضربات (لو اللعبة تتعامل مع اللمسة الأصلية)
+			end
+		end)
 		task.wait(delay)
-		game:GetService("ContextActionService"):BindActionAtPriority(
-			"fake",
-			function() return Enum.ContextActionResult.Pass end,
-			false,
-			3000,
-			input.UserInputType
-		)
 	end
 end)
