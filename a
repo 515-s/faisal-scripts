@@ -1,114 +1,60 @@
--- Tiny draggable auto-click UI (LocalScript)
+-- Faisal 5x Click
+
 local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
 local player = Players.LocalPlayer
 
--- حاول تجيب VirtualInputManager (لو متوفر)
-local ok, VIM = pcall(function() return game:GetService("VirtualInputManager") end)
-if not ok then VIM = nil end
+-------------------------------------------------
+-- الإحداثيات (غيرها لو تبي)
+-------------------------------------------------
 
--- شاشة صغيرة
-local screen = Instance.new("ScreenGui")
-screen.Name = "TinyClickUI"
-screen.ResetOnSpawn = false
-screen.Parent = player:WaitForChild("PlayerGui")
+local CLICK_X = 960
+local CLICK_Y = 874
 
-local frame = Instance.new("Frame", screen)
-frame.Size = UDim2.fromOffset(130,40)
-frame.Position = UDim2.new(0.5, -65, 0.95, -40)
-frame.AnchorPoint = Vector2.new(0.5, 0.5)
-frame.BackgroundTransparency = 0.12
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-frame.BorderSizePixel = 0
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
+-------------------------------------------------
+-- وظيفة الضغط
+-------------------------------------------------
 
--- رقم
-local box = Instance.new("TextBox", frame)
-box.Size = UDim2.fromOffset(60,30)
-box.Position = UDim2.fromOffset(5,5)
-box.Text = "50"
-box.PlaceholderText = "1-150"
-box.ClearTextOnFocus = false
-box.TextScaled = true
-box.BackgroundTransparency = 0.2
-Instance.new("UICorner", box)
+local function clickOnce()
+	VirtualInputManager:SendMouseButtonEvent(CLICK_X,CLICK_Y,0,true,game,0)
+	task.wait(0.01)
+	VirtualInputManager:SendMouseButtonEvent(CLICK_X,CLICK_Y,0,false,game,0)
+end
 
--- زر تأكيد/تعليم
+-------------------------------------------------
+-- GUI صغير draggable
+-------------------------------------------------
+
+pcall(function()
+	player.PlayerGui:FindFirstChild("Faisal5x"):Destroy()
+end)
+
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "Faisal5x"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromOffset(90,40)
+frame.Position = UDim2.fromScale(0.15,0.2)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.Active = true
+frame.Draggable = true
+
 local btn = Instance.new("TextButton", frame)
-btn.Size = UDim2.fromOffset(60,30)
-btn.Position = UDim2.fromOffset(65,5)
-btn.Text = "OK"
+btn.Size = UDim2.new(1,0,1,0)
+btn.Text = "CLICK x5"
 btn.TextScaled = true
-btn.BackgroundTransparency = 0.15
-Instance.new("UICorner", btn)
+btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+btn.TextColor3 = Color3.new(1,1,1)
 
--- قابل للسحب
-local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
-frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragInput = input
-		dragStart = input.Position
-		startPos = frame.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-
-UIS.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		local delta = input.Position - dragStart
-		frame.Position = UDim2.new(
-			startPos.X.Scale, startPos.X.Offset + delta.X,
-			startPos.Y.Scale, startPos.Y.Offset + delta.Y
-		)
-	end
-end)
-
--- منطق الضرب
-local clicks = 1
-local armed = false
+-------------------------------------------------
+-- عند الضغط
+-------------------------------------------------
 
 btn.MouseButton1Click:Connect(function()
-	clicks = math.clamp(tonumber(box.Text) or 1, 1, 150)
-	armed = true
-	btn.Text = "اضغط"
-end)
-
-UIS.InputBegan:Connect(function(input, gpe)
-	if gpe or not armed then return end
-	if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then return end
-
-	armed = false
-	btn.Text = "OK"
-
-	local pos = input.Position
-	local totalTime = 2
-	local delay = totalTime / clicks
-
-	-- استخدم VirtualInputManager لو موجود (PC عادة)
-	if VIM then
-		for i = 1, clicks do
-			pcall(function()
-				VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 0)
-				VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 0)
-			end)
-			task.wait(delay)
-		end
-		return
-	end
-
-	-- fallback: لو ما فيه VIM، نجرب نكرر ضغطة الـ Input (هذي قد تشتغل على بعض الأجهزة)
-	for i = 1, clicks do
-		-- خيار بسيط: نحاكي تفاعل عن طريق تشغيل حدث ContextAction مؤقت (ليس مضمون 100%)
-		pcall(function()
-			if input.UserInputType == Enum.UserInputType.Touch then
-				-- مجرد انتظار بين الضربات (لو اللعبة تتعامل مع اللمسة الأصلية)
-			end
-		end)
-		task.wait(delay)
+	for i = 1,5 do
+		clickOnce()
+		task.wait(0.02) -- سرعة بين الضغطات
 	end
 end)
