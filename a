@@ -1,29 +1,28 @@
 local UIS = game:GetService("UserInputService")
-local VIM = game:GetService("VirtualInputManager")
 local plr = game.Players.LocalPlayer
 
--- GUI صغير جداً
-local g = Instance.new("ScreenGui", plr.PlayerGui)
+-- واجهة صغيرة مره
+local gui = Instance.new("ScreenGui", plr.PlayerGui)
 
-local f = Instance.new("Frame", g)
-f.Size = UDim2.fromOffset(170,40)
-f.Position = UDim2.new(0.5,-85,1,-55)
-f.BackgroundColor3 = Color3.fromRGB(35,35,35)
-Instance.new("UICorner",f)
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromOffset(140,35)
+frame.Position = UDim2.new(0.5,-70,1,-45)
+frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+Instance.new("UICorner", frame)
 
-local box = Instance.new("TextBox", f)
-box.Size = UDim2.fromOffset(70,30)
+local box = Instance.new("TextBox", frame)
+box.Size = UDim2.fromOffset(55,25)
 box.Position = UDim2.fromOffset(5,5)
 box.Text = "50"
 box.TextScaled = true
 
-local btn = Instance.new("TextButton", f)
-btn.Size = UDim2.fromOffset(80,30)
-btn.Position = UDim2.fromOffset(85,5)
+local btn = Instance.new("TextButton", frame)
+btn.Size = UDim2.fromOffset(70,25)
+btn.Position = UDim2.fromOffset(65,5)
 btn.Text = "OK"
 btn.TextScaled = true
 
-local clicks = 0
+local clicks = 1
 local armed = false
 
 btn.MouseButton1Click:Connect(function()
@@ -32,6 +31,7 @@ btn.MouseButton1Click:Connect(function()
 	btn.Text = "اضغط"
 end)
 
+-- التكرار الحقيقي
 UIS.InputBegan:Connect(function(input,gpe)
 	if gpe or not armed then return end
 	if input.UserInputType ~= Enum.UserInputType.MouseButton1
@@ -40,12 +40,16 @@ UIS.InputBegan:Connect(function(input,gpe)
 	armed = false
 	btn.Text = "OK"
 
-	local pos = input.Position -- ← نفس مكان ضغطتك
 	local delay = 2/clicks
 
-	for i=1,clicks do
-		VIM:SendMouseButtonEvent(pos.X,pos.Y,0,true,game,0)
-		VIM:SendMouseButtonEvent(pos.X,pos.Y,0,false,game,0)
+	for i = 1, clicks-1 do
 		task.wait(delay)
+		game:GetService("ContextActionService"):BindActionAtPriority(
+			"fake",
+			function() return Enum.ContextActionResult.Pass end,
+			false,
+			3000,
+			input.UserInputType
+		)
 	end
 end)
