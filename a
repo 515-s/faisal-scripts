@@ -1,27 +1,98 @@
+--// Services
 local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local player = Players.LocalPlayer
+
+--==================================================
+-- GUI
+--==================================================
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "MiniMenu"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local main = Instance.new("Frame")
+main.Size = UDim2.fromOffset(120,70)
+main.Position = UDim2.fromScale(0.15,0.2)
+main.BackgroundColor3 = Color3.fromRGB(15,15,15)
+main.Active = true
+main.Draggable = true
+main.Parent = gui
+
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
+
+local layout = Instance.new("UIListLayout", main)
+layout.Padding = UDim.new(0,5)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+--==================================================
+-- CLICK FUNCTION (SLAP)
+--==================================================
+
+local CLICK_X = 960
+local CLICK_Y = 874
+
+local function clickAt(x,y)
+	VirtualInputManager:SendMouseButtonEvent(x,y,0,true,game,0)
+	VirtualInputManager:SendMouseButtonEvent(x,y,0,false,game,0)
+end
+
+--==================================================
+-- SLAP BUTTON
+--==================================================
+
+local slapBtn = Instance.new("TextButton")
+slapBtn.Size = UDim2.new(1,-10,0,25)
+slapBtn.Text = "SLAP"
+slapBtn.TextScaled = true
+slapBtn.Font = Enum.Font.SourceSansBold
+slapBtn.TextColor3 = Color3.new(1,1,1)
+slapBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+slapBtn.Parent = main
+Instance.new("UICorner", slapBtn)
+
+slapBtn.MouseButton1Click:Connect(function()
+	clickAt(CLICK_X, CLICK_Y)
+end)
+
+--==================================================
+-- TOUCH SYSTEM (آخر لاعب لمسّك)
+--==================================================
 
 local lastTouchPlayer = nil
 
--- تتبع آخر لمس
-local char = player.Character or player.CharacterAdded:Wait()
-local root = char:WaitForChild("HumanoidRootPart")
+local function setupCharacter(char)
+	local root = char:WaitForChild("HumanoidRootPart")
 
-root.Touched:Connect(function(hit)
-	local model = hit:FindFirstAncestorOfClass("Model")
-	local plr = Players:GetPlayerFromCharacter(model)
-	if plr and plr ~= player then
-		lastTouchPlayer = plr
-	end
-end)
+	root.Touched:Connect(function(hit)
+		local model = hit:FindFirstAncestorOfClass("Model")
+		local plr = Players:GetPlayerFromCharacter(model)
+		if plr and plr ~= player then
+			lastTouchPlayer = plr
+		end
+	end)
+end
 
--- فريم العرض
+if player.Character then
+	setupCharacter(player.Character)
+end
+player.CharacterAdded:Connect(setupCharacter)
+
+--==================================================
+-- INFO FRAME (اسم + صورة)
+--==================================================
+
 local infoFrame = Instance.new("Frame")
 infoFrame.Size = UDim2.fromOffset(160,60)
-infoFrame.Position = UDim2.fromScale(0.5,0.8)
+infoFrame.Position = UDim2.fromScale(0.5,0.85)
 infoFrame.AnchorPoint = Vector2.new(0.5,0.5)
 infoFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
 infoFrame.Visible = false
 infoFrame.Parent = gui
+
 Instance.new("UICorner", infoFrame)
 
 local img = Instance.new("ImageLabel")
@@ -39,18 +110,26 @@ nameLabel.Font = Enum.Font.SourceSansBold
 nameLabel.TextScaled = true
 nameLabel.Parent = infoFrame
 
--- زر TOUCH
+--==================================================
+-- TOUCH BUTTON
+--==================================================
+
+local touchBtn = slapBtn:Clone()
+touchBtn.Text = "TOUCH"
+touchBtn.Parent = main
+
 touchBtn.MouseButton1Click:Connect(function()
 	if not lastTouchPlayer then return end
 
 	nameLabel.Text = lastTouchPlayer.Name
-	img.Image = "https://www.roblox.com/headshot-thumbnail/image?userId="
+	img.Image =
+		"https://www.roblox.com/headshot-thumbnail/image?userId="
 		..lastTouchPlayer.UserId..
 		"&width=150&height=150&format=png"
 
 	infoFrame.Visible = true
 
-	task.delay(3, function()
+	task.delay(3,function()
 		infoFrame.Visible = false
 	end)
 end)
