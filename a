@@ -1,91 +1,99 @@
--- Faisal 5x Click + Real Drag
+-- Faisal Script ❤️
+-- Auto Free Gift System
 
 local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
-local VIM = game:GetService("VirtualInputManager")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 
 -------------------------------------------------
 -- الإحداثيات
 -------------------------------------------------
-
-local CLICK_X, CLICK_Y = 960, 874
-
-local function clickOnce()
-	VIM:SendMouseButtonEvent(CLICK_X,CLICK_Y,0,true,game,0)
-	task.wait(0.01)
-	VIM:SendMouseButtonEvent(CLICK_X,CLICK_Y,0,false,game,0)
-end
+local points = {
+	Vector3.new(-55, -2, -65),
+	Vector3.new(-50, 1, -76),
+	Vector3.new(-58, 4, -85),
+	Vector3.new(-50, 7, -96),
+	Vector3.new(-56, 7, -108),
+	Vector3.new(-25, 13, -130),
+	Vector3.new(0, 25, -105),
+	Vector3.new(-10, 31, -92),
+	Vector3.new(-3, 31, -87)
+}
 
 -------------------------------------------------
 -- GUI
 -------------------------------------------------
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "FaisalAutoGift"
 
-pcall(function()
-	player.PlayerGui:FindFirstChild("Faisal5x"):Destroy()
-end)
-
-local gui = Instance.new("ScreenGui")
-gui.Name = "Faisal5x"
-gui.ResetOnSpawn = false
-gui.Parent = player.PlayerGui
-
-local frame = Instance.new("Frame")
-frame.Parent = gui
-frame.Size = UDim2.fromOffset(110,45)
-frame.Position = UDim2.fromScale(0.2,0.2)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 260, 0, 160)
+frame.Position = UDim2.new(0.5, -130, 0.75, 0)
+frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
 frame.BorderSizePixel = 0
+frame.BackgroundTransparency = 0.1
 
-local btn = Instance.new("TextButton")
-btn.Parent = frame
-btn.Size = UDim2.new(1,0,1,0)
-btn.Text = "CLICK x5"
-btn.TextScaled = true
-btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
-btn.TextColor3 = Color3.new(1,1,1)
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0,20)
+
+-- الحقوق
+local credit = Instance.new("TextLabel", frame)
+credit.Size = UDim2.new(1,0,0,30)
+credit.BackgroundTransparency = 1
+credit.Text = "faisal-script"
+credit.TextColor3 = Color3.fromRGB(180,180,180)
+credit.TextScaled = true
+credit.Font = Enum.Font.GothamBold
+
+-- الزر
+local button = Instance.new("TextButton", frame)
+button.Size = UDim2.new(0.9,0,0.55,0)
+button.Position = UDim2.new(0.05,0,0.35,0)
+button.Text = "AUTO FREE GIFT"
+button.TextScaled = true
+button.Font = Enum.Font.GothamBlack
+button.BackgroundColor3 = Color3.fromRGB(35,35,35)
+button.TextColor3 = Color3.white
+
+Instance.new("UICorner", button).CornerRadius = UDim.new(0,16)
 
 -------------------------------------------------
--- الضغط 5 مرات
+-- الحركة
 -------------------------------------------------
+local running = false
 
-btn.MouseButton1Click:Connect(function()
-	for i=1,5 do
-		clickOnce()
-		task.wait(0.02)
+local function moveSmooth(hrp, target)
+	local tween = TweenService:Create(
+		hrp,
+		TweenInfo.new(2, Enum.EasingStyle.Linear),
+		{CFrame = CFrame.new(target)}
+	)
+	tween:Play()
+	tween.Completed:Wait()
+end
+
+local function start()
+	if running then return end
+	running = true
+
+	button.BackgroundColor3 = Color3.fromRGB(0,170,0)
+
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	-- كل النقاط تيليبورت ما عدا آخر نقطتين
+	for i = 1, #points-2 do
+		hrp.CFrame = CFrame.new(points[i])
+		task.wait(0.25)
 	end
-end)
 
--------------------------------------------------
--- 🔥 DRAG SYSTEM (مضمون يشتغل)
--------------------------------------------------
+	-- قبل الأخير
+	hrp.CFrame = CFrame.new(points[#points-1])
+	task.wait(0.2)
 
-local dragging = false
-local dragStart, startPos
+	-- للأخير مشي سلس
+	moveSmooth(hrp, points[#points])
+end
 
-frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
-	end
-end)
-
-UIS.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local delta = input.Position - dragStart
-		frame.Position = UDim2.new(
-			startPos.X.Scale,
-			startPos.X.Offset + delta.X,
-			startPos.Y.Scale,
-			startPos.Y.Offset + delta.Y
-		)
-	end
-end)
-
-UIS.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
-end)
+button.MouseButton1Click:Connect(start)
