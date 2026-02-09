@@ -1,29 +1,18 @@
--- Faisal GUI Scanner Pro
+-- Faisal GUI Scanner All
 
 local player = game.Players.LocalPlayer
 
-pcall(function()
-	player.PlayerGui:FindFirstChild("GuiScanner"):Destroy()
-end)
+pcall(function() player.PlayerGui:FindFirstChild("GuiScanner"):Destroy() end)
 
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "GuiScanner"
-gui.ResetOnSpawn = false
-
--------------------------------------------------
--- Main frame
--------------------------------------------------
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromOffset(320,260)
-main.Position = UDim2.fromScale(0.25,0.2)
+main.Size = UDim2.fromOffset(350,300)
+main.Position = UDim2.fromScale(0.2,0.2)
 main.BackgroundColor3 = Color3.fromRGB(20,20,20)
 main.Active = true
 main.Draggable = true
-
--------------------------------------------------
--- Scroll
--------------------------------------------------
 
 local scroll = Instance.new("ScrollingFrame", main)
 scroll.Size = UDim2.new(1,-10,1,-10)
@@ -34,14 +23,10 @@ scroll.ScrollBarImageTransparency = 0.3
 local layout = Instance.new("UIListLayout", scroll)
 layout.Padding = UDim.new(0,4)
 
--------------------------------------------------
--- Add button entry
--------------------------------------------------
-
+-- Add Entry
 local function addEntry(obj)
-
 	local holder = Instance.new("Frame", scroll)
-	holder.Size = UDim2.new(1,-6,0,26)
+	holder.Size = UDim2.new(1,-6,0,28)
 	holder.BackgroundColor3 = Color3.fromRGB(35,35,35)
 
 	local name = Instance.new("TextLabel", holder)
@@ -49,7 +34,7 @@ local function addEntry(obj)
 	name.BackgroundTransparency = 1
 	name.TextScaled = true
 	name.TextColor3 = Color3.new(1,1,1)
-	name.Text = obj.Name
+	name.Text = obj:GetFullName().." ["..obj.ClassName.."]"
 
 	local copy = Instance.new("TextButton", holder)
 	copy.Size = UDim2.new(0.2,0,1,0)
@@ -62,28 +47,24 @@ local function addEntry(obj)
 		setclipboard(obj:GetFullName())
 	end)
 
-	local act = Instance.new("TextButton", holder)
-	act.Size = UDim2.new(0.2,0,1,0)
-	act.Position = UDim2.new(0.8,0,0,0)
-	act.Text = "USE"
-	act.TextScaled = true
-	act.BackgroundColor3 = Color3.fromRGB(90,90,90)
+	-- فقط إذا هو زر فعلي
+	if obj:IsA("TextButton") or obj:IsA("ImageButton") then
+		local act = Instance.new("TextButton", holder)
+		act.Size = UDim2.new(0.2,0,1,0)
+		act.Position = UDim2.new(0.8,0,0,0)
+		act.Text = "USE"
+		act.TextScaled = true
+		act.BackgroundColor3 = Color3.fromRGB(90,90,90)
 
-	act.MouseButton1Click:Connect(function()
-		if obj:IsA("TextButton") or obj:IsA("ImageButton") then
+		act.MouseButton1Click:Connect(function()
 			obj:Activate()
-		end
-	end)
+		end)
+	end
 end
 
--------------------------------------------------
--- Scan visible GUI only
--------------------------------------------------
-
+-- Scan all GUI
 for _,v in ipairs(player.PlayerGui:GetDescendants()) do
-	if (v:IsA("TextButton") or v:IsA("ImageButton")) and v.Visible then
-		addEntry(v)
-	end
+	addEntry(v)
 end
 
 task.wait()
