@@ -1,92 +1,51 @@
---// Services
-local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local VIM = game:GetService("VirtualInputManager")
+local plr = game.Players.LocalPlayer
 
-local player = Players.LocalPlayer
+-- GUI صغير جداً
+local g = Instance.new("ScreenGui", plr.PlayerGui)
 
---// GUI
-local gui = Instance.new("ScreenGui")
-gui.Parent = player:WaitForChild("PlayerGui")
-gui.Name = "AutoClickUI"
-gui.ResetOnSpawn = false
+local f = Instance.new("Frame", g)
+f.Size = UDim2.fromOffset(170,40)
+f.Position = UDim2.new(0.5,-85,1,-55)
+f.BackgroundColor3 = Color3.fromRGB(35,35,35)
+Instance.new("UICorner",f)
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromScale(0.3, 0.12)
-frame.Position = UDim2.fromScale(0.35, 0.85)
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-frame.BorderSizePixel = 0
-frame.AnchorPoint = Vector2.new(0.5,0.5)
-frame.Position = UDim2.new(0.5,0,0.9,0)
-
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0,15)
-
---// TextBox
-local box = Instance.new("TextBox", frame)
-box.Size = UDim2.fromScale(0.55, 0.8)
-box.Position = UDim2.fromScale(0.02, 0.1)
-box.PlaceholderText = "1 - 150"
+local box = Instance.new("TextBox", f)
+box.Size = UDim2.fromOffset(70,30)
+box.Position = UDim2.fromOffset(5,5)
 box.Text = "50"
 box.TextScaled = true
-box.BackgroundColor3 = Color3.fromRGB(50,50,50)
-Instance.new("UICorner", box)
 
---// Button
-local button = Instance.new("TextButton", frame)
-button.Size = UDim2.fromScale(0.38, 0.8)
-button.Position = UDim2.fromScale(0.6, 0.1)
-button.Text = "تأكيد"
-button.TextScaled = true
-button.BackgroundColor3 = Color3.fromRGB(0,170,255)
-Instance.new("UICorner", button)
+local btn = Instance.new("TextButton", f)
+btn.Size = UDim2.fromOffset(80,30)
+btn.Position = UDim2.fromOffset(85,5)
+btn.Text = "OK"
+btn.TextScaled = true
 
--------------------------------------------------
+local clicks = 0
+local armed = false
 
-local clicksToDo = 0
-local waitingForFirstClick = false
-
--- عند الضغط على تأكيد
-button.MouseButton1Click:Connect(function()
-	local num = tonumber(box.Text)
-
-	if not num then return end
-	num = math.clamp(num,1,150)
-
-	clicksToDo = num
-	waitingForFirstClick = true
-
-	button.Text = "اضغط بأي مكان..."
+btn.MouseButton1Click:Connect(function()
+	clicks = math.clamp(tonumber(box.Text) or 1,1,150)
+	armed = true
+	btn.Text = "اضغط"
 end)
 
--- تنفيذ الضغطات
-local function doClicks(pos)
-	if clicksToDo <= 0 then return end
+UIS.InputBegan:Connect(function(input,gpe)
+	if gpe or not armed then return end
+	if input.UserInputType ~= Enum.UserInputType.MouseButton1
+	and input.UserInputType ~= Enum.UserInputType.Touch then return end
 
-	local totalTime = 2 -- ثانيتين
-	local delayTime = totalTime / clicksToDo
+	armed = false
+	btn.Text = "OK"
 
-	for i = 1, clicksToDo do
-		VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 0)
-		VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 0)
-		task.wait(delayTime)
-	end
+	local pos = input.Position -- ← نفس مكان ضغطتك
+	local delay = 2/clicks
 
-	waitingForFirstClick = false
-	button.Text = "تأكيد"
-end
-
--- أول ضغطة (ماوس + جوال)
-UIS.InputBegan:Connect(function(input, gpe)
-	if gpe then return end
-	if not waitingForFirstClick then return end
-
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-	or input.UserInputType == Enum.UserInputType.Touch then
-
-		local pos = UIS:GetMouseLocation()
-		task.spawn(function()
-			doClicks(pos)
-		end)
+	for i=1,clicks do
+		VIM:SendMouseButtonEvent(pos.X,pos.Y,0,true,game,0)
+		VIM:SendMouseButtonEvent(pos.X,pos.Y,0,false,game,0)
+		task.wait(delay)
 	end
 end)
