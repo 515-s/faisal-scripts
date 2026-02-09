@@ -1,20 +1,14 @@
--- Faisal Script (نسخة سريعة مع فحص تايمر)
+-- Faisal Script (مصحح ومستقر)
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
+if not player then return end
 
--- حذف أي موديل اسمه "Roter" والحرق لو انضاف بعدين
-local function destroyRoter(inst)
-	if inst:IsA("Model") and inst.Name == "Roter" then
-		pcall(function() inst:Destroy() end)
-	end
-end
-for _, c in pairs(Workspace:GetChildren()) do destroyRoter(c) end
-Workspace.ChildAdded:Connect(destroyRoter)
-
--- الإحداثيات
+-- ============================
+-- نقاط الحركة
+-- ============================
 local points = {
 	Vector3.new(-55, -2, -65),
 	Vector3.new(-50, 1, -76),
@@ -27,18 +21,31 @@ local points = {
 	Vector3.new(-3, 31, -87)
 }
 
--- حذف GUI قديم
-if player:FindFirstChild("PlayerGui") then
-	local old = player.PlayerGui:FindFirstChild("FaisalAutoGift")
-	if old then old:Destroy() end
+-- ============================
+-- حذف أي موديل اسمه "Roter" الآن ولما ينضاف بعدين
+-- ============================
+local function safeDestroyRoter(inst)
+	if not inst then return end
+	if inst:IsA("Model") and inst.Name == "Roter" then
+		pcall(function() inst:Destroy() end)
+	end
 end
+for _, v in pairs(Workspace:GetChildren()) do safeDestroyRoter(v) end
+Workspace.ChildAdded:Connect(safeDestroyRoter)
 
--- إنشاء GUI
+-- ============================
+-- واجهة المستخدم
+-- ============================
+local PlayerGui = player:WaitForChild("PlayerGui")
+local oldGui = PlayerGui:FindFirstChild("FaisalAutoGift")
+if oldGui then oldGui:Destroy() end
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalAutoGift"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Parent = PlayerGui
 
+-- الإطار الصغير مع زر
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 220, 0, 110)
 frame.Position = UDim2.new(0.5, -110, 0.75, 0)
@@ -70,10 +77,10 @@ button.TextColor3 = Color3.fromRGB(255,255,255)
 button.Parent = frame
 Instance.new("UICorner", button).CornerRadius = UDim.new(0,10)
 
--- GUI وسط الشاشة لعرض التايمر لو موجود
+-- واجهة عرض النتائج (وسط الشاشة)
 local centerFrame = Instance.new("Frame", gui)
-centerFrame.Size = UDim2.new(0, 300, 0, 70)
-centerFrame.Position = UDim2.new(0.5, -150, 0.45, 0)
+centerFrame.Size = UDim2.new(0, 340, 0, 80)
+centerFrame.Position = UDim2.new(0.5, -170, 0.45, 0)
 centerFrame.BackgroundTransparency = 0.2
 centerFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
 centerFrame.Visible = false
@@ -88,30 +95,34 @@ timerLabel.TextScaled = true
 timerLabel.Font = Enum.Font.GothamBold
 timerLabel.TextColor3 = Color3.fromRGB(255,255,255)
 
--- سحب (drag) بسيط للـ frame
-local dragging, dragStart, startPos
-frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-frame.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement then
-		if dragging and dragStart and startPos then
-			local delta = input.Position - dragStart
-			frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+-- سحب الإطار الصغير (drag)
+do
+	local dragging, dragStart, startPos
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
 		end
-	end
-end)
+	end)
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			if dragging and dragStart and startPos then
+				local delta = input.Position - dragStart
+				frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+			end
+		end
+	end)
+end
 
--- دوال الحركة (سريعة)
+-- ============================
+-- دوال الحركة الآمنة والسريعة
+-- ============================
 local function getHRP()
 	local char = player.Character
 	if not char then return nil end
@@ -119,128 +130,130 @@ local function getHRP()
 end
 
 local function safeTeleport(hrp, pos)
-	if not hrp then return end
-	local ok, err = pcall(function()
+	if not hrp or not pos then return end
+	pcall(function()
 		hrp.CFrame = CFrame.new(pos + Vector3.new(0,2,0))
 	end)
-	if not ok then
-		local char = player.Character
-		if char and char.PrimaryPart then
-			pcall(function() char:SetPrimaryPartCFrame(CFrame.new(pos + Vector3.new(0,2,0))) end)
-		end
-	end
 end
 
 local function smoothMoveFast(hrp, targetPos)
-	if not hrp then return end
+	if not hrp or not targetPos then return end
 	local targetCFrame = CFrame.new(targetPos + Vector3.new(0,2,0))
 	local dist = (hrp.Position - targetPos).Magnitude
-	-- سرعة أسرع: نقسم على رقم أكبر ليصير أقصر (أسرع)
-	local duration = math.clamp(dist/40, 0.25, 2) -- أسرع من قبل
-	local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
-	tween:Play()
-	local finished = false
-	tween.Completed:Connect(function() finished = true end)
-	local t0 = tick()
-	while not finished and tick() - t0 < duration + 0.8 do
-		task.wait(0.05)
+	local duration = math.clamp(dist/40, 0.15, 1.6)
+	local ok, tween = pcall(function()
+		return TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+	end)
+	if ok and tween then
+		tween:Play()
+		local done = false
+		tween.Completed:Connect(function() done = true end)
+		local t0 = tick()
+		while not done and tick() - t0 < duration + 0.8 do task.wait(0.03) end
 	end
 end
 
--- الفحص حول اللاعب لمسافة 10 ستد ولمدة 2 ثانية
-local function scanForTimerAround(hrp)
-	local radius = 10
-	local scanDuration = 2
-	local scanInterval = 0.12
-	local found = nil
-
+-- ============================
+-- فحص حول اللاعب (بحث عن أي BasePart ضمن نصف القطر)
+-- ============================
+local function scanForNearbyParts(hrp, radius, duration)
+	radius = radius or 10
+	duration = duration or 2
+	local foundParts = {}
 	local t0 = tick()
-	while tick() - t0 <= scanDuration do
-		-- تفحص كل العناصر في الـ Workspace
+	while tick() - t0 <= duration do
 		for _, inst in pairs(Workspace:GetDescendants()) do
-			if inst and inst.Parent then
-				local nameLower = tostring(inst.Name):lower()
-				if nameLower:find("موقت") or nameLower:find("تايمر") or nameLower:find("timer") then
-					-- تأكد مسافة
-					local pos
-					if inst:IsA("BasePart") then
-						pos = inst.Position
-					else
-						-- لو عنده PrimaryPart أو Position child
-						local primary = inst:FindFirstChildWhichIsA("BasePart") or (inst:IsA("Model") and inst.PrimaryPart)
-						if primary and primary:IsA("BasePart") then pos = primary.Position end
-					end
-					if pos and hrp and (hrp.Position - pos).Magnitude <= radius then
-						found = inst
-						break
-					end
+			if inst:IsA("BasePart") and inst.Parent then
+				local ok, pos = pcall(function() return inst.Position end)
+				if ok and pos and hrp and (hrp.Position - pos).Magnitude <= radius then
+					foundParts[inst] = true
 				end
 			end
 		end
-		if found then break end
-		task.wait(scanInterval)
+		task.wait(0.12)
 	end
-
-	return found
+	-- رجع جدول الأجزاء اللي اكتشفناها
+	local results = {}
+	for part,_ in pairs(foundParts) do table.insert(results, part) end
+	return results
 end
 
--- عرض قيمة التايمر ومتابعتها
-local function showAndTrackTimer(inst)
-	if not inst then return end
+-- ============================
+-- عرض أول شيء مفيد من الجزء أو موديله وتتبعه
+-- ============================
+local function presentAndTrack(part)
+	if not part or not part.Parent then return nil end
+	-- نحاول إيجاد اسم مناسب للعرض: لو جزء تابع لموديل نعرض اسم الموديل، وإلا اسم الجزء
+	local displayOwner = part.Parent
+	if displayOwner and displayOwner:IsA("Model") then
+		timerLabel.Text = ("Model: %s  |  Part: %s"):format(displayOwner.Name, part.Name)
+	else
+		timerLabel.Text = ("Part: %s"):format(part.Name)
+	end
 	centerFrame.Visible = true
-	-- ابحث عن قيمة قابلة للعرض داخل العنصر
+
+	-- نحاول إيجاد أول Value أو TextLabel داخل الجزء أو الموديل لنعرض قيمته
 	local valueObj
-	for _, child in pairs(inst:GetDescendants()) do
-		if child:IsA("NumberValue") or child:IsA("IntValue") or child:IsA("StringValue") or child:IsA("BoolValue") then
-			valueObj = child
+	-- نفحص descendants للجزء ثم للموديل (لو موديل)
+	for _, d in pairs(part:GetDescendants()) do
+		if d:IsA("NumberValue") or d:IsA("IntValue") or d:IsA("StringValue") or d:IsA("BoolValue") then
+			valueObj = d
+			break
+		end
+		-- لو SurfaceGui أو BillboardGui فيها TextLabel
+		if d:IsA("TextLabel") then
+			valueObj = d
 			break
 		end
 	end
-
-	-- دالة لتحديث النص
-	local function updateText()
-		local name = inst.Name
-		local valText = ""
-		if valueObj then
-			valText = tostring(valueObj.Value)
-		else
-			-- محاولة قراءة خاصية Text أو Value أو Attribute إن وجدت
-			local ok, out = pcall(function()
-				if inst:FindFirstChild("Text") and inst.Text then
-					return tostring(inst.Text)
-				end
-				if inst:GetAttributes and inst:GetAttribute("Value") then
-					return tostring(inst:GetAttribute("Value"))
-				end
-				return "detected"
-			end)
-			valText = ok and out or "detected"
+	if not valueObj and displayOwner and displayOwner ~= part then
+		for _, d in pairs(displayOwner:GetDescendants()) do
+			if d:IsA("NumberValue") or d:IsA("IntValue") or d:IsA("StringValue") or d:IsA("BoolValue") or d:IsA("TextLabel") then
+				valueObj = d
+				break
+			end
 		end
-		timerLabel.Text = name .. "  |  " .. valText
 	end
 
-	updateText()
+	local con
+	local function updateDisplay()
+		local base = (displayOwner and displayOwner:IsA("Model")) and displayOwner.Name or part.Name
+		local extra = ""
+		if valueObj then
+			-- TextLabel و Value أنواع مختلفة؛ نحاول قراءتها بأمان
+			if valueObj:IsA("TextLabel") then
+				extra = tostring(valueObj.Text)
+			else
+				pcall(function() extra = tostring(valueObj.Value) end)
+			end
+		end
+		timerLabel.Text = base .. "  |  " .. (extra ~= "" and extra or "detected")
+	end
 
-	-- اتصالات للتحديث
-	local con1, con2
+	updateDisplay()
+
 	if valueObj then
-		con1 = valueObj.Changed:Connect(function() updateText() end)
+		con = valueObj.Changed:Connect(updateDisplay)
 	else
-		-- لو ما فيه Value حاول تتبع أي تغيير في الـ instance
-		con2 = inst.Changed:Connect(function() updateText() end)
+		-- كبديل، نربط لهذا الجزء حدث Changed ليحاول تحديث النص لو صار شيء
+		con = part.Changed:Connect(updateDisplay)
 	end
 
-	-- ارجع دالة تعطّل المتابعة لما نحتاج
+	-- ترجّع دالة تنظيف لإيقاف التتبع
 	return function()
-		if con1 and con1.Connected then con1:Disconnect() end
-		if con2 and con2.Connected then con2:Disconnect() end
+		if con and con.Connected then
+			con:Disconnect()
+		end
 		centerFrame.Visible = false
+		timerLabel.Text = ""
 	end
 end
 
--- تشغيل التسلسل
+-- ============================
+-- تشغيل التتابع كله
+-- ============================
 local running = false
-local cleanupTracker = nil
+local activeTrackerCleanup = nil
 
 local function runSequence()
 	if running then return end
@@ -248,86 +261,87 @@ local function runSequence()
 	button.BackgroundColor3 = Color3.fromRGB(0,170,0)
 	button.Text = "RUNNING..."
 
-	-- تأكد الـ HRP
+	-- تأكد وجود الشخصية
+	if not player.Character or not getHRP() then
+		player.CharacterAdded:Wait()
+		task.wait(0.12)
+	end
 	local hrp = getHRP()
 	if not hrp then
-		player.CharacterAdded:Wait()
-		hrp = getHRP()
-		if not hrp then
-			running = false
-			button.BackgroundColor3 = Color3.fromRGB(0,0,0)
-			button.Text = "AUTO FREE GIFT"
-			return
-		end
+		running = false
+		button.BackgroundColor3 = Color3.fromRGB(0,0,0)
+		button.Text = "AUTO FREE GIFT"
+		return
 	end
 
-	-- تيليبورت سريع لكل النقاط ما عدا آخر نقطتين، مع تقليل الانتظار
+	-- تيليبورت سريع لكل النقاط ما عدا آخر نقطتين، مع انتظار قصير
 	for i = 1, #points - 1 do
 		if not running then break end
-
 		if i == #points - 1 then
-			-- وصلنا قبل الأخير بسرعة
 			safeTeleport(hrp, points[i])
-			task.wait(0.08)
-			-- الآن نمشي بسرعة للأخير
+			task.wait(0.06)
+			-- نمشي بسرعة للأخير
 			smoothMoveFast(hrp, points[#points])
 		else
 			safeTeleport(hrp, points[i])
-			task.wait(0.08) -- أسرع
+			task.wait(0.06)
 		end
 
-		-- لو اللاعب مات أو respawn
+		-- لو اللاعب respawn ننتظر ونستكمل
 		if not player.Character or not getHRP() then
 			player.CharacterAdded:Wait()
+			task.wait(0.12)
 			hrp = getHRP()
 			if not hrp then break end
 		end
 	end
 
-	-- بعد الوصول للنقطة الأخيرة: نفحص بمحيط 10 ستد لمدة ثانيتين
+	-- الفحص حول اللاعب بمسافة 10 لمدة 2 ثانية
 	if running then
 		hrp = getHRP()
 		if hrp then
-			local found = scanForTimerAround(hrp)
-			if found then
-				-- عرض ومتابعة
-				local stopTrack = showAndTrackTimer(found)
-				cleanupTracker = stopTrack
-				-- إذا تغيرت القيمة أو اختفى العنصر، نتابع تلقائياً عبر الاتصالات داخل showAndTrackTimer
-				-- نترك العرض لحد ما المستخدم يوقفه أو يظهر شرط إنه يختفي تلقائياً بعد 20 ثانية
+			local parts = scanForNearbyParts(hrp, 10, 2)
+			if #parts > 0 then
+				-- نعرض أول واحد ونتتبعه
+				if activeTrackerCleanup then
+					pcall(activeTrackerCleanup)
+					activeTrackerCleanup = nil
+				end
+				activeTrackerCleanup = presentAndTrack(parts[1])
+				-- نحتفظ بعرضه لحد 20 ثانية أو لوقفة المستخدم
 				spawn(function()
-					local tstart = tick()
-					while tick() - tstart < 20 and running do
-						task.wait(0.25)
+					local t0 = tick()
+					while tick() - t0 < 20 and running do task.wait(0.25) end
+					if activeTrackerCleanup then
+						pcall(activeTrackerCleanup)
+						activeTrackerCleanup = nil
 					end
-					if cleanupTracker then cleanupTracker(); cleanupTracker = nil end
 				end)
 			end
 		end
 	end
 
-	-- إنهاء
+	-- نهاية
 	running = false
 	button.BackgroundColor3 = Color3.fromRGB(0,0,0)
 	button.Text = "AUTO FREE GIFT"
 end
 
+-- زر التشغيل
 button.MouseButton1Click:Connect(function()
 	if not running then
-		-- تأكد شخصية
-		if not player.Character or not getHRP() then
-			player.CharacterAdded:Wait()
-			task.wait(0.2)
-		end
 		spawn(runSequence)
 	end
 end)
 
--- زر إيقاف سريع (اضغط على الـ credit)
+-- زر الإيقاف السريع بالضغط على credit
 credit.InputBegan:Connect(function(inp)
 	if inp.UserInputType == Enum.UserInputType.MouseButton1 and running then
 		running = false
-		if cleanupTracker then cleanupTracker(); cleanupTracker = nil end
+		if activeTrackerCleanup then
+			pcall(activeTrackerCleanup)
+			activeTrackerCleanup = nil
+		end
 		button.BackgroundColor3 = Color3.fromRGB(0,0,0)
 		button.Text = "AUTO FREE GIFT"
 	end
