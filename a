@@ -1,105 +1,56 @@
--- Services
 local Players = game:GetService("Players")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-local player = Players.LocalPlayer
 
--- CLICK FUNCTION
-local CLICK_X, CLICK_Y = 960, 874
-local function clickAt()
-	VirtualInputManager:SendMouseButtonEvent(CLICK_X,CLICK_Y,0,true,game,0)
-	task.wait(0.02)
-	VirtualInputManager:SendMouseButtonEvent(CLICK_X,CLICK_Y,0,false,game,0)
-end
+local lastTouchPlayer = nil
 
--- GUI نظيف
-pcall(function() player.PlayerGui:FindFirstChild("FaisalMenu"):Destroy() end)
-local gui = Instance.new("ScreenGui", player.PlayerGui)
-gui.Name = "FaisalMenu"
+-- تتبع آخر لمس
+local char = player.Character or player.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
 
-local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromOffset(130,80)
-main.Position = UDim2.fromScale(0.15,0.2)
-main.BackgroundColor3 = Color3.fromRGB(20,20,20)
-main.Active = true
-main.Draggable = true
-
--- SLAP BUTTON
-local slap = Instance.new("TextButton", main)
-slap.Size = UDim2.fromOffset(100,28)
-slap.Position = UDim2.fromOffset(5,5)
-slap.Text = "SLAP"
-slap.TextScaled = true
-slap.BackgroundColor3 = Color3.fromRGB(35,35,35)
-slap.TextColor3 = Color3.new(1,1,1)
-slap.MouseButton1Click:Connect(clickAt)
-
--- TOUCH BUTTON
-local touchOn = false
-local touch = Instance.new("TextButton", main)
-touch.Size = UDim2.fromOffset(100,28)
-touch.Position = UDim2.fromOffset(5,37)
-touch.Text = "TOUCH: OFF"
-touch.TextScaled = true
-touch.BackgroundColor3 = Color3.fromRGB(35,35,35)
-touch.TextColor3 = Color3.new(1,1,1)
-touch.Parent = main
-
-touch.MouseButton1Click:Connect(function()
-	touchOn = not touchOn
-	touch.Text = touchOn and "TOUCH: ON" or "TOUCH: OFF"
-end)
-
--- TOUCH loop منفصل وآمن
-task.spawn(function()
-	while true do
-		if touchOn then
-			clickAt() -- يضغط كل 0.35 ثانية
-			task.wait(0.35)
-		else
-			task.wait(0.2)
-		end
+root.Touched:Connect(function(hit)
+	local model = hit:FindFirstAncestorOfClass("Model")
+	local plr = Players:GetPlayerFromCharacter(model)
+	if plr and plr ~= player then
+		lastTouchPlayer = plr
 	end
 end)
 
--- BAR AUTO DETECT (عمودي) آمن
-task.spawn(function()
-	local bar
-	local function isVerticalBar(obj)
-		if not obj:IsA("Frame") and not obj:IsA("ImageLabel") then return false end
-		local s = obj.AbsoluteSize
-		return s.Y > s.X * 2 and s.Y > 40
-	end
+-- فريم العرض
+local infoFrame = Instance.new("Frame")
+infoFrame.Size = UDim2.fromOffset(160,60)
+infoFrame.Position = UDim2.fromScale(0.5,0.8)
+infoFrame.AnchorPoint = Vector2.new(0.5,0.5)
+infoFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
+infoFrame.Visible = false
+infoFrame.Parent = gui
+Instance.new("UICorner", infoFrame)
 
-	-- البحث عن البار
-	while not bar do
-		for _,v in ipairs(player.PlayerGui:GetDescendants()) do
-			if isVerticalBar(v) then
-				bar = v
-				break
-			end
-		end
-		task.wait(0.4)
-	end
+local img = Instance.new("ImageLabel")
+img.Size = UDim2.fromOffset(50,50)
+img.Position = UDim2.fromOffset(5,5)
+img.BackgroundTransparency = 1
+img.Parent = infoFrame
 
-	local clicked = false
-	bar:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
-		if not bar.Parent then return end
-		local barTop = bar.AbsolutePosition.Y
-		local barHeight = bar.AbsoluteSize.Y
-		local parentTop = bar.Parent.AbsolutePosition.Y
-		local parentHeight = bar.Parent.AbsoluteSize.Y
+local nameLabel = Instance.new("TextLabel")
+nameLabel.Size = UDim2.new(1,-60,1,0)
+nameLabel.Position = UDim2.fromOffset(60,0)
+nameLabel.BackgroundTransparency = 1
+nameLabel.TextColor3 = Color3.new(1,1,1)
+nameLabel.Font = Enum.Font.SourceSansBold
+nameLabel.TextScaled = true
+nameLabel.Parent = infoFrame
 
-		-- حساب نسبة تقدم البار
-		local progress = (parentTop + parentHeight - (barTop + barHeight)) / parentHeight
+-- زر TOUCH
+touchBtn.MouseButton1Click:Connect(function()
+	if not lastTouchPlayer then return end
 
-		-- إذا وصل للنهاية تقريبًا (> 0.98)
-		if progress >= 0.98 then
-			if not clicked then
-				clickAt()
-				clicked = true
-			end
-		else
-			clicked = false
-		end
+	nameLabel.Text = lastTouchPlayer.Name
+	img.Image = "https://www.roblox.com/headshot-thumbnail/image?userId="
+		..lastTouchPlayer.UserId..
+		"&width=150&height=150&format=png"
+
+	infoFrame.Visible = true
+
+	task.delay(3, function()
+		infoFrame.Visible = false
 	end)
 end)
