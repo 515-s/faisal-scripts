@@ -1,79 +1,56 @@
 local Players = game:GetService("Players")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-
-local player = Players.LocalPlayer
-
---================ GUI =================--
-
-local gui = Instance.new("ScreenGui")
-gui.ResetOnSpawn = false
-gui.Name = "MiniMenu"
-gui.Parent = player:WaitForChild("PlayerGui")
-
-local main = Instance.new("Frame")
-main.Size = UDim2.fromOffset(120,70) -- صغير جدا
-main.Position = UDim2.fromScale(0.15,0.2)
-main.BackgroundColor3 = Color3.fromRGB(15,15,15)
-main.Active = true
-main.Draggable = true
-main.Parent = gui
-
-Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
-
-local layout = Instance.new("UIListLayout", main)
-layout.Padding = UDim.new(0,5)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.VerticalAlignment = Enum.VerticalAlignment.Center
-
---================ FUNCTIONS =================--
-
--- إحداثياتك
-local CLICK_X = 960
-local CLICK_Y = 874
-
-local function clickAt(x,y)
-	VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 0)
-	VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 0)
-end
-
---================ BUTTON 1 : SLAP =================--
-
-local slapBtn = Instance.new("TextButton")
-slapBtn.Size = UDim2.new(1,-10,0,25)
-slapBtn.Text = "SLAP"
-slapBtn.Font = Enum.Font.SourceSansBold
-slapBtn.TextScaled = true
-slapBtn.TextColor3 = Color3.new(1,1,1)
-slapBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-slapBtn.Parent = main
-Instance.new("UICorner", slapBtn)
-
-slapBtn.MouseButton1Click:Connect(function()
-	clickAt(CLICK_X, CLICK_Y)
-end)
-
---================ BUTTON 2 : TOUCH TOGGLE =================--
 
 local lastTouchPlayer = nil
-local touchEnabled = false
 
--- تتبع آخر لاعب لمسّك
+-- تتبع آخر لمس
 local char = player.Character or player.CharacterAdded:Wait()
 local root = char:WaitForChild("HumanoidRootPart")
 
 root.Touched:Connect(function(hit)
 	local model = hit:FindFirstAncestorOfClass("Model")
-	if model and game.Players:GetPlayerFromCharacter(model) then
-		lastTouchPlayer = game.Players:GetPlayerFromCharacter(model)
+	local plr = Players:GetPlayerFromCharacter(model)
+	if plr and plr ~= player then
+		lastTouchPlayer = plr
 	end
 end)
 
-touchBtn.MouseButton1Click:Connect(function()
-	touchEnabled = not touchEnabled
+-- فريم العرض
+local infoFrame = Instance.new("Frame")
+infoFrame.Size = UDim2.fromOffset(160,60)
+infoFrame.Position = UDim2.fromScale(0.5,0.8)
+infoFrame.AnchorPoint = Vector2.new(0.5,0.5)
+infoFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
+infoFrame.Visible = false
+infoFrame.Parent = gui
+Instance.new("UICorner", infoFrame)
 
-	if touchEnabled and lastTouchPlayer then
-		touchBtn.Text = "TOUCH: "..lastTouchPlayer.Name
-	else
-		touchBtn.Text = "TOUCH: OFF"
-	end
+local img = Instance.new("ImageLabel")
+img.Size = UDim2.fromOffset(50,50)
+img.Position = UDim2.fromOffset(5,5)
+img.BackgroundTransparency = 1
+img.Parent = infoFrame
+
+local nameLabel = Instance.new("TextLabel")
+nameLabel.Size = UDim2.new(1,-60,1,0)
+nameLabel.Position = UDim2.fromOffset(60,0)
+nameLabel.BackgroundTransparency = 1
+nameLabel.TextColor3 = Color3.new(1,1,1)
+nameLabel.Font = Enum.Font.SourceSansBold
+nameLabel.TextScaled = true
+nameLabel.Parent = infoFrame
+
+-- زر TOUCH
+touchBtn.MouseButton1Click:Connect(function()
+	if not lastTouchPlayer then return end
+
+	nameLabel.Text = lastTouchPlayer.Name
+	img.Image = "https://www.roblox.com/headshot-thumbnail/image?userId="
+		..lastTouchPlayer.UserId..
+		"&width=150&height=150&format=png"
+
+	infoFrame.Visible = true
+
+	task.delay(3, function()
+		infoFrame.Visible = false
+	end)
 end)
