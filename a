@@ -1,71 +1,79 @@
--- Faisal GUI Scanner All
+-- Faisal Simple TOUCH
 
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
-pcall(function() player.PlayerGui:FindFirstChild("GuiScanner"):Destroy() end)
+local player = Players.LocalPlayer
 
-local gui = Instance.new("ScreenGui", player.PlayerGui)
-gui.Name = "GuiScanner"
+-------------------------------------------------
+-- SETTINGS (غير الإحداثيات لو تبي)
+-------------------------------------------------
 
-local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromOffset(350,300)
-main.Position = UDim2.fromScale(0.2,0.2)
-main.BackgroundColor3 = Color3.fromRGB(20,20,20)
+local CLICK_X = 960
+local CLICK_Y = 874
+
+-------------------------------------------------
+-- CLICK
+-------------------------------------------------
+
+local function clickAt()
+	VirtualInputManager:SendMouseButtonEvent(CLICK_X,CLICK_Y,0,true,game,0)
+	task.wait(0.02)
+	VirtualInputManager:SendMouseButtonEvent(CLICK_X,CLICK_Y,0,false,game,0)
+end
+
+-------------------------------------------------
+-- GUI صغير جدًا
+-------------------------------------------------
+
+pcall(function()
+	player.PlayerGui:FindFirstChild("FaisalTouch"):Destroy()
+end)
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "FaisalTouch"
+gui.ResetOnSpawn = false
+gui.Parent = player.PlayerGui
+
+local main = Instance.new("Frame")
+main.Parent = gui
+main.Size = UDim2.fromOffset(100,40)
+main.Position = UDim2.fromScale(0.15,0.2)
+main.BackgroundColor3 = Color3.fromRGB(15,15,15)
 main.Active = true
 main.Draggable = true
+main.BorderSizePixel = 0
 
-local scroll = Instance.new("ScrollingFrame", main)
-scroll.Size = UDim2.new(1,-10,1,-10)
-scroll.Position = UDim2.fromOffset(5,5)
-scroll.CanvasSize = UDim2.new(0,0,0,0)
-scroll.ScrollBarImageTransparency = 0.3
+-------------------------------------------------
+-- BUTTON
+-------------------------------------------------
 
-local layout = Instance.new("UIListLayout", scroll)
-layout.Padding = UDim.new(0,4)
+local btn = Instance.new("TextButton")
+btn.Parent = main
+btn.Size = UDim2.new(1,0,1,0)
+btn.Text = "TOUCH OFF"
+btn.TextScaled = true
+btn.TextColor3 = Color3.new(1,1,1)
+btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
 
--- Add Entry
-local function addEntry(obj)
-	local holder = Instance.new("Frame", scroll)
-	holder.Size = UDim2.new(1,-6,0,28)
-	holder.BackgroundColor3 = Color3.fromRGB(35,35,35)
+-------------------------------------------------
+-- TOUCH LOOP
+-------------------------------------------------
 
-	local name = Instance.new("TextLabel", holder)
-	name.Size = UDim2.new(0.6,0,1,0)
-	name.BackgroundTransparency = 1
-	name.TextScaled = true
-	name.TextColor3 = Color3.new(1,1,1)
-	name.Text = obj:GetFullName().." ["..obj.ClassName.."]"
+local on = false
 
-	local copy = Instance.new("TextButton", holder)
-	copy.Size = UDim2.new(0.2,0,1,0)
-	copy.Position = UDim2.new(0.6,0,0,0)
-	copy.Text = "COPY"
-	copy.TextScaled = true
-	copy.BackgroundColor3 = Color3.fromRGB(60,60,60)
+btn.MouseButton1Click:Connect(function()
+	on = not on
+	btn.Text = on and "TOUCH ON" or "TOUCH OFF"
+end)
 
-	copy.MouseButton1Click:Connect(function()
-		setclipboard(obj:GetFullName())
-	end)
-
-	-- فقط إذا هو زر فعلي
-	if obj:IsA("TextButton") or obj:IsA("ImageButton") then
-		local act = Instance.new("TextButton", holder)
-		act.Size = UDim2.new(0.2,0,1,0)
-		act.Position = UDim2.new(0.8,0,0,0)
-		act.Text = "USE"
-		act.TextScaled = true
-		act.BackgroundColor3 = Color3.fromRGB(90,90,90)
-
-		act.MouseButton1Click:Connect(function()
-			obj:Activate()
-		end)
+task.spawn(function()
+	while true do
+		if on then
+			clickAt()
+			task.wait(0.35) -- سرعة آمنة (لا يقفل الماوس)
+		else
+			task.wait(0.2)
+		end
 	end
-end
-
--- Scan all GUI
-for _,v in ipairs(player.PlayerGui:GetDescendants()) do
-	addEntry(v)
-end
-
-task.wait()
-scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 5)
+end)
