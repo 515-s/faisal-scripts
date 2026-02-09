@@ -54,17 +54,25 @@ end)
 
 --================ BUTTON 2 : TOUCH TOGGLE =================--
 
+local lastTouchPlayer = nil
 local touchEnabled = false
 
-local touchBtn = slapBtn:Clone()
-touchBtn.Text = "TOUCH: OFF"
-touchBtn.Parent = main
+-- تتبع آخر لاعب لمسّك
+local char = player.Character or player.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
+
+root.Touched:Connect(function(hit)
+	local model = hit:FindFirstAncestorOfClass("Model")
+	if model and game.Players:GetPlayerFromCharacter(model) then
+		lastTouchPlayer = game.Players:GetPlayerFromCharacter(model)
+	end
+end)
 
 touchBtn.MouseButton1Click:Connect(function()
 	touchEnabled = not touchEnabled
 
-	if touchEnabled then
-		touchBtn.Text = "TOUCH: ON"
+	if touchEnabled and lastTouchPlayer then
+		touchBtn.Text = "TOUCH: "..lastTouchPlayer.Name
 	else
 		touchBtn.Text = "TOUCH: OFF"
 	end
