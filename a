@@ -1,46 +1,71 @@
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local player = Players.LocalPlayer
 
--- ScreenGui للعرض
+--================ GUI =================--
+
 local gui = Instance.new("ScreenGui")
-gui.Name = "MousePosDisplay"
 gui.ResetOnSpawn = false
+gui.Name = "MiniMenu"
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- TextLabel جنب الماوس
-local label = Instance.new("TextLabel")
-label.Size = UDim2.fromOffset(120, 25)
-label.BackgroundColor3 = Color3.fromRGB(0,0,0)
-label.BackgroundTransparency = 0.5
-label.TextColor3 = Color3.new(1,1,1)
-label.Font = Enum.Font.SourceSansBold
-label.TextScaled = true
-label.Text = "X:0 Y:0"
-label.ZIndex = 999
-label.Parent = gui
+local main = Instance.new("Frame")
+main.Size = UDim2.fromOffset(120,70) -- صغير جدا
+main.Position = UDim2.fromScale(0.15,0.2)
+main.BackgroundColor3 = Color3.fromRGB(15,15,15)
+main.Active = true
+main.Draggable = true
+main.Parent = gui
 
--- تحديث موقع النص مع الماوس
-RunService.RenderStepped:Connect(function()
-	local mousePos = UserInputService:GetMouseLocation()
-	label.Position = UDim2.fromOffset(mousePos.X + 15, mousePos.Y + 15) -- تحرك النص جنب الماوس
-	label.Text = "X:"..math.floor(mousePos.X).." Y:"..math.floor(mousePos.Y)
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
+
+local layout = Instance.new("UIListLayout", main)
+layout.Padding = UDim.new(0,5)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+--================ FUNCTIONS =================--
+
+-- إحداثياتك
+local CLICK_X = 960
+local CLICK_Y = 874
+
+local function clickAt(x,y)
+	VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 0)
+	VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
+--================ BUTTON 1 : SLAP =================--
+
+local slapBtn = Instance.new("TextButton")
+slapBtn.Size = UDim2.new(1,-10,0,25)
+slapBtn.Text = "SLAP"
+slapBtn.Font = Enum.Font.SourceSansBold
+slapBtn.TextScaled = true
+slapBtn.TextColor3 = Color3.new(1,1,1)
+slapBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+slapBtn.Parent = main
+Instance.new("UICorner", slapBtn)
+
+slapBtn.MouseButton1Click:Connect(function()
+	clickAt(CLICK_X, CLICK_Y)
 end)
 
--- نسخ الإحداثيات عند الضغط على حرف T
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.T then
-		local coords = label.Text
-		if setclipboard then
-			setclipboard(coords)
-		end
-		label.Text = coords.." Copied ✓"
-		task.wait(0.5)
-		-- ارجع للنص العادي
-		local mousePos = UserInputService:GetMouseLocation()
-		label.Text = "X:"..math.floor(mousePos.X).." Y:"..math.floor(mousePos.Y)
+--================ BUTTON 2 : TOUCH TOGGLE =================--
+
+local touchEnabled = false
+
+local touchBtn = slapBtn:Clone()
+touchBtn.Text = "TOUCH: OFF"
+touchBtn.Parent = main
+
+touchBtn.MouseButton1Click:Connect(function()
+	touchEnabled = not touchEnabled
+
+	if touchEnabled then
+		touchBtn.Text = "TOUCH: ON"
+	else
+		touchBtn.Text = "TOUCH: OFF"
 	end
 end)
