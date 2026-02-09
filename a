@@ -1,10 +1,20 @@
 -- Faisal Script ❤️
--- Auto Free Gift System
+-- Auto Free Gift System مع حذف موديل Roter
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
+
+-------------------------------------------------
+-- حذف أي موديل اسمه Roter
+-------------------------------------------------
+for _, item in pairs(Workspace:GetChildren()) do
+	if item:IsA("Model") and item.Name == "Roter" then
+		item:Destroy()
+	end
+end
 
 -------------------------------------------------
 -- الإحداثيات
