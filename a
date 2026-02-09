@@ -1,140 +1,128 @@
 --// Services
 local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
---==================================================
--- GUI MENU
---==================================================
+--------------------------------------------------
+-- CLICK
+--------------------------------------------------
+
+local CLICK_X, CLICK_Y = 960, 874
+
+local function clickAt()
+	VirtualInputManager:SendMouseButtonEvent(CLICK_X,CLICK_Y,0,true,game,0)
+	VirtualInputManager:SendMouseButtonEvent(CLICK_X,CLICK_Y,0,false,game,0)
+end
+
+--------------------------------------------------
+-- GUI صغير draggable
+--------------------------------------------------
 
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.ResetOnSpawn = false
 
-local main = Instance.new("Frame")
-main.Size = UDim2.fromOffset(120,70)
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromOffset(130,80)
 main.Position = UDim2.fromScale(0.15,0.2)
 main.BackgroundColor3 = Color3.fromRGB(15,15,15)
 main.Active = true
 main.Draggable = true
-main.Parent = gui
 Instance.new("UICorner", main)
 
 local layout = Instance.new("UIListLayout", main)
 layout.Padding = UDim.new(0,5)
 
---==================================================
+--------------------------------------------------
 -- SLAP
---==================================================
+--------------------------------------------------
 
-local CLICK_X, CLICK_Y = 960, 874
+local slap = Instance.new("TextButton", main)
+slap.Size = UDim2.new(1,-10,0,30)
+slap.Text = "SLAP"
+slap.TextScaled = true
+slap.BackgroundColor3 = Color3.fromRGB(30,30,30)
+slap.TextColor3 = Color3.new(1,1,1)
 
-local function clickAt(x,y)
-	VirtualInputManager:SendMouseButtonEvent(x,y,0,true,game,0)
-	VirtualInputManager:SendMouseButtonEvent(x,y,0,false,game,0)
-end
+slap.MouseButton1Click:Connect(clickAt)
 
-local slapBtn = Instance.new("TextButton", main)
-slapBtn.Size = UDim2.new(1,-10,0,25)
-slapBtn.Text = "SLAP"
-slapBtn.TextScaled = true
-slapBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-slapBtn.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", slapBtn)
+--------------------------------------------------
+-- TOUCH (ضغط لا نهائي)
+--------------------------------------------------
 
-slapBtn.MouseButton1Click:Connect(function()
-	clickAt(CLICK_X, CLICK_Y)
+local touchOn = false
+
+local touch = slap:Clone()
+touch.Text = "TOUCH: OFF"
+touch.Parent = main
+
+touch.MouseButton1Click:Connect(function()
+	touchOn = not touchOn
+	touch.Text = touchOn and "TOUCH: ON" or "TOUCH: OFF"
 end)
 
---==================================================
--- TOUCH SYSTEM
---==================================================
-
-local lastTouchPlayer = nil
-
-local function setupChar(char)
-	local root = char:WaitForChild("HumanoidRootPart")
-
-	root.Touched:Connect(function(hit)
-		local model = hit:FindFirstAncestorOfClass("Model")
-		local plr = Players:GetPlayerFromCharacter(model)
-		if plr and plr ~= player then
-			lastTouchPlayer = plr
+task.spawn(function()
+	while true do
+		if touchOn then
+			clickAt()
 		end
-	end)
-end
-
-if player.Character then setupChar(player.Character) end
-player.CharacterAdded:Connect(setupChar)
-
---==================================================
--- INFO FRAME (قابل للسحب ✅)
---==================================================
-
-local infoFrame = Instance.new("Frame", gui)
-infoFrame.Size = UDim2.fromOffset(160,60)
-infoFrame.Position = UDim2.fromScale(0.5,0.85)
-infoFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
-infoFrame.Visible = false
-infoFrame.Active = true           -- ⭐ مهم
-infoFrame.Draggable = true        -- ⭐ مهم
-Instance.new("UICorner", infoFrame)
-
-local img = Instance.new("ImageLabel", infoFrame)
-img.Size = UDim2.fromOffset(50,50)
-img.Position = UDim2.fromOffset(5,5)
-img.BackgroundTransparency = 1
-
-local nameLabel = Instance.new("TextLabel", infoFrame)
-nameLabel.Size = UDim2.new(1,-60,1,0)
-nameLabel.Position = UDim2.fromOffset(60,0)
-nameLabel.BackgroundTransparency = 1
-nameLabel.TextColor3 = Color3.new(1,1,1)
-nameLabel.TextScaled = true
-
---==================================================
--- TOUCH BUTTON
---==================================================
-
-local touchBtn = slapBtn:Clone()
-touchBtn.Text = "TOUCH"
-touchBtn.Parent = main
-
-touchBtn.MouseButton1Click:Connect(function()
-	if not lastTouchPlayer then return end
-
-	nameLabel.Text = lastTouchPlayer.Name
-	img.Image =
-		"https://www.roblox.com/headshot-thumbnail/image?userId="
-		..lastTouchPlayer.UserId..
-		"&width=150&height=150&format=png"
-
-	infoFrame.Visible = true
-
-	task.delay(3,function()
-		infoFrame.Visible = false
-	end)
-end)
-
---==================================================
--- 🔥 HOVER DETECTOR (يطبع اسم الـ GUI في Output)
---==================================================
-
-task.wait(1) -- ننتظر GUIs تحمل
-
-local mousePos = UserInputService:GetMouseLocation()
-
-for _,v in ipairs(player.PlayerGui:GetDescendants()) do
-	if v:IsA("GuiObject") and v.Visible then
-		local pos = v.AbsolutePosition
-		local size = v.AbsoluteSize
-
-		if mousePos.X >= pos.X and mousePos.X <= pos.X+size.X
-		and mousePos.Y >= pos.Y and mousePos.Y <= pos.Y+size.Y then
-			print("Mouse over:", v:GetFullName())
-			break
-		end
+		task.wait(0.08)
 	end
+end)
+
+--------------------------------------------------
+-- 🔥 BAR AUTO DETECT (عمودي)
+--------------------------------------------------
+
+local detectedBar = nil
+
+local function isVerticalBar(obj)
+	if not obj:IsA("Frame") and not obj:IsA("ImageLabel") then
+		return false
+	end
+
+	local size = obj.AbsoluteSize
+
+	-- طويل أكثر من عرضه = عمودي
+	if size.Y > size.X * 2 and size.Y > 40 then
+		return true
+	end
+
+	return false
 end
+
+task.spawn(function()
+
+	-- نبحث عن البار تلقائي
+	while not detectedBar do
+		for _,v in ipairs(player.PlayerGui:GetDescendants()) do
+			if isVerticalBar(v) then
+				detectedBar = v
+				print("VERTICAL BAR DETECTED:", v:GetFullName())
+				break
+			end
+		end
+		task.wait(0.4)
+	end
+
+	local lastY = detectedBar.AbsolutePosition.Y
+
+	detectedBar:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+
+		local nowY = detectedBar.AbsolutePosition.Y
+
+		-- يتحرك للأعلى
+		if nowY < lastY then
+			local topEdge = nowY
+			local parentTop = detectedBar.Parent.AbsolutePosition.Y
+
+			-- وصل أعلى شي
+			if topEdge <= parentTop + 2 then
+				clickAt()
+			end
+		end
+
+		lastY = nowY
+	end)
+
+end)
