@@ -1,56 +1,90 @@
-local Players = game:GetService("Players")
+-- Faisal GUI Scanner Pro
 
-local lastTouchPlayer = nil
+local player = game.Players.LocalPlayer
 
--- تتبع آخر لمس
-local char = player.Character or player.CharacterAdded:Wait()
-local root = char:WaitForChild("HumanoidRootPart")
-
-root.Touched:Connect(function(hit)
-	local model = hit:FindFirstAncestorOfClass("Model")
-	local plr = Players:GetPlayerFromCharacter(model)
-	if plr and plr ~= player then
-		lastTouchPlayer = plr
-	end
+pcall(function()
+	player.PlayerGui:FindFirstChild("GuiScanner"):Destroy()
 end)
 
--- فريم العرض
-local infoFrame = Instance.new("Frame")
-infoFrame.Size = UDim2.fromOffset(160,60)
-infoFrame.Position = UDim2.fromScale(0.5,0.8)
-infoFrame.AnchorPoint = Vector2.new(0.5,0.5)
-infoFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
-infoFrame.Visible = false
-infoFrame.Parent = gui
-Instance.new("UICorner", infoFrame)
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "GuiScanner"
+gui.ResetOnSpawn = false
 
-local img = Instance.new("ImageLabel")
-img.Size = UDim2.fromOffset(50,50)
-img.Position = UDim2.fromOffset(5,5)
-img.BackgroundTransparency = 1
-img.Parent = infoFrame
+-------------------------------------------------
+-- Main frame
+-------------------------------------------------
 
-local nameLabel = Instance.new("TextLabel")
-nameLabel.Size = UDim2.new(1,-60,1,0)
-nameLabel.Position = UDim2.fromOffset(60,0)
-nameLabel.BackgroundTransparency = 1
-nameLabel.TextColor3 = Color3.new(1,1,1)
-nameLabel.Font = Enum.Font.SourceSansBold
-nameLabel.TextScaled = true
-nameLabel.Parent = infoFrame
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromOffset(320,260)
+main.Position = UDim2.fromScale(0.25,0.2)
+main.BackgroundColor3 = Color3.fromRGB(20,20,20)
+main.Active = true
+main.Draggable = true
 
--- زر TOUCH
-touchBtn.MouseButton1Click:Connect(function()
-	if not lastTouchPlayer then return end
+-------------------------------------------------
+-- Scroll
+-------------------------------------------------
 
-	nameLabel.Text = lastTouchPlayer.Name
-	img.Image = "https://www.roblox.com/headshot-thumbnail/image?userId="
-		..lastTouchPlayer.UserId..
-		"&width=150&height=150&format=png"
+local scroll = Instance.new("ScrollingFrame", main)
+scroll.Size = UDim2.new(1,-10,1,-10)
+scroll.Position = UDim2.fromOffset(5,5)
+scroll.CanvasSize = UDim2.new(0,0,0,0)
+scroll.ScrollBarImageTransparency = 0.3
 
-	infoFrame.Visible = true
+local layout = Instance.new("UIListLayout", scroll)
+layout.Padding = UDim.new(0,4)
 
-	task.delay(3, function()
-		infoFrame.Visible = false
+-------------------------------------------------
+-- Add button entry
+-------------------------------------------------
+
+local function addEntry(obj)
+
+	local holder = Instance.new("Frame", scroll)
+	holder.Size = UDim2.new(1,-6,0,26)
+	holder.BackgroundColor3 = Color3.fromRGB(35,35,35)
+
+	local name = Instance.new("TextLabel", holder)
+	name.Size = UDim2.new(0.6,0,1,0)
+	name.BackgroundTransparency = 1
+	name.TextScaled = true
+	name.TextColor3 = Color3.new(1,1,1)
+	name.Text = obj.Name
+
+	local copy = Instance.new("TextButton", holder)
+	copy.Size = UDim2.new(0.2,0,1,0)
+	copy.Position = UDim2.new(0.6,0,0,0)
+	copy.Text = "COPY"
+	copy.TextScaled = true
+	copy.BackgroundColor3 = Color3.fromRGB(60,60,60)
+
+	copy.MouseButton1Click:Connect(function()
+		setclipboard(obj:GetFullName())
 	end)
-end)
+
+	local act = Instance.new("TextButton", holder)
+	act.Size = UDim2.new(0.2,0,1,0)
+	act.Position = UDim2.new(0.8,0,0,0)
+	act.Text = "USE"
+	act.TextScaled = true
+	act.BackgroundColor3 = Color3.fromRGB(90,90,90)
+
+	act.MouseButton1Click:Connect(function()
+		if obj:IsA("TextButton") or obj:IsA("ImageButton") then
+			obj:Activate()
+		end
+	end)
+end
+
+-------------------------------------------------
+-- Scan visible GUI only
+-------------------------------------------------
+
+for _,v in ipairs(player.PlayerGui:GetDescendants()) do
+	if (v:IsA("TextButton") or v:IsA("ImageButton")) and v.Visible then
+		addEntry(v)
+	end
+end
+
+task.wait()
+scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 5)
