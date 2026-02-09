@@ -1,52 +1,29 @@
---// Services
+-- Services
 local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-
 local player = Players.LocalPlayer
 
---------------------------------------------------
--- CLICK (ضغطة نظيفة)
---------------------------------------------------
-
+-- CLICK FUNCTION
 local CLICK_X, CLICK_Y = 960, 874
-
-local busy = false
-
 local function clickAt()
-	if busy then return end
-	busy = true
-
 	VirtualInputManager:SendMouseButtonEvent(CLICK_X,CLICK_Y,0,true,game,0)
 	task.wait(0.02)
 	VirtualInputManager:SendMouseButtonEvent(CLICK_X,CLICK_Y,0,false,game,0)
-
-	task.wait(0.15) -- مهم عشان ما يقفل الماوس
-	busy = false
 end
 
---------------------------------------------------
--- GUI بسيط
---------------------------------------------------
-
-pcall(function()
-	player.PlayerGui:FindFirstChild("FaisalMenu"):Destroy()
-end)
-
+-- GUI نظيف
+pcall(function() player.PlayerGui:FindFirstChild("FaisalMenu"):Destroy() end)
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "FaisalMenu"
-gui.ResetOnSpawn = false
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromOffset(110,70)
+main.Size = UDim2.fromOffset(130,80)
 main.Position = UDim2.fromScale(0.15,0.2)
 main.BackgroundColor3 = Color3.fromRGB(20,20,20)
 main.Active = true
 main.Draggable = true
 
---------------------------------------------------
--- SLAP
---------------------------------------------------
-
+-- SLAP BUTTON
 local slap = Instance.new("TextButton", main)
 slap.Size = UDim2.fromOffset(100,28)
 slap.Position = UDim2.fromOffset(5,5)
@@ -54,53 +31,49 @@ slap.Text = "SLAP"
 slap.TextScaled = true
 slap.BackgroundColor3 = Color3.fromRGB(35,35,35)
 slap.TextColor3 = Color3.new(1,1,1)
-
 slap.MouseButton1Click:Connect(clickAt)
 
---------------------------------------------------
--- TOUCH (بطيء وآمن)
---------------------------------------------------
-
+-- TOUCH BUTTON
 local touchOn = false
-
-local touch = slap:Clone()
+local touch = Instance.new("TextButton", main)
+touch.Size = UDim2.fromOffset(100,28)
 touch.Position = UDim2.fromOffset(5,37)
-touch.Text = "TOUCH OFF"
+touch.Text = "TOUCH: OFF"
+touch.TextScaled = true
+touch.BackgroundColor3 = Color3.fromRGB(35,35,35)
+touch.TextColor3 = Color3.new(1,1,1)
 touch.Parent = main
 
 touch.MouseButton1Click:Connect(function()
 	touchOn = not touchOn
-	touch.Text = touchOn and "TOUCH ON" or "TOUCH OFF"
+	touch.Text = touchOn and "TOUCH: ON" or "TOUCH: OFF"
 end)
 
+-- TOUCH loop منفصل وآمن
 task.spawn(function()
 	while true do
 		if touchOn then
-			clickAt()
-			task.wait(0.35) -- ✅ أبطأ = ما يقفل الماوس
+			clickAt() -- يضغط كل 0.35 ثانية
+			task.wait(0.35)
 		else
 			task.wait(0.2)
 		end
 	end
 end)
 
---------------------------------------------------
--- BAR عمودي (يضغط مرة وحدة فقط)
---------------------------------------------------
-
+-- BAR AUTO DETECT (عمودي) آمن
 task.spawn(function()
-
-	local function isBar(obj)
+	local bar
+	local function isVerticalBar(obj)
 		if not obj:IsA("Frame") and not obj:IsA("ImageLabel") then return false end
 		local s = obj.AbsoluteSize
 		return s.Y > s.X * 2 and s.Y > 40
 	end
 
-	local bar
-
+	-- البحث عن البار
 	while not bar do
 		for _,v in ipairs(player.PlayerGui:GetDescendants()) do
-			if isBar(v) then
+			if isVerticalBar(v) then
 				bar = v
 				break
 			end
@@ -108,15 +81,19 @@ task.spawn(function()
 		task.wait(0.4)
 	end
 
-	local lastY = bar.AbsolutePosition.Y
 	local clicked = false
-
 	bar:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+		if not bar.Parent then return end
+		local barTop = bar.AbsolutePosition.Y
+		local barHeight = bar.AbsoluteSize.Y
+		local parentTop = bar.Parent.AbsolutePosition.Y
+		local parentHeight = bar.Parent.AbsoluteSize.Y
 
-		local nowY = bar.AbsolutePosition.Y
-		local top = bar.Parent.AbsolutePosition.Y
+		-- حساب نسبة تقدم البار
+		local progress = (parentTop + parentHeight - (barTop + barHeight)) / parentHeight
 
-		if nowY <= top + 2 then
+		-- إذا وصل للنهاية تقريبًا (> 0.98)
+		if progress >= 0.98 then
 			if not clicked then
 				clickAt()
 				clicked = true
@@ -124,8 +101,5 @@ task.spawn(function()
 		else
 			clicked = false
 		end
-
-		lastY = nowY
 	end)
-
 end)
