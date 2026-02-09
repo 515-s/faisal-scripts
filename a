@@ -1,24 +1,26 @@
--- Faisal Script ❤️
--- Auto Free Gift System مع حذف موديل Roter
-
+-- Faisal Script (محدث)
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 
--------------------------------------------------
--- حذف أي موديل اسمه Roter
--------------------------------------------------
-for _, item in pairs(Workspace:GetChildren()) do
-	if item:IsA("Model") and item.Name == "Roter" then
-		item:Destroy()
-	end
+-- إذا في GUI قديم نحذفه
+if player:FindFirstChild("PlayerGui") then
+	local old = player.PlayerGui:FindFirstChild("FaisalAutoGift")
+	if old then old:Destroy() end
 end
 
--------------------------------------------------
+-- تدمير أي موديل اسمه "Roter" وحرق أي واحد ينضاف بعدين
+local function destroyRoter(inst)
+	if inst:IsA("Model") and inst.Name == "Roter" then
+		pcall(function() inst:Destroy() end)
+	end
+end
+for _, c in pairs(Workspace:GetChildren()) do destroyRoter(c) end
+Workspace.ChildAdded:Connect(destroyRoter)
+
 -- الإحداثيات
--------------------------------------------------
 local points = {
 	Vector3.new(-55, -2, -65),
 	Vector3.new(-50, 1, -76),
@@ -31,79 +33,170 @@ local points = {
 	Vector3.new(-3, 31, -87)
 }
 
--------------------------------------------------
--- GUI
--------------------------------------------------
-local gui = Instance.new("ScreenGui", player.PlayerGui)
+-- إنشاء GUI في PlayerGui
+local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalAutoGift"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 260, 0, 160)
-frame.Position = UDim2.new(0.5, -130, 0.75, 0)
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 220, 0, 110) -- أصغر
+frame.Position = UDim2.new(0.5, -110, 0.75, 0)
 frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
 frame.BorderSizePixel = 0
-frame.BackgroundTransparency = 0.1
+frame.AnchorPoint = Vector2.new(0.5,0.5)
+frame.Parent = gui
+frame.Active = true -- لازم للتسحب
 
 local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0,20)
+corner.CornerRadius = UDim.new(0,12)
 
--- الحقوق
 local credit = Instance.new("TextLabel", frame)
-credit.Size = UDim2.new(1,0,0,30)
+credit.Size = UDim2.new(1, -12, 0, 22)
+credit.Position = UDim2.new(0,6,0,6)
 credit.BackgroundTransparency = 1
 credit.Text = "faisal-script"
 credit.TextColor3 = Color3.fromRGB(180,180,180)
 credit.TextScaled = true
 credit.Font = Enum.Font.GothamBold
+credit.TextXAlignment = Enum.TextXAlignment.Left
 
--- الزر
 local button = Instance.new("TextButton", frame)
-button.Size = UDim2.new(0.9,0,0.55,0)
-button.Position = UDim2.new(0.05,0,0.35,0)
+button.Size = UDim2.new(0.9, 0, 0, 56)
+button.Position = UDim2.new(0.05, 0, 0, 34)
 button.Text = "AUTO FREE GIFT"
 button.TextScaled = true
 button.Font = Enum.Font.GothamBlack
-button.BackgroundColor3 = Color3.fromRGB(35,35,35)
-button.TextColor3 = Color3.white
+button.BackgroundColor3 = Color3.fromRGB(0,0,0) -- يبدأ أسود
+button.TextColor3 = Color3.fromRGB(255,255,255)
+button.Parent = frame
+Instance.new("UICorner", button).CornerRadius = UDim.new(0,10)
 
-Instance.new("UICorner", button).CornerRadius = UDim.new(0,16)
+-- سحب (drag) بسيط للـ frame
+local dragging, dragStart, startPos
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		if dragging and dragStart and startPos then
+			local delta = input.Position - dragStart
+			frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end
+end)
 
--------------------------------------------------
 -- الحركة
--------------------------------------------------
 local running = false
 
-local function moveSmooth(hrp, target)
-	local tween = TweenService:Create(
-		hrp,
-		TweenInfo.new(2, Enum.EasingStyle.Linear),
-		{CFrame = CFrame.new(target)}
-	)
-	tween:Play()
-	tween.Completed:Wait()
+local function getHRP()
+	local char = player.Character
+	if not char then return nil end
+	return char:FindFirstChild("HumanoidRootPart")
 end
 
-local function start()
+local function safeTeleport(hrp, pos)
+	if not hrp then return end
+	local ok, err = pcall(function()
+		hrp.CFrame = CFrame.new(pos + Vector3.new(0,2,0))
+	end)
+	if not ok then
+		-- بعض الألعاب تمنع التيلبورت بالقوة؛ هنا نحاول SetPrimaryPartCFrame لو متاح
+		local char = player.Character
+		if char and char.PrimaryPart then
+			pcall(function() char:SetPrimaryPartCFrame(CFrame.new(pos + Vector3.new(0,2,0))) end)
+		end
+	end
+end
+
+local function smoothMove(hrp, targetPos)
+	if not hrp then return end
+	local targetCFrame = CFrame.new(targetPos + Vector3.new(0,2,0))
+	local dist = (hrp.Position - targetPos).Magnitude
+	local duration = math.clamp(dist/10, 0.8, 6) -- سرعة تقريبية
+	local tween = TweenService:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+	tween:Play()
+	local finished = false
+	tween.Completed:Connect(function() finished = true end)
+	-- انتظار أو مهلة
+	local t0 = tick()
+	while not finished and tick() - t0 < duration + 1 do
+		task.wait(0.1)
+	end
+end
+
+local function runSequence()
 	if running then return end
 	running = true
-
-	button.BackgroundColor3 = Color3.fromRGB(0,170,0)
-
-	local char = player.Character or player.CharacterAdded:Wait()
-	local hrp = char:WaitForChild("HumanoidRootPart")
-
-	-- كل النقاط تيليبورت ما عدا آخر نقطتين
-	for i = 1, #points-2 do
-		hrp.CFrame = CFrame.new(points[i])
-		task.wait(0.25)
+	button.BackgroundColor3 = Color3.fromRGB(0,170,0) -- أخضر بعد الضغط
+	button.Text = "RUNNING..."
+	
+	-- قطع لو الشخصية تختفي
+	local hrp = getHRP()
+	if not hrp then
+		player.CharacterAdded:Wait()
+		hrp = getHRP()
+		if not hrp then
+			running = false
+			button.BackgroundColor3 = Color3.fromRGB(0,0,0)
+			button.Text = "AUTO FREE GIFT"
+			return
+		end
+	end
+	
+	-- تيليبورت لكل النقاط ما عدا آخر نقطتين
+	for i = 1, #points - 1 do
+		-- لما نوصل قبل الأخير نوقف ونسوي المشي للآخر
+		if i == #points - 1 then
+			safeTeleport(hrp, points[i]) -- نوصله بالتيليبورت للقبل الأخير
+			task.wait(0.2)
+			-- نعمل smooth للمسافة بين قبل الأخير والأخير
+			smoothMove(hrp, points[#points])
+		else
+			safeTeleport(hrp, points[i])
+			task.wait(0.25)
+		end
+		
+		-- لو اللاعب respawn أثناء التشغيل نوقف أو ننتظر
+		if not player.Character or not getHRP() then
+			-- إذا مات اللاعب ننتظر الظهور الجديد ثم نكمل من النقطة الحالية
+			player.CharacterAdded:Wait()
+			hrp = getHRP()
+			if not hrp then break end
+		end
 	end
 
-	-- قبل الأخير
-	hrp.CFrame = CFrame.new(points[#points-1])
-	task.wait(0.2)
-
-	-- للأخير مشي سلس
-	moveSmooth(hrp, points[#points])
+	-- نهاية
+	running = false
+	button.BackgroundColor3 = Color3.fromRGB(0,0,0)
+	button.Text = "AUTO FREE GIFT"
 end
 
-button.MouseButton1Click:Connect(start)
+button.MouseButton1Click:Connect(function()
+	if not running then
+		-- تأكد إن عندنا شخصية
+		if not player.Character or not getHRP() then
+			player.CharacterAdded:Wait()
+			task.wait(0.5)
+		end
+		spawn(runSequence)
+	end
+end)
+
+-- لو تبغى: زر ايقاف سريع (اضغط على الـ credit لِايقاف)
+credit.InputBegan:Connect(function(inp)
+	if inp.UserInputType == Enum.UserInputType.MouseButton1 and running then
+		running = false
+		button.BackgroundColor3 = Color3.fromRGB(0,0,0)
+		button.Text = "AUTO FREE GIFT"
+	end
+end)
