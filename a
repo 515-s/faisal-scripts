@@ -1,7 +1,8 @@
--- Faisal Script (مصحح ومستقر)
+-- Faisal Script (مصحح ومستقر) + إضافة AUTO STOP TIMER
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 if not player then return end
@@ -47,7 +48,7 @@ gui.Parent = PlayerGui
 
 -- الإطار الصغير مع زر
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 110)
+frame.Size = UDim2.new(0, 220, 0, 170) -- كبرت ليتسع للزر الثاني
 frame.Position = UDim2.new(0.5, -110, 0.75, 0)
 frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
 frame.BorderSizePixel = 0
@@ -76,6 +77,18 @@ button.BackgroundColor3 = Color3.fromRGB(0,0,0) -- يبدأ أسود
 button.TextColor3 = Color3.fromRGB(255,255,255)
 button.Parent = frame
 Instance.new("UICorner", button).CornerRadius = UDim.new(0,10)
+
+-- ======= الزر الإضافي: AUTO STOP TIMER (بالحجم الكبير كما طلبت) =======
+local autoStopBtn = Instance.new("TextButton", frame)
+autoStopBtn.Size = UDim2.new(0.9, 0, 0, 48)
+autoStopBtn.Position = UDim2.new(0.05, 0, 0, 98) -- تحت الزر الأول
+autoStopBtn.Text = "AUTO STOP TIMER"
+autoStopBtn.TextScaled = true
+autoStopBtn.Font = Enum.Font.GothamBlack
+autoStopBtn.BackgroundColor3 = Color3.fromRGB(180,40,40)
+autoStopBtn.TextColor3 = Color3.fromRGB(255,255,255)
+autoStopBtn.Parent = frame
+Instance.new("UICorner", autoStopBtn).CornerRadius = UDim.new(0,10)
 
 -- واجهة عرض النتائج (وسط الشاشة)
 local centerFrame = Instance.new("Frame", gui)
@@ -345,4 +358,84 @@ credit.InputBegan:Connect(function(inp)
 		button.BackgroundColor3 = Color3.fromRGB(0,0,0)
 		button.Text = "AUTO FREE GIFT"
 	end
+end)
+
+-- ============================
+-- وظيفة AUTO STOP TIMER (الزر الإضافي)
+-- ============================
+-- يوقف التشغيل بعد TARGET_TIME ثانية بدقّة باستخدام Heartbeat، ويعرض العدّ التنازلي في centerFrame
+local TARGET_TIME = 6
+local autoStopConnection = nil
+local autoStopRunning = false
+
+local function startAutoStopCountdown()
+	-- لو في عدّ شغّال نلغي السابق
+	if autoStopRunning then return end
+	autoStopRunning = true
+	centerFrame.Visible = true
+
+	local elapsed = 0
+	autoStopBtn.BackgroundColor3 = Color3.fromRGB(100,20,20)
+	autoStopBtn.Text = "STOP IN 6s..."
+
+	-- نستخدم Heartbeat عشان الدقّة
+	autoStopConnection = RunService.Heartbeat:Connect(function(dt)
+		if not autoStopRunning then
+			-- تنظيف
+			if autoStopConnection and autoStopConnection.Connected then
+				autoStopConnection:Disconnect()
+			end
+			centerFrame.Visible = false
+			autoStopBtn.BackgroundColor3 = Color3.fromRGB(180,40,40)
+			autoStopBtn.Text = "AUTO STOP TIMER"
+			return
+		end
+
+		elapsed = elapsed + dt
+		local remaining = math.max(0, TARGET_TIME - elapsed)
+		timerLabel.Text = string.format("Auto-stop in: %.2f s", remaining)
+
+		-- لو المستخدم لم يشغّل السكربت أصلاً، بس نعرض العد ونوقف أي تشغيل لو صار
+		if elapsed >= TARGET_TIME then
+			-- نوقف التشغيل الرئيسي إن كان شغّال
+			if running then
+				running = false
+			end
+
+			-- تنظيف وإظهار نتيجة
+			autoStopRunning = false
+			if autoStopConnection and autoStopConnection.Connected then
+				autoStopConnection:Disconnect()
+			end
+			timerLabel.Text = "Stopped at 6.00s"
+			autoStopBtn.BackgroundColor3 = Color3.fromRGB(80,160,80)
+			autoStopBtn.Text = "STOPPED"
+			-- نرجع للون الأساسي بعد ثانية
+			spawn(function()
+				task.wait(1)
+				if autoStopBtn and autoStopBtn.Parent then
+					autoStopBtn.BackgroundColor3 = Color3.fromRGB(180,40,40)
+					autoStopBtn.Text = "AUTO STOP TIMER"
+					centerFrame.Visible = false
+				end
+			end)
+		end
+	end)
+end
+
+autoStopBtn.MouseButton1Click:Connect(function()
+	-- لو نبي الغاء العدّ لو ضغطناه مرة ثانية أثناء العد
+	if autoStopRunning then
+		autoStopRunning = false
+		if autoStopConnection and autoStopConnection.Connected then
+			autoStopConnection:Disconnect()
+		end
+		centerFrame.Visible = false
+		autoStopBtn.BackgroundColor3 = Color3.fromRGB(180,40,40)
+		autoStopBtn.Text = "AUTO STOP TIMER"
+		return
+	end
+
+	-- نبدأ العدّ
+	startAutoStopCountdown()
 end)
