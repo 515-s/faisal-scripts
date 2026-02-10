@@ -361,81 +361,93 @@ credit.InputBegan:Connect(function(inp)
 end)
 
 -- ============================
--- وظيفة AUTO STOP TIMER (الزر الإضافي)
+-- AUTO STOP TIMER الحقيقي (يضغط الأزرار)
 -- ============================
--- يوقف التشغيل بعد TARGET_TIME ثانية بدقّة باستخدام Heartbeat، ويعرض العدّ التنازلي في centerFrame
+
+local RunService = game:GetService("RunService")
+
 local TARGET_TIME = 6
-local autoStopConnection = nil
-local autoStopRunning = false
+local autoStopEnabled = false
+local autoConn
 
-local function startAutoStopCountdown()
-	-- لو في عدّ شغّال نلغي السابق
-	if autoStopRunning then return end
-	autoStopRunning = true
-	centerFrame.Visible = true
-
-	local elapsed = 0
-	autoStopBtn.BackgroundColor3 = Color3.fromRGB(100,20,20)
-	autoStopBtn.Text = "STOP IN 6s..."
-
-	-- نستخدم Heartbeat عشان الدقّة
-	autoStopConnection = RunService.Heartbeat:Connect(function(dt)
-		if not autoStopRunning then
-			-- تنظيف
-			if autoStopConnection and autoStopConnection.Connected then
-				autoStopConnection:Disconnect()
+-------------------------------------------------
+-- يجيب الوقت من أي MeshPart فيه Timer
+-------------------------------------------------
+local function getCurrentTimer()
+	for _, v in pairs(workspace:GetDescendants()) do
+		
+		-- NumberValue
+		if v:IsA("NumberValue") or v:IsA("IntValue") then
+			if string.find(string.lower(v.Name), "time") then
+				return tonumber(v.Value)
 			end
-			centerFrame.Visible = false
-			autoStopBtn.BackgroundColor3 = Color3.fromRGB(180,40,40)
-			autoStopBtn.Text = "AUTO STOP TIMER"
-			return
 		end
-
-		elapsed = elapsed + dt
-		local remaining = math.max(0, TARGET_TIME - elapsed)
-		timerLabel.Text = string.format("Auto-stop in: %.2f s", remaining)
-
-		-- لو المستخدم لم يشغّل السكربت أصلاً، بس نعرض العد ونوقف أي تشغيل لو صار
-		if elapsed >= TARGET_TIME then
-			-- نوقف التشغيل الرئيسي إن كان شغّال
-			if running then
-				running = false
+		
+		-- TextLabel
+		if v:IsA("TextLabel") then
+			local n = tonumber(v.Text)
+			if n then
+				return n
 			end
+		end
+		
+	end
+end
 
-			-- تنظيف وإظهار نتيجة
-			autoStopRunning = false
-			if autoStopConnection and autoStopConnection.Connected then
-				autoStopConnection:Disconnect()
+-------------------------------------------------
+-- يضغط أقرب زر اسمه Button
+-------------------------------------------------
+local function pressNearestButton(hrp)
+	local nearest
+	local dist = math.huge
+	
+	for _, v in pairs(workspace:GetDescendants()) do
+		if v:IsA("BasePart") and v.Name == "Button" then
+			local d = (hrp.Position - v.Position).Magnitude
+			if d < dist then
+				dist = d
+				nearest = v
 			end
-			timerLabel.Text = "Stopped at 6.00s"
-			autoStopBtn.BackgroundColor3 = Color3.fromRGB(80,160,80)
-			autoStopBtn.Text = "STOPPED"
-			-- نرجع للون الأساسي بعد ثانية
-			spawn(function()
-				task.wait(1)
-				if autoStopBtn and autoStopBtn.Parent then
-					autoStopBtn.BackgroundColor3 = Color3.fromRGB(180,40,40)
-					autoStopBtn.Text = "AUTO STOP TIMER"
-					centerFrame.Visible = false
-				end
-			end)
+		end
+	end
+	
+	if nearest then
+		firetouchinterest(hrp, nearest, 0)
+		firetouchinterest(hrp, nearest, 1)
+	end
+end
+
+-------------------------------------------------
+-- المراقبة التلقائية
+-------------------------------------------------
+local function startAutoStop()
+	if autoConn then autoConn:Disconnect() end
+	
+	autoStopEnabled = true
+	
+	autoConn = RunService.Heartbeat:Connect(function()
+		if not autoStopEnabled then return end
+		
+		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
+		
+		local current = getCurrentTimer()
+		if not current then return end
+		
+		timerLabel.Text = "Timer: ".. tostring(current)
+		centerFrame.Visible = true
+		
+		if current >= TARGET_TIME then
+			pressNearestButton(hrp)
+			autoStopEnabled = false
+			centerFrame.Visible = false
 		end
 	end)
 end
 
+-------------------------------------------------
+-- اربطه بزر AUTO STOP TIMER حقك
+-------------------------------------------------
 autoStopBtn.MouseButton1Click:Connect(function()
-	-- لو نبي الغاء العدّ لو ضغطناه مرة ثانية أثناء العد
-	if autoStopRunning then
-		autoStopRunning = false
-		if autoStopConnection and autoStopConnection.Connected then
-			autoStopConnection:Disconnect()
-		end
-		centerFrame.Visible = false
-		autoStopBtn.BackgroundColor3 = Color3.fromRGB(180,40,40)
-		autoStopBtn.Text = "AUTO STOP TIMER"
-		return
-	end
-
-	-- نبدأ العدّ
-	startAutoStopCountdown()
+	startAutoStop()
 end)
