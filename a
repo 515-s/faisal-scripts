@@ -1,4 +1,9 @@
--- Faisal Script (مصحح ومستقر) + إضافة AUTO STOP TIMER
+-- Faisal Script (مصحح ومستقر) + AUTO STOP ذكي ومتكامل
+-- النسخة الكاملة — دمج كل الطلبات: movement, auto free gift, auto-stop, auto-detect, highlights
+
+-- ============================
+-- Services
+-- ============================
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
@@ -361,93 +366,335 @@ credit.InputBegan:Connect(function(inp)
 end)
 
 -- ============================
--- AUTO STOP TIMER الحقيقي (يضغط الأزرار)
+-- AUTO STOP TIMER الذكي (Auto-detect + GUI highlight + Auto-press nearest Button)
 -- ============================
 
-local RunService = game:GetService("RunService")
+-- إعدادات القيم
+local TARGET = 6
+local HRP_RADIUS = 12         -- مسافة البحث عن MeshPart/NumberValue قريب منك (يمكن تغييره)
+local BUTTON_SEARCH_RADIUS = 20 -- مسافة البحث عن Button لقرب الهدف (يمكن تغييره)
+local SCAN_INTERVAL = 0.12    -- فترة المسح بين كل فحص
+local tracked = {} -- جدول تتبع المصادر: key -> {type="gui"/"value", obj=..., last=number, handled=bool}
 
-local TARGET_TIME = 6
-local autoStopEnabled = false
-local autoConn
+-- دوال مساعدة
+local function isNumericString(s)
+	if not s then return false end
+	return tonumber(s) ~= nil
+end
 
--------------------------------------------------
--- يجيب الوقت من أي MeshPart فيه Timer
--------------------------------------------------
-local function getCurrentTimer()
-	for _, v in pairs(workspace:GetDescendants()) do
-		
-		-- NumberValue
-		if v:IsA("NumberValue") or v:IsA("IntValue") then
-			if string.find(string.lower(v.Name), "time") then
-				return tonumber(v.Value)
+local function safeGetNumberFromObj(obj)
+	if not obj then return nil end
+	if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+		return tonumber(obj.Text)
+	elseif obj:IsA("NumberValue") or obj:IsA("IntValue") then
+		return tonumber(obj.Value)
+	end
+	return nil
+end
+
+-- يعمل UIStroke أحمر خفيف على النص لو ما عليه واحد
+local function ensureHighlightOnLabel(lbl)
+	if not lbl or not lbl:IsA("GuiObject") then return nil end
+	for _, ch in pairs(lbl:GetChildren()) do
+		if ch:IsA("UIStroke") and ch.Name == "AutoStopHighlight" then
+			return ch
+		end
+	end
+	local stroke = Instance.new("UIStroke")
+	stroke.Name = "AutoStopHighlight"
+	stroke.Thickness = 2
+	stroke.Color = Color3.fromRGB(220,60,60)
+	stroke.Transparency = 0
+	stroke.Parent = lbl
+	return stroke
+end
+
+local function removeHighlight(lbl)
+	if not lbl then return end
+	local s = lbl:FindFirstChild("AutoStopHighlight")
+	if s and s:IsA("UIStroke") then s:Destroy() end
+end
+
+-- يفحص PlayerGui ويجيبالنا كل الـ labels اللي فيها أرقام
+local function scanPlayerGuiForNumbers()
+	local guiRoot = player:FindFirstChild("PlayerGui")
+	if not guiRoot then return end
+
+	for _, obj in pairs(guiRoot:GetDescendants()) do
+		if (obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox")) and isNumericString(obj.Text) then
+			local id = tostring(obj)
+			if not tracked[id] then
+				local n = safeGetNumberFromObj(obj)
+				tracked[id] = { type = "gui", obj = obj, last = n, handled = false }
+				ensureHighlightOnLabel(obj)
 			end
 		end
-		
-		-- TextLabel
-		if v:IsA("TextLabel") then
-			local n = tonumber(v.Text)
-			if n then
-				return n
-			end
-		end
-		
 	end
 end
 
--------------------------------------------------
--- يضغط أقرب زر اسمه Button
--------------------------------------------------
-local function pressNearestButton(hrp)
-	local nearest
-	local dist = math.huge
-	
-	for _, v in pairs(workspace:GetDescendants()) do
-		if v:IsA("BasePart") and v.Name == "Button" then
-			local d = (hrp.Position - v.Position).Magnitude
-			if d < dist then
-				dist = d
-				nearest = v
+-- يفحص الـ Workspace عن NumberValues أو IntValues اللي ممكن تمثل مؤقتات
+local function scanWorkspaceForNumberValues()
+	for _, v in pairs(Workspace:GetDescendants()) do
+		if (v:IsA("NumberValue") or v:IsA("IntValue")) then
+			local val = tonumber(v.Value)
+			if val and val >= 0 and val < 10000 then
+				local id = tostring(v)
+				if not tracked[id] then
+					tracked[id] = { type = "value", obj = v, last = val, handled = false }
+				end
 			end
 		end
 	end
-	
-	if nearest then
-		firetouchinterest(hrp, nearest, 0)
-		firetouchinterest(hrp, nearest, 1)
-	end
 end
 
--------------------------------------------------
--- المراقبة التلقائية
--------------------------------------------------
-local function startAutoStop()
-	if autoConn then autoConn:Disconnect() end
-	
-	autoStopEnabled = true
-	
-	autoConn = RunService.Heartbeat:Connect(function()
-		if not autoStopEnabled then return end
-		
-		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-		if not hrp then return end
-		
-		local current = getCurrentTimer()
-		if not current then return end
-		
-		timerLabel.Text = "Timer: ".. tostring(current)
-		centerFrame.Visible = true
-		
-		if current >= TARGET_TIME then
-			pressNearestButton(hrp)
-			autoStopEnabled = false
-			centerFrame.Visible = false
+-- يطبع عدد MeshPart و Buttons ويحدّث timerLabel لفترة قصيرة
+local function countAndReport()
+	local meshCount = 0
+	local buttonCount = 0
+	for _, v in pairs(Workspace:GetDescendants()) do
+		if v:IsA("MeshPart") then meshCount = meshCount + 1 end
+		if v:IsA("BasePart") and v.Name == "Button" then buttonCount = buttonCount + 1 end
+	end
+	pcall(function()
+		if timerLabel then
+			timerLabel.Text = ("MeshParts: %d  |  Buttons: %d"):format(meshCount, buttonCount)
+			centerFrame.Visible = true
+			spawn(function() task.wait(2) if centerFrame and centerFrame.Parent then centerFrame.Visible = false end end)
 		end
 	end)
 end
 
--------------------------------------------------
--- اربطه بزر AUTO STOP TIMER حقك
--------------------------------------------------
-autoStopBtn.MouseButton1Click:Connect(function()
-	startAutoStop()
+-- يلاقي أقرب جزء Button إلى موقع معين
+local function findNearestButtonToPosition(pos)
+	local best, bestDist = nil, math.huge
+	for _, v in pairs(Workspace:GetDescendants()) do
+		if v:IsA("BasePart") and v.Name == "Button" then
+			local ok, p = pcall(function() return v.Position end)
+			if ok and p then
+				local d = (p - pos).Magnitude
+				if d < bestDist then
+					bestDist = d
+					best = v
+				end
+			end
+		end
+	end
+	return best, bestDist
+end
+
+-- يلاقي أقرب MeshPart أو NumberValue لموضع اللاعب (نرجع هدف لو موجود)
+local function findNearestTargetNearHRP(hrpPos, radius)
+	local best, bestDist = nil, math.huge
+	-- نبحث عن MeshPart أو BasePart
+	for _, v in pairs(Workspace:GetDescendants()) do
+		if v:IsA("MeshPart") or v:IsA("BasePart") then
+			local ok, p = pcall(function() return v.Position end)
+			if ok and p then
+				local d = (p - hrpPos).Magnitude
+				if d < bestDist and d <= radius then
+					bestDist = d
+					best = v
+				end
+			end
+		end
+	end
+	-- ثم NumberValues بقرب BasePart
+	for _, v in pairs(Workspace:GetDescendants()) do
+		if v:IsA("NumberValue") or v:IsA("IntValue") then
+			local parent = v.Parent
+			local pos
+			if parent and parent:IsA("BasePart") then
+				pos = parent.Position
+			elseif parent and parent:FindFirstChildWhichIsA and parent:FindFirstChildWhichIsA("BasePart") then
+				pos = parent:FindFirstChildWhichIsA("BasePart").Position
+			end
+			if pos then
+				local d = (pos - hrpPos).Magnitude
+				if d < bestDist and d <= radius then
+					bestDist = d
+					best = parent
+				end
+			end
+		end
+	end
+	return best, bestDist
+end
+
+-- ينفّذ لمس الزر باستخدام firetouchinterest (يحاكي لمسك للزر)
+local function pressButtonWithHRP(hrp, buttonPart)
+	if not hrp or not buttonPart then return false end
+	pcall(function()
+		firetouchinterest(hrp, buttonPart, 0)
+		firetouchinterest(hrp, buttonPart, 1)
+	end)
+	return true
+end
+
+-- لما مصدر يعبر الـ TARGET نوقفه: نبحث هدف قريب منك ونضغط زر قريب من الهدف أو منك
+local function handleSourceTriggered(info)
+	if not info or not info.obj then return end
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+	local hrpPos = hrp.Position
+
+	-- نبحث هدف قريب (MeshPart أو NumberValue parent) حول اللاعب
+	local target, dist = findNearestTargetNearHRP(hrpPos, HRP_RADIUS)
+
+	-- لو ما لقينا هدف قريب نعتمد على البحث عن Button قريب من HRP مباشرة
+	if not target then
+		local btn, bd = findNearestButtonToPosition(hrpPos)
+		if btn and bd <= BUTTON_SEARCH_RADIUS then
+			pressButtonWithHRP(hrp, btn)
+		end
+		-- أيضاً نحاول إيقاف runSequence لو شغّال
+		running = false
+		return
+	end
+
+	-- لو لقينا هدف، نبحث أقرب Button لموقع الهدف
+	local targetPos
+	if target:IsA("BasePart") then
+		targetPos = target.Position
+	else
+		local bp = target:FindFirstChildWhichIsA("BasePart")
+		if bp then targetPos = bp.Position end
+	end
+
+	if targetPos then
+		local btn, bd = findNearestButtonToPosition(targetPos)
+		if btn and bd <= BUTTON_SEARCH_RADIUS then
+			pressButtonWithHRP(hrp, btn)
+		else
+			-- لو ما فيه زر قريب من الهدف، نضغط أقرب زر للـ HRP كحل بديل
+			local btn2, bd2 = findNearestButtonToPosition(hrpPos)
+			if btn2 and bd2 <= BUTTON_SEARCH_RADIUS then
+				pressButtonWithHRP(hrp, btn2)
+			end
+		end
+	end
+
+	-- نوقف أي تشغيل رئيسي لو كان شغّال
+	running = false
+end
+
+-- يراقب tracked sources ويكتشف عبور العتبة
+local lastScan = 0
+local function monitorLoop(dt)
+	lastScan = lastScan + dt
+	if lastScan < SCAN_INTERVAL then return end
+	lastScan = 0
+
+	-- تحديث المسح: GUI + workspace values
+	scanPlayerGuiForNumbers()
+	scanWorkspaceForNumberValues()
+
+	-- نحدّث العدّات والتقارير كل مرة
+	countAndReport()
+
+	-- الآن نفحص كل مصدر
+	for id, info in pairs(tracked) do
+		local obj = info.obj
+		-- فحص صلاحية الكائن
+		if not obj or (obj.Parent == nil) then
+			-- ننظف لو انتهى
+			if info.type == "gui" and info.obj and info.obj:IsA("GuiObject") then
+				removeHighlight(info.obj)
+			end
+			tracked[id] = nil
+		else
+			local cur = safeGetNumberFromObj(obj)
+			if cur then
+				-- اذا ما كان قبل فيه قيمة، نعطيه قيمة ابتدائية
+				if info.last == nil then
+					info.last = cur
+				end
+
+				-- لو كان قديماً تحت الهدف والحين >= الهدف => عبور العتبة
+				if (info.last < TARGET and cur >= TARGET) and (not info.handled) then
+					info.handled = true
+					-- تنفيذ الإيقاف (في spawn عشان ما يعرقل الـ Heartbeat)
+					spawn(function()
+						handleSourceTriggered(info)
+					end)
+				-- لو نزل تحت حد إعادة التشغيل نسمح بإعادة التعامل لاحقاً
+				elseif cur < (TARGET - 0.4) then
+					info.handled = false
+				end
+
+				info.last = cur
+				-- لو مصدر GUI، خليه يظل محدد بالـ UIStroke (موجود من قبل)
+				if info.type == "gui" and info.obj and info.obj:IsA("GuiObject") then
+					ensureHighlightOnLabel(info.obj)
+				end
+			end
+		end
+	end
+end
+
+-- تشغيل الـ Heartbeat للمراقبة
+local hbConn
+hbConn = RunService.Heartbeat:Connect(function(dt)
+	local ok, err = pcall(function() monitorLoop(dt) end)
+	if not ok then
+		warn("AutoStop monitor error:", err)
+	end
 end)
+
+-- وظيفة لإيقاف الـ Monitor لو احتجت
+local function stopMonitor()
+	if hbConn and hbConn.Connected then
+		hbConn:Disconnect()
+	end
+	-- نزيل الhighlights
+	for id, info in pairs(tracked) do
+		if info.type == "gui" and info.obj and info.obj:IsA("GuiObject") then
+			removeHighlight(info.obj)
+		end
+	end
+	tracked = {}
+end
+
+-- رن مسح أولي
+scanPlayerGuiForNumbers()
+scanWorkspaceForNumberValues()
+countAndReport()
+
+-- ربط زر AUTO STOP اللي في الواجهة لتشغيل/إيقاف المراقبة
+autoStopBtn.MouseButton1Click:Connect(function()
+	-- Toggle التشغيل
+	if hbConn == nil or not hbConn.Connected then
+		-- تأكد أن Heartbeat شغّال (هو شغّال من البداية لكن نستخدم الزر كـ toggle مرئي)
+		autoStopBtn.BackgroundColor3 = Color3.fromRGB(0,170,0)
+		centerFrame.Visible = true
+		timerLabel.Text = "Auto-detect ON"
+		-- يخفي العرض بعد لحظة
+		spawn(function() task.wait(1.2) if centerFrame and centerFrame.Parent then centerFrame.Visible = false end end)
+	else
+		-- نوقف المراقبة ونرجع الالوان
+		stopMonitor()
+		-- نعيد ربط الـ Heartbeat لتمكين التشغيل من جديد لاحقاً
+		hbConn = RunService.Heartbeat:Connect(function(dt)
+			local ok, err = pcall(function() monitorLoop(dt) end)
+			if not ok then
+				warn("AutoStop monitor error:", err)
+			end
+		end)
+		autoStopBtn.BackgroundColor3 = Color3.fromRGB(180,40,40)
+		centerFrame.Visible = true
+		timerLabel.Text = "Auto-detect OFF"
+		spawn(function() task.wait(1.2) if centerFrame and centerFrame.Parent then centerFrame.Visible = false end end)
+	end
+end)
+
+-- لو حبيت تضيف زر لإيقاف المراقبة فوراً بالضغط على credit (زي ما عندك زر وقف)
+credit.InputBegan:Connect(function(inp)
+	if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+		stopMonitor()
+		autoStopBtn.BackgroundColor3 = Color3.fromRGB(180,40,40)
+		centerFrame.Visible = false
+	end
+end)
+
+-- ===========================================
+-- انتهى السكربت الكامل والمتكامل
+-- ===========================================
