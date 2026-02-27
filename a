@@ -12,9 +12,10 @@ local playerGui = player:WaitForChild("PlayerGui")
 local TARGET_NAMES = {"LargePine","SmallPine","MediumPine"} -- الأسماء اللي تبحث عنها (case-insensitive)
 local TRY_DISABLE_COLLISIONS = true     -- نجرب نغيّر CanCollide + Anchor محلياً
 local AUTO_TOOL_DELAY = 1.4             -- وقت استخدام كل تول بالثواني (تقدر تقلل/تزود)
-local FRAME_SIZE = UDim2.new(0, 320, 0, 120)
+local FRAME_SIZE = UDim2.new(0, 360, 0, 160) -- كبرت الحجم شوي
 local BTN_TEXT_TREE = "remove all tree"
 local BTN_TEXT_AUTO = "auto ski poles"
+local BTN_TEXT_CHEST = "take all chest"
 -- ==================================================
 
 -- تحويل للأسماء للبحث بسرعة (lowercase)
@@ -98,6 +99,19 @@ stateAuto.TextColor3 = Color3.fromRGB(255,80,80)
 stateAuto.Text = "OFF"
 stateAuto.Parent = frame
 
+-- زر Take All Chest (الجديد)
+local btnChest = Instance.new("TextButton")
+btnChest.Size = UDim2.new(1, -20, 0, 36)
+btnChest.Position = UDim2.new(0, 10, 0, 120)
+btnChest.BackgroundColor3 = Color3.fromRGB(36,36,36)
+btnChest.BorderSizePixel = 0
+btnChest.Font = Enum.Font.Gotham
+btnChest.TextSize = 15
+btnChest.TextColor3 = Color3.fromRGB(255,255,255)
+btnChest.Text = BTN_TEXT_CHEST
+btnChest.Parent = frame
+Instance.new("UICorner", btnChest).CornerRadius = UDim.new(0,6)
+
 -- Hover visuals
 local function btnHover(b,enter)
 	if enter then b.BackgroundColor3 = Color3.fromRGB(58,58,58)
@@ -107,6 +121,8 @@ btnTree.MouseEnter:Connect(function() btnHover(btnTree,true) end)
 btnTree.MouseLeave:Connect(function() btnHover(btnTree,false) end)
 btnAuto.MouseEnter:Connect(function() btnHover(btnAuto,true) end)
 btnAuto.MouseLeave:Connect(function() btnHover(btnAuto,false) end)
+btnChest.MouseEnter:Connect(function() btnHover(btnChest,true) end)
+btnChest.MouseLeave:Connect(function() btnHover(btnChest,false) end)
 
 -- ===== Dragging (قابلة للسحب) =====
 local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
@@ -269,6 +285,7 @@ local function stopUsingTool(tool)
 	end)
 end
 
+-- تعديل: نستخدم أحدث تول فقط (آخر عنصر في اللست) لو وصل أكثر من تول
 local function autoLoop()
 	while autoOn do
 		local list = getAllTools()
@@ -276,20 +293,12 @@ local function autoLoop()
 			-- إذا ما في تولز ننتظر شوي قبل المحاولة مرة ثانية
 			wait(1)
 		else
-			for _, tool in ipairs(list) do
-				if not autoOn then break end
-				-- إذا التول محذوف أو غير موجود تخطي
-				if not tool.Parent then continue end
-				-- جهز واستخدم التول
-				tryEquipAndUse(tool)
-				-- انتظر مدة الاستخدام
-				local tWait = AUTO_TOOL_DELAY
-				-- لو التول قد يكون Holdable (مثل ski pole) نزود شوي
-				wait(tWait)
-				-- حاول نوقف استخدامه (Deactive)
-				stopUsingTool(tool)
-				-- خيار: نغطس بين التولز بسرعة صغيرة
-				wait(0.15)
+			-- نختار أحدث تول (آخر عنصر في القائمة)
+			local newest = list[#list]
+			if newest and newest.Parent then
+				tryEquipAndUse(newest)
+				wait(AUTO_TOOL_DELAY)
+				stopUsingTool(newest)
 			end
 		end
 		-- فاصل صغير قبل الدورة التالية
@@ -318,6 +327,61 @@ btnAuto.MouseButton1Click:Connect(function()
 		stateAuto.Text = "OFF"
 		stateAuto.TextColor3 = Color3.fromRGB(255,80,80)
 		-- turning off will end the loop naturally
+	end
+end)
+
+-- زر Take All Chest: يبحث عن موديلات اسمها "Chest" او "Bundle" وينقلهم داخل جسم اللاعب عند نفس موقعي بالضبط
+btnChest.MouseButton1Click:Connect(function()
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+	if not hrp then return end
+
+	-- function to move a model so its centroid matches hrp.Position, ثم يعلّق الموديل داخل الشخصية
+	local function moveModelToCharacter(model)
+		if not model or not model:IsA("Model") then return end
+		local parts = {}
+		for _, d in ipairs(model:GetDescendants()) do
+			if d:IsA("BasePart") then table.insert(parts, d) end
+		end
+		if #parts == 0 then
+			-- لو ما فيه أجزاء، بس نغير البيرنت مكانه
+			pcall(function() model.Parent = char end)
+			return
+		end
+
+		-- نحسب مركز الموديل (centroid)
+		local sum = Vector3.new(0,0,0)
+		for _, p in ipairs(parts) do sum = sum + p.Position end
+		local centroid = sum / #parts
+		local delta = hrp.Position - centroid
+
+		-- نحرّك كل جزء بمقدار delta
+		for _, p in ipairs(parts) do
+			pcall(function()
+				p.CFrame = p.CFrame + delta
+			end)
+		end
+
+		-- أخيرا نخلي الموديل داخل شخصية اللاعب
+		pcall(function() model.Parent = char end)
+	end
+
+	-- نجمع كل الموديلات المطابقة (case-insensitive لأسماء Chest أو Bundle)
+	local found = {}
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("Model") then
+			local nm = obj.Name and string.lower(obj.Name) or ""
+			if nm == "chest" or nm == "bundle" then
+				table.insert(found, obj)
+			end
+		end
+	end
+
+	-- نحرك كلهم
+	for _, m in ipairs(found) do
+		pcall(function()
+			moveModelToCharacter(m)
+		end)
 	end
 end)
 
