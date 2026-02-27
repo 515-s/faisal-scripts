@@ -1,6 +1,166 @@
--- حذف VIPWalls
-for _, v in pairs(workspace:GetDescendants()) do
-	if v.Name == "VIPWalls" then
-		v:Destroy()
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local cam = workspace.CurrentCamera
+
+-- ===== إعدادات =====
+local TOGGLE_KEY = Enum.KeyCode.F
+local SPEED = 70
+local SPRINT = 3
+local ACCEL = 14
+local MOUSE_SENS = 0.25
+local MAX_DISTANCE = 60
+
+local enabled = false
+local pos
+local velocity = Vector3.zero
+local yaw = 0
+local pitch = 0
+
+local currentBillboard
+local currentAdornee
+
+local savedHumanoidValues = {}
+
+-- ===== تجميد الشخصية =====
+local function freezeCharacter(state)
+	local char = player.Character
+	if not char then return end
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+
+	if state then
+		savedHumanoidValues.WalkSpeed = humanoid.WalkSpeed
+		savedHumanoidValues.JumpPower = humanoid.JumpPower
+		savedHumanoidValues.AutoRotate = humanoid.AutoRotate
+
+		humanoid.WalkSpeed = 0
+		humanoid.JumpPower = 0
+		humanoid.AutoRotate = false
+	else
+		if savedHumanoidValues.WalkSpeed then humanoid.WalkSpeed = savedHumanoidValues.WalkSpeed end
+		if savedHumanoidValues.JumpPower then humanoid.JumpPower = savedHumanoidValues.JumpPower end
+		if savedHumanoidValues.AutoRotate ~= nil then humanoid.AutoRotate = savedHumanoidValues.AutoRotate end
+		savedHumanoidValues = {}
 	end
 end
+
+-- ===== Billboard =====
+local function clearBillboard()
+	if currentBillboard then
+		currentBillboard:Destroy()
+		currentBillboard = nil
+		currentAdornee = nil
+	end
+end
+
+local function createBillboard(part, color, text)
+	local gui = Instance.new("BillboardGui")
+	gui.Size = UDim2.new(0,260,0,60)
+	gui.StudsOffset = Vector3.new(0,3,0)
+	gui.AlwaysOnTop = true
+	gui.Adornee = part
+	gui.Parent = workspace
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1,0,1,0)
+	label.BackgroundTransparency = 1
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBlack
+	label.TextStrokeTransparency = 0
+	label.TextColor3 = color
+	label.Text = text
+	label.Parent = gui
+
+	return gui
+end
+
+-- ===== Toggle =====
+UIS.InputBegan:Connect(function(input,gp)
+	if gp then return end
+	if input.KeyCode == TOGGLE_KEY then
+		enabled = not enabled
+
+		if enabled then
+			cam.CameraType = Enum.CameraType.Scriptable
+			pos = cam.CFrame.Position
+			local x,y,z = cam.CFrame:ToOrientation()
+			pitch = x
+			yaw = y
+
+			UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+			freezeCharacter(true)
+		else
+			cam.CameraType = Enum.CameraType.Custom
+			UIS.MouseBehavior = Enum.MouseBehavior.Default
+			clearBillboard()
+			freezeCharacter(false)
+		end
+	end
+end)
+
+-- ===== Mouse Look =====
+UIS.InputChanged:Connect(function(input)
+	if enabled and input.UserInputType == Enum.UserInputType.MouseMovement then
+		yaw -= input.Delta.X * MOUSE_SENS * 0.01
+		pitch -= input.Delta.Y * MOUSE_SENS * 0.01
+		pitch = math.clamp(pitch, -math.rad(89), math.rad(89))
+	end
+end)
+
+-- ===== Movement Input =====
+local function getMove()
+	local move = Vector3.zero
+	if UIS:IsKeyDown(Enum.KeyCode.W) then move += Vector3.new(0,0,-1) end
+	if UIS:IsKeyDown(Enum.KeyCode.S) then move += Vector3.new(0,0,1) end
+	if UIS:IsKeyDown(Enum.KeyCode.A) then move += Vector3.new(-1,0,0) end
+	if UIS:IsKeyDown(Enum.KeyCode.D) then move += Vector3.new(1,0,0) end
+	if UIS:IsKeyDown(Enum.KeyCode.E) then move += Vector3.new(0,1,0) end
+	if UIS:IsKeyDown(Enum.KeyCode.Q) then move += Vector3.new(0,-1,0) end
+	return move.Magnitude > 0 and move.Unit or Vector3.zero
+end
+
+-- ===== Main Loop =====
+RunService.RenderStepped:Connect(function(dt)
+	if not enabled then return end
+
+	-- حركة الكاميرا
+	local speed = SPEED * (UIS:IsKeyDown(Enum.KeyCode.LeftShift) and SPRINT or 1)
+	local input = getMove()
+	local rotation = CFrame.Angles(pitch, yaw, 0)
+	local moveDir = rotation:VectorToWorldSpace(input)
+	local targetVel = moveDir * speed
+	velocity = velocity:Lerp(targetVel, 1 - math.exp(-ACCEL * dt))
+	pos = pos + velocity * dt
+	cam.CFrame = CFrame.new(pos) * rotation
+
+	-- Raycast للكشف عن Part/Model
+	local rayParams = RaycastParams.new()
+	rayParams.FilterDescendantsInstances = {player.Character}
+	rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+	local result = workspace:Raycast(cam.CFrame.Position, cam.CFrame.LookVector * MAX_DISTANCE, rayParams)
+
+	if result and result.Instance then
+		local hit = result.Instance
+		local model = hit:FindFirstAncestorOfClass("Model")
+
+		if model and model ~= workspace then
+			local part = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+			if part and currentAdornee ~= part then
+				clearBillboard()
+				currentAdornee = part
+				currentBillboard = createBillboard(part, Color3.fromRGB(255,0,0), model.Name)
+			end
+		else
+			if currentAdornee ~= hit then
+				clearBillboard()
+				currentAdornee = hit
+				currentBillboard = createBillboard(hit, Color3.fromRGB(255,255,255), hit.Name)
+			end
+		end
+	else
+		clearBillboard()
+	end
+end)
