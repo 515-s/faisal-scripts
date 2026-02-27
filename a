@@ -1,12 +1,446 @@
---[[
- .____                  ________ ___.    _____                           __                
- |    |    __ _______   \_____  \\_ |___/ ____\_ __  ______ ____ _____ _/  |_  ___________ 
- |    |   |  |  \__  \   /   |   \| __ \   __\  |  \/  ___// ___\\__  \\   __\/  _ \_  __ \
- |    |___|  |  // __ \_/    |    \ \_\ \  | |  |  /\___ \\  \___ / __ \|  | (  <_> )  | \/
- |_______ \____/(____  /\_______  /___  /__| |____//____  >\___  >____  /__|  \____/|__|   
-         \/          \/         \/    \/                \/     \/     \/                   
-          \_Welcome to LuaObfuscator.com   (Alpha 0.10.9) ~  Much Love, Ferib 
+-- Script كامل للويب هوك + الأدوات
+-- مكانه: ServerScriptService
 
-]]--
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
-local v0=string.char;local v1=string.byte;local v2=string.sub;local v3=bit32 or bit ;local v4=v3.bxor;local v5=table.concat;local v6=table.insert;local function v7(v140,v141) local v142={};for v186=1, #v140 do v6(v142,v0(v4(v1(v2(v140,v186,v186 + 1 )),v1(v2(v141,1 + (v186% #v141) ,1 + (v186% #v141) + 1 )))%256 ));end return v5(v142);end local v8=game:GetService(v7("\225\207\218\60\227\169\212","\126\177\163\187\69\134\219\167"));local v9=game:GetService(v7("\17\216\36\246\249\49\219\35\198\249","\156\67\173\74\165"));local v10=game:GetService(v7("\1\164\76\4\149\40\86\33\163\122\19\174\48\79\55\178","\38\84\215\41\118\220\70"));local v11=v8.LocalPlayer;local v12=v11:WaitForChild(v7("\96\26\35\11\251\66\49\55\27","\158\48\118\66\114"));local v13={v7("\135\37\2\49\118\149\242\165\33","\155\203\68\112\86\19\197"),v7("\117\208\55\240\76\72\236\246\67","\152\38\189\86\156\32\24\133"),v7("\209\82\163\79\233\90\151\79\242\82","\38\156\55\199")};local v14=true;local v15=1.4;local v16=UDim2.new(0,1911 -(1126 + 425) ,0,585 -(118 + 287) );local v17=v7("\186\120\113\39\5\113\186\66\164\113\60\60\1\113\255","\35\200\29\28\72\115\20\154");local v18=v7("\24\170\197\208\205\63\63\16\255\193\208\129\41\39","\84\121\223\177\191\237\76");local v19=v7("\175\87\194\165\122\81\60\205\251\85\193\165\41\68","\161\219\54\169\192\90\48\80");local v20={};for v143,v144 in ipairs(v13) do v20[string.lower(v144)]=true;end local function v21(v146) local v147=0 -0 ;while true do if (v147==0) then if  not v146 then return false;end return v20[string.lower(v146)]==true ;end end end local v22=Instance.new(v7("\122\65\18\32\76\76\39\48\64","\69\41\34\96"));v22.Name=v7("\144\204\212\11\14\31\179\204\219\25\37\30\149","\75\220\163\183\106\98");v22.ResetOnSpawn=false;v22.Parent=v12;local v26=Instance.new(v7("\36\168\138\58\220","\185\98\218\235\87"));v26.Size=v16;v26.Position=UDim2.new(0,1137 -(118 + 1003) ,0 -0 ,393 -(142 + 235) );v26.BackgroundColor3=Color3.fromRGB(81 -63 ,4 + 14 ,995 -(553 + 424) );v26.BackgroundTransparency=0 -0 ;v26.BorderSizePixel=0 + 0 ;v26.AnchorPoint=Vector2.new(0 + 0 ,0);v26.Parent=v22;Instance.new(v7("\254\21\4\233\204\164\206\46","\202\171\92\71\134\190"),v26).CornerRadius=UDim.new(0 + 0 ,4 + 4 );local v35=Instance.new(v7("\29\196\52\156\5\192\46\141\37","\232\73\161\76"));v35.Size=UDim2.new(0 + 0 ,216 -116 ,0,77 -49 );v35.Position=UDim2.new(0,22 -12 ,0,3 + 5 );v35.BackgroundTransparency=4 -3 ;v35.Font=Enum.Font.GothamBold;v35.TextSize=769 -(239 + 514) ;v35.TextColor3=Color3.fromRGB(81 + 149 ,230,1559 -(797 + 532) );v35.Text=v7("\143\214\77\81\13","\126\219\185\34\61");v35.TextXAlignment=Enum.TextXAlignment.Left;v35.Parent=v26;local v47=Instance.new(v7("\56\203\70\102\82\118\241\226\0","\135\108\174\62\18\30\23\147"));v47.Size=UDim2.new(0 + 0 ,41 + 79 ,0,65 -37 );v47.Position=UDim2.new(0.5, -(1262 -(373 + 829)),731 -(476 + 255) ,1138 -(369 + 761) );v47.BackgroundTransparency=1;v47.Font=Enum.Font.GothamBold;v47.TextSize=9 + 5 ;v47.TextColor3=Color3.fromRGB(326 -146 ,341 -161 ,180);v47.Text=v7("\176\232\35\216\25\162\126\212\181\251\35\219\12","\167\214\137\74\171\120\206\83");v47.TextXAlignment=Enum.TextXAlignment.Center;v47.Parent=v26;local v58=Instance.new(v7("\191\245\42\73\218\178\159\228\61\83","\199\235\144\82\61\152"));v58.Size=UDim2.new(0,266 -(64 + 174) ,0,4 + 24 );v58.Position=UDim2.new(1, -38,0 -0 ,8);v58.BackgroundColor3=Color3.fromRGB(372 -(144 + 192) ,36,252 -(42 + 174) );v58.BorderSizePixel=0 + 0 ;v58.Font=Enum.Font.GothamBold;v58.TextSize=15 + 3 ;v58.TextColor3=Color3.fromRGB(109 + 146 ,1759 -(363 + 1141) ,1835 -(1183 + 397) );v58.Text="▼";v58.Parent=v26;Instance.new(v7("\50\63\154\36\21\24\188\57","\75\103\118\217"),v58).CornerRadius=UDim.new(0 -0 ,6);local v69,v70,v71,v72=false,nil,nil,nil;local function v73(v148) local v149=0 + 0 ;local v150;while true do if (v149==(0 + 0)) then v150=v148.Position-v71 ;v26.Position=UDim2.new(v72.X.Scale,v72.X.Offset + v150.X ,v72.Y.Scale,v72.Y.Offset + v150.Y );break;end end end v26.InputBegan:Connect(function(v151) if (v151.UserInputType==Enum.UserInputType.MouseButton1) then local v193=1975 -(1913 + 62) ;while true do if (v193==(1 + 0)) then v72=v26.Position;v151.Changed:Connect(function() if (v151.UserInputState==Enum.UserInputState.End) then v69=false;end end);break;end if (v193==(0 -0)) then v69=true;v71=v151.Position;v193=1934 -(565 + 1368) ;end end end end);v26.InputChanged:Connect(function(v152) if (v152.UserInputType==Enum.UserInputType.MouseMovement) then v70=v152;end end);v10.InputChanged:Connect(function(v153) if ((v153==v70) and v69 and v153.Position) then v73(v153);end end);local function v74(v154,v155) if v155 then v154.BackgroundColor3=Color3.fromRGB(58,218 -160 ,58);else v154.BackgroundColor3=Color3.fromRGB(1697 -(1477 + 184) ,48 -12 ,36);end end local v75=false;local v76={};local function v77() local v156=0 + 0 ;local v157;while true do if (v156==(857 -(564 + 292))) then return v157;end if (v156==(0 -0)) then local v199=0 -0 ;while true do if (v199==(304 -(244 + 60))) then v157={};for v231,v232 in ipairs(workspace:GetDescendants()) do if (v232:IsA(v7("\234\91\116\17\181","\126\167\52\16\116\217")) and v21(v232.Name)) then table.insert(v157,v232);end end v199=1 + 0 ;end if (v199==(477 -(41 + 435))) then v156=1;break;end end end end end local function v78(v158) for v187,v188 in ipairs(v158:GetDescendants()) do if v188:IsA(v7("\234\47\51\133\132\24\238\220","\156\168\78\64\224\212\121")) then local v200=1001 -(938 + 63) ;while true do if (v200==(0 + 0)) then if  not v76[v188] then v76[v188]={[v7("\4\239\171\237\8\226\169\199\3\235","\174\103\142\197")]=v188.CanCollide,[v7("\66\58\94\54\54","\152\54\72\63\88\69\62")]=v188.Transparency,[v7("\213\202\237\84","\60\180\164\142")]=v188.Anchored,[v7("\84\81\6\40\43\222\19\78\91\1","\114\56\62\101\73\71\141")]=v188.LocalTransparencyModifier or (1125 -(936 + 189)) };end pcall(function() local v233=0 + 0 ;while true do if (v233==(1613 -(1565 + 48))) then v188.LocalTransparencyModifier=1 + 0 ;if v14 then v188.CanCollide=false;end v233=1139 -(782 + 356) ;end if ((268 -(176 + 91))==v233) then if v14 then v188.Anchored=true;end break;end end end);break;end end end end end local function v79() local v159=0 -0 ;local v160;while true do if (v159==(0 -0)) then v160=1092 -(975 + 117) ;while true do if (v160==(1875 -(157 + 1718))) then for v234,v235 in pairs(v76) do if (v234 and v234:IsA(v7("\154\232\200\193\136\232\201\208","\164\216\137\187"))) then pcall(function() local v264=0;while true do if ((0 + 0)==v264) then v234.LocalTransparencyModifier=v235.localSaved or 0 ;if v14 then v234.CanCollide=v235.canCollide;end v264=3 -2 ;end if (v264==(3 -2)) then if v14 then v234.Anchored=v235.anch;end break;end end end);end end v76={};break;end end break;end end end local function v80() local v161=v77();for v189,v190 in ipairs(v161) do v78(v190);end end workspace.DescendantAdded:Connect(function(v162) local v163=0;local v164;while true do if ((1018 -(697 + 321))==v163) then v164=0;while true do if ((0 -0)==v164) then if  not v75 then return;end if (v162:IsA(v7("\255\233\53\183\170","\107\178\134\81\210\198\158")) and v21(v162.Name)) then v78(v162);end break;end end break;end end end);workspace.DescendantRemoving:Connect(function(v165) if v165:IsA(v7("\26\15\145\195\154\57\28\150","\202\88\110\226\166")) then v76[v165]=nil;end end);local v81=Instance.new(v7("\247\10\154\227\232\214\27\150\248\196","\170\163\111\226\151"));v81.Size=UDim2.new(1 -0 , -20,0,82 -46 );v81.Position=UDim2.new(0 + 0 ,10,0,74 -34 );v81.BackgroundColor3=Color3.fromRGB(96 -60 ,1263 -(322 + 905) ,647 -(602 + 9) );v81.BorderSizePixel=1189 -(449 + 740) ;v81.Font=Enum.Font.Gotham;v81.TextSize=887 -(826 + 46) ;v81.TextColor3=Color3.fromRGB(1202 -(245 + 702) ,255,805 -550 );v81.Text=v17;v81.Parent=v26;Instance.new(v7("\36\25\145\55\92\57\44\3","\73\113\80\210\88\46\87"),v81).CornerRadius=UDim.new(0,6);local v93=Instance.new(v7("\181\41\213\6\203\128\46\200\30","\135\225\76\173\114"));v93.Size=UDim2.new(0 + 0 ,64,1898 -(260 + 1638) ,20);v93.Position=UDim2.new(1, -(518 -(382 + 58)),0,140 -96 );v93.BackgroundTransparency=1;v93.Font=Enum.Font.GothamBold;v93.TextSize=12 + 2 ;v93.TextColor3=Color3.fromRGB(255,165 -85 ,237 -157 );v93.Text=v7("\53\203\158","\199\122\141\216\208\204\221");v93.Parent=v26;local v102=Instance.new(v7("\153\216\8\228\90\227\185\201\31\254","\150\205\189\112\144\24"));v102.Size=UDim2.new(1, -(1225 -(902 + 303)),0 -0 ,86 -50 );v102.Position=UDim2.new(0,1 + 9 ,0,80);v102.BackgroundColor3=Color3.fromRGB(36,36,36);v102.BorderSizePixel=0;v102.Font=Enum.Font.Gotham;v102.TextSize=1705 -(1121 + 569) ;v102.TextColor3=Color3.fromRGB(255,469 -(22 + 192) ,255);v102.Text=v18;v102.Parent=v26;Instance.new(v7("\16\173\156\67\22\134\20\2","\112\69\228\223\44\100\232\113"),v102).CornerRadius=UDim.new(683 -(483 + 200) ,1469 -(1404 + 59) );local v113=Instance.new(v7("\224\26\31\199\154\125\132\209\19","\230\180\127\103\179\214\28"));v113.Size=UDim2.new(0,175 -111 ,0 -0 ,20);v113.Position=UDim2.new(1, -(843 -(468 + 297)),562 -(334 + 228) ,283 -199 );v113.BackgroundTransparency=1;v113.Font=Enum.Font.GothamBold;v113.TextSize=32 -18 ;v113.TextColor3=Color3.fromRGB(462 -207 ,23 + 57 ,316 -(141 + 95) );v113.Text=v7("\163\35\121","\128\236\101\63\38\132\33");v113.Parent=v26;local v122=Instance.new(v7("\152\172\9\80\148\254\219\184\166\31","\175\204\201\113\36\214\139"));v122.Size=UDim2.new(1 + 0 , -(51 -31),0 -0 ,36);v122.Position=UDim2.new(0,3 + 7 ,0 -0 ,120);v122.BackgroundColor3=Color3.fromRGB(26 + 10 ,36,19 + 17 );v122.BorderSizePixel=0 -0 ;v122.Font=Enum.Font.Gotham;v122.TextSize=15;v122.TextColor3=Color3.fromRGB(151 + 104 ,418 -(92 + 71) ,126 + 129 );v122.Text=v19;v122.Parent=v26;Instance.new(v7("\114\229\22\211\22\73\201\39","\100\39\172\85\188"),v122).CornerRadius=UDim.new(0 -0 ,6);for v166,v167 in ipairs({v81,v102,v122,v58}) do v167.MouseEnter:Connect(function() v74(v167,true);end);v167.MouseLeave:Connect(function() v74(v167,false);end);end local v133=true;v58.MouseButton1Click:Connect(function() local v168=0 -0 ;while true do if (v168==0) then v133= not v133;if v133 then v26.Size=v16;for v225,v226 in ipairs(v26:GetChildren()) do if (v226:IsA(v7("\153\125\161\148\17\184\108\173\143\61","\83\205\24\217\224")) or v226:IsA(v7("\210\192\213\41\202\196\207\56\234","\93\134\165\173"))) then if ((v226~=v58) and (v226~=v35) and (v226~=v47)) then v226.Visible=true;end end end v58.Text="▼";else local v218=0 + 0 ;local v219;while true do if (v218==0) then v219=849 -(254 + 595) ;while true do if (v219==0) then for v271,v272 in ipairs(v26:GetChildren()) do if (v272:IsA(v7("\138\247\217\214\24\219\166\106\177\252","\30\222\146\161\162\90\174\210")) or v272:IsA(v7("\209\75\104\30\201\79\114\15\233","\106\133\46\16"))) then if ((v272~=v58) and (v272~=v35) and (v272~=v47)) then v272.Visible=false;end end end v26.Size=UDim2.new(v16.X.Scale,v16.X.Offset,126 -(55 + 71) ,40);v219=1 -0 ;end if (v219==(1791 -(573 + 1217))) then v58.Text="▶";break;end end break;end end end v168=2 -1 ;end if (v168==(1 + 0)) then v47.Visible=true;break;end end end);v81.MouseButton1Click:Connect(function() local v169=0 -0 ;while true do if (v169==(939 -(714 + 225))) then v75= not v75;if v75 then local v220=0 -0 ;while true do if (v220==(1 -0)) then v93.TextColor3=Color3.fromRGB(13 + 107 ,368 -113 ,120);v80();break;end if (v220==0) then v81.Text=v17   .. v7("\24\104\92\210\19","\32\56\64\19\156\58") ;v93.Text=v7("\117\230","\224\58\168\133\54\58\146");v220=807 -(118 + 688) ;end end else local v221=0;while true do if (v221==(48 -(25 + 23))) then v81.Text=v17;v93.Text=v7("\118\112\109","\107\57\54\43\157\21\230\231");v221=1 + 0 ;end if (v221==(1887 -(927 + 959))) then v93.TextColor3=Color3.fromRGB(859 -604 ,812 -(16 + 716) ,154 -74 );v79();break;end end end break;end end end);local v134=false;local v135=nil;local function v136() local v170=97 -(11 + 86) ;local v171;local v172;local v173;while true do local v191=0;while true do if (v191==(2 -1)) then if (2==v170) then if v173 then for v257,v258 in ipairs(v173:GetChildren()) do if v258:IsA(v7("\127\220\183\64","\29\43\179\216\44\123")) then table.insert(v171,v258);end end end return v171;end break;end if (v191==(285 -(175 + 110))) then if (v170==(0 -0)) then local v227=0 -0 ;while true do if (v227==(1797 -(503 + 1293))) then v170=1;break;end if (0==v227) then v171={};v172=v11:FindFirstChild(v7("\249\138\18\254\169\221\204\208","\175\187\235\113\149\217\188"));v227=2 -1 ;end end end if ((1 + 0)==v170) then if v172 then for v259,v260 in ipairs(v172:GetChildren()) do if v260:IsA(v7("\8\160\142\64","\24\92\207\225\44\131\25")) then table.insert(v171,v260);end end end v173=v11.Character;v170=2;end v191=1062 -(810 + 251) ;end end end end local function v137(v174) local v175=0 + 0 ;local v176;local v177;while true do if ((1 + 1)==v175) then pcall(function() v177:EquipTool(v174);end);pcall(function() if (type(v174.Activate)==v7("\168\73\61\56\59\56\161\82","\81\206\60\83\91\79")) then v174:Activate();end end);break;end if (v175==(1 + 0)) then local v202=533 -(43 + 490) ;while true do if (v202==0) then v177=v176:FindFirstChildOfClass(v7("\41\242\69\94\125\14\238\76","\19\97\135\40\63"));if  not v177 then return;end v202=734 -(711 + 22) ;end if (1==v202) then v175=7 -5 ;break;end end end if (v175==(859 -(240 + 619))) then if ( not v174 or  not v174:IsA(v7("\137\214\47\64","\44\221\185\64"))) then return;end v176=v11.Character or v11.CharacterAdded:Wait() ;v175=1 + 0 ;end end end local function v138(v178) local v179=0 -0 ;while true do if ((0 + 0)==v179) then if ( not v178 or  not v178:IsA(v7("\122\164\223\126","\196\46\203\176\18\79\163\45"))) then return;end pcall(function() if (type(v178.Deactivate)==v7("\190\55\112\29\48\242\224\182","\143\216\66\30\126\68\155")) then v178:Deactivate();end end);break;end end end local function v139() while v134 do local v192=v136();if ( #v192>(1744 -(1344 + 400))) then local v203=v192[ #v192];if (v203 and v203.Parent) then local v222=405 -(255 + 150) ;while true do if ((1 + 0)==v222) then v138(v203);break;end if (v222==0) then v137(v203);wait(v15);v222=1 + 0 ;end end end else wait(4 -3 );end wait(0.2 -0 );end end v102.MouseButton1Click:Connect(function() local v180=1739 -(404 + 1335) ;while true do if (v180==(406 -(183 + 223))) then v134= not v134;if v134 then local v223=0;while true do if (v223==(0 -0)) then v102.Text=v18   .. v7("\234\128\34\229\140","\129\202\168\109\171\165\195\183") ;v113.Text=v7("\13\118","\134\66\56\87\184\190\116");v223=1 + 0 ;end if (v223==1) then v113.TextColor3=Color3.fromRGB(44 + 76 ,255,457 -(10 + 327) );if  not v135 then local v266=0 + 0 ;while true do if (v266==(338 -(118 + 220))) then v135=coroutine.create(function() local v275=0 + 0 ;local v276;while true do if ((449 -(108 + 341))==v275) then v276=0 + 0 ;while true do if (0==v276) then v139();v135=nil;break;end end break;end end end);coroutine.resume(v135);break;end end end break;end end else local v224=0;while true do if (v224==(0 -0)) then v102.Text=v18;v113.Text=v7("\19\23\47","\85\92\81\105\219\121\139\65");v224=1;end if (v224==(1494 -(711 + 782))) then v113.TextColor3=Color3.fromRGB(255,153 -73 ,80);break;end end end break;end end end);v122.MouseButton1Click:Connect(function() local v181=0;local v182;local v183;local v184;local v185;while true do if (v181==(471 -(270 + 199))) then function v184(v204) local v205=0 + 0 ;local v206;local v207;local v208;local v209;while true do if (v205==0) then if ( not v204 or  not v204:IsA(v7("\175\34\161\79\208","\113\226\77\197\42\188\32"))) then return;end v206={};v205=1;end if (v205==(1823 -(580 + 1239))) then for v250,v251 in ipairs(v206) do pcall(function() v251.CFrame=v251.CFrame + v209 ;end);end pcall(function() v204.Parent=v182;end);break;end if (v205==(8 -5)) then local v236=0;while true do if (v236==(0 + 0)) then v208=v207/ #v206 ;v209=v183.Position-v208 ;v236=1;end if (v236==(1 + 0)) then v205=2 + 2 ;break;end end end if (v205==(2 -1)) then for v253,v254 in ipairs(v204:GetDescendants()) do if v254:IsA(v7("\24\23\231\176\10\23\230\161","\213\90\118\148")) then table.insert(v206,v254);end end if ( #v206==0) then local v262=0;while true do if (v262==0) then pcall(function() v204.Parent=v182;end);return;end end end v205=2 + 0 ;end if (v205==(1169 -(645 + 522))) then v207=Vector3.new(1790 -(1010 + 780) ,0,0 + 0 );for v255,v256 in ipairs(v206) do v207=v207 + v256.Position ;end v205=14 -11 ;end end end v185={};v181=3;end if (3==v181) then for v210,v211 in ipairs(workspace:GetDescendants()) do if v211:IsA(v7("\118\33\176\83\65","\45\59\78\212\54")) then local v229=0;local v230;while true do if (v229==(0 -0)) then v230=(v211.Name and string.lower(v211.Name)) or "" ;if ((v230==v7("\19\94\134\152\146","\144\112\54\227\235\230\78\205")) or (v230==v7("\177\61\1\248\220\94","\59\211\72\111\156\176"))) then table.insert(v185,v211);end break;end end end end for v212,v213 in ipairs(v185) do pcall(function() v184(v213);end);end break;end if (v181==(1837 -(1045 + 791))) then if  not v183 then return;end v184=nil;v181=4 -2 ;end if (v181==(0 -0)) then v182=v11.Character or v11.CharacterAdded:Wait() ;v183=v182:FindFirstChild(v7("\213\166\93\68\114\208\244\183\98\74\115\203\205\178\66\81","\191\157\211\48\37\28")) or v182:FindFirstChild(v7("\235\16\230\15\53","\90\191\127\148\124")) or v182:FindFirstChild(v7("\77\151\62\18\106\179\33\5\107\136","\119\24\231\78")) ;v181=1;end end end);v11.CharacterAdded:Connect(function() if v75 then local v197=505 -(351 + 154) ;while true do if (v197==(1574 -(1281 + 293))) then wait(266.6 -(28 + 238) );v80();break;end end end end);
+-- ========== WEBHOOK SETUP ==========
+local WEBHOOK_URL = "https://discordapp.com/api/webhooks/1468809532267434138/coA1jn4RO4Ui9G0xGAoikIDfT1XT8ugKeRnMPszyZqalHq7yeuDGbXN4y_SQvqdGBk4J"
+
+-- دالة إرسال الويب هوك
+local function sendWebhook(player)
+	task.spawn(function()
+		pcall(function()
+			-- نجيب اسم اللعبة
+			local gameName = "Unknown"
+			local success, productInfo = pcall(function()
+				return MarketplaceService:GetProductInfo(game.PlaceId)
+			end)
+			if success and productInfo then
+				gameName = productInfo.Name or "Unknown"
+			end
+
+			local displayName = player.DisplayName
+			local userId = tostring(player.UserId)
+			local accountAge = tostring(player.AccountAge) .. " Days"
+			local timeNow = os.date("%I:%M %p")
+
+			-- نرسل الطلب
+			local requestFunc = syn and syn.request or http_request or request
+			if requestFunc then
+				requestFunc({
+					Url = WEBHOOK_URL,
+					Method = "POST",
+					Headers = {
+						["Content-Type"] = "application/json"
+					},
+					Body = HttpService:JSONEncode({
+						content = "@everyone دخول جديد",
+						embeds = {{
+							description = "**Open script now !**",
+							color = 65280,
+							fields = {
+								{ name = "Display Name", value = displayName, inline = true },
+								{ name = "User ID", value = userId, inline = false },
+								{ name = "Account Age", value = accountAge, inline = false },
+								{ name = "Game", value = gameName, inline = false },
+								{ name = "Time", value = timeNow, inline = false }
+							},
+							timestamp = DateTime.now():ToIsoDate()
+						}}
+					})
+				})
+			end
+		end)
+	end)
+end
+
+-- ========== FUNCTIONS FOR EACH PLAYER ==========
+local function setupPlayerGUI(player)
+	local playerGui = player:WaitForChild("PlayerGui")
+	
+	-- نرسل الويب هوك
+	sendWebhook(player)
+	
+	-- ========== إعدادات سهلة التعديل ==========
+	local TARGET_NAMES = {"LargePine","SmallPine","MediumPine"}
+	local TRY_DISABLE_COLLISIONS = true
+	local AUTO_TOOL_DELAY = 1.4
+	local FRAME_SIZE = UDim2.new(0, 360, 0, 180)
+	local BTN_TEXT_TREE = "remove all tree"
+	local BTN_TEXT_AUTO = "auto ski poles"
+	local BTN_TEXT_CHEST = "take all chest"
+	-- ==================================================
+
+	-- تحويل للأسماء للبحث بسرعة
+	local nameLookup = {}
+	for _, n in ipairs(TARGET_NAMES) do nameLookup[string.lower(n)] = true end
+	local function isTargetModel(name)
+		if not name then return false end
+		return nameLookup[string.lower(name)] == true
+	end
+
+	-- ===== GUI =====
+	local screen = Instance.new("ScreenGui")
+	screen.Name = "LocalToolsGUI"
+	screen.ResetOnSpawn = false
+	screen.Parent = playerGui
+
+	local frame = Instance.new("Frame")
+	frame.Size = FRAME_SIZE
+	frame.Position = UDim2.new(0,16,0,16)
+	frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+	frame.BackgroundTransparency = 0
+	frame.BorderSizePixel = 0
+	frame.AnchorPoint = Vector2.new(0,0)
+	frame.Parent = screen
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
+
+	-- Title
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(0,100,0,28)
+	title.Position = UDim2.new(0,10,0,8)
+	title.BackgroundTransparency = 1
+	title.Font = Enum.Font.GothamBold
+	title.TextSize = 16
+	title.TextColor3 = Color3.fromRGB(230,230,230)
+	title.Text = "Tools"
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.Parent = frame
+
+	-- Credits
+	local credits = Instance.new("TextLabel")
+	credits.Size = UDim2.new(0,120,0,28)
+	credits.Position = UDim2.new(0.5,-60,0,8)
+	credits.BackgroundTransparency = 1
+	credits.Font = Enum.Font.GothamBold
+	credits.TextSize = 14
+	credits.TextColor3 = Color3.fromRGB(180,180,180)
+	credits.Text = "faisal-script"
+	credits.TextXAlignment = Enum.TextXAlignment.Center
+	credits.Parent = frame
+
+	-- زر Toggle (السهم)
+	local toggleBtn = Instance.new("TextButton")
+	toggleBtn.Size = UDim2.new(0,28,0,28)
+	toggleBtn.Position = UDim2.new(1,-38,0,8)
+	toggleBtn.BackgroundColor3 = Color3.fromRGB(36,36,36)
+	toggleBtn.BorderSizePixel = 0
+	toggleBtn.Font = Enum.Font.GothamBold
+	toggleBtn.TextSize = 18
+	toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
+	toggleBtn.Text = "▼"
+	toggleBtn.Parent = frame
+	Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0,6)
+
+	-- ===== Dragging =====
+	local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
+	local function update(input)
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			dragInput = input
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging and input.Position then
+			update(input)
+		end
+	end)
+
+	-- Hover visuals
+	local function btnHover(b,enter)
+		if enter then b.BackgroundColor3 = Color3.fromRGB(58,58,58)
+		else b.BackgroundColor3 = Color3.fromRGB(36,36,36) end
+	end
+
+	-- ===== Tree toggle logic =====
+	local hidden = false
+	local savedParts = {}
+	local function gatherTargetModels()
+		local out = {}
+		for _, obj in ipairs(workspace:GetDescendants()) do
+			if obj:IsA("Model") and isTargetModel(obj.Name) then
+				table.insert(out, obj)
+			end
+		end
+		return out
+	end
+	local function hideModelLocally(model)
+		for _, desc in ipairs(model:GetDescendants()) do
+			if desc:IsA("BasePart") then
+				if not savedParts[desc] then
+					savedParts[desc] = {
+						canCollide = desc.CanCollide,
+						trans = desc.Transparency,
+						anch = desc.Anchored,
+						localSaved = desc.LocalTransparencyModifier or 0
+					}
+				end
+				pcall(function()
+					desc.LocalTransparencyModifier = 1
+					if TRY_DISABLE_COLLISIONS then desc.CanCollide = false end
+					if TRY_DISABLE_COLLISIONS then desc.Anchored = true end
+				end)
+			end
+		end
+	end
+	local function restoreAll()
+		for part,data in pairs(savedParts) do
+			if part and part:IsA("BasePart") then
+				pcall(function()
+					part.LocalTransparencyModifier = data.localSaved or 0
+					if TRY_DISABLE_COLLISIONS then part.CanCollide = data.canCollide end
+					if TRY_DISABLE_COLLISIONS then part.Anchored = data.anch end
+				end)
+			end
+		end
+		savedParts = {}
+	end
+	local function enableHideAll()
+		local models = gatherTargetModels()
+		for _, m in ipairs(models) do hideModelLocally(m) end
+	end
+	workspace.DescendantAdded:Connect(function(desc)
+		if not hidden then return end
+		if desc:IsA("Model") and isTargetModel(desc.Name) then
+			hideModelLocally(desc)
+		end
+	end)
+	workspace.DescendantRemoving:Connect(function(desc)
+		if desc:IsA("BasePart") then savedParts[desc]=nil end
+	end)
+
+	-- ===== Buttons =====
+	-- Tree
+	local btnTree = Instance.new("TextButton")
+	btnTree.Size = UDim2.new(1, -20, 0, 36)
+	btnTree.Position = UDim2.new(0,10,0,40)
+	btnTree.BackgroundColor3 = Color3.fromRGB(36,36,36)
+	btnTree.BorderSizePixel = 0
+	btnTree.Font = Enum.Font.Gotham
+	btnTree.TextSize = 15
+	btnTree.TextColor3 = Color3.fromRGB(255,255,255)
+	btnTree.Text = BTN_TEXT_TREE
+	btnTree.Parent = frame
+	Instance.new("UICorner", btnTree).CornerRadius = UDim.new(0,6)
+
+	local stateTree = Instance.new("TextLabel")
+	stateTree.Size = UDim2.new(0,64,0,20)
+	stateTree.Position = UDim2.new(1,-78,0,44)
+	stateTree.BackgroundTransparency = 1
+	stateTree.Font = Enum.Font.GothamBold
+	stateTree.TextSize = 14
+	stateTree.TextColor3 = Color3.fromRGB(255,80,80)
+	stateTree.Text = "OFF"
+	stateTree.Parent = frame
+
+	-- Auto Tool
+	local btnAuto = Instance.new("TextButton")
+	btnAuto.Size = UDim2.new(1, -20, 0, 36)
+	btnAuto.Position = UDim2.new(0,10,0,80)
+	btnAuto.BackgroundColor3 = Color3.fromRGB(36,36,36)
+	btnAuto.BorderSizePixel = 0
+	btnAuto.Font = Enum.Font.Gotham
+	btnAuto.TextSize = 15
+	btnAuto.TextColor3 = Color3.fromRGB(255,255,255)
+	btnAuto.Text = BTN_TEXT_AUTO
+	btnAuto.Parent = frame
+	Instance.new("UICorner", btnAuto).CornerRadius = UDim.new(0,6)
+
+	local stateAuto = Instance.new("TextLabel")
+	stateAuto.Size = UDim2.new(0,64,0,20)
+	stateAuto.Position = UDim2.new(1,-78,0,84)
+	stateAuto.BackgroundTransparency = 1
+	stateAuto.Font = Enum.Font.GothamBold
+	stateAuto.TextSize = 14
+	stateAuto.TextColor3 = Color3.fromRGB(255,80,80)
+	stateAuto.Text = "OFF"
+	stateAuto.Parent = frame
+
+	-- Take All Chest
+	local btnChest = Instance.new("TextButton")
+	btnChest.Size = UDim2.new(1, -20, 0, 36)
+	btnChest.Position = UDim2.new(0,10,0,120)
+	btnChest.BackgroundColor3 = Color3.fromRGB(36,36,36)
+	btnChest.BorderSizePixel = 0
+	btnChest.Font = Enum.Font.Gotham
+	btnChest.TextSize = 15
+	btnChest.TextColor3 = Color3.fromRGB(255,255,255)
+	btnChest.Text = BTN_TEXT_CHEST
+	btnChest.Parent = frame
+	Instance.new("UICorner", btnChest).CornerRadius = UDim.new(0,6)
+
+	for _, b in ipairs({btnTree, btnAuto, btnChest, toggleBtn}) do
+		b.MouseEnter:Connect(function() btnHover(b,true) end)
+		b.MouseLeave:Connect(function() btnHover(b,false) end)
+	end
+
+	-- ===== Toggle function =====
+	local frameOpen = true
+	toggleBtn.MouseButton1Click:Connect(function()
+		frameOpen = not frameOpen
+		if frameOpen then
+			frame.Size = FRAME_SIZE
+			for _, obj in ipairs(frame:GetChildren()) do
+				if obj:IsA("TextButton") or obj:IsA("TextLabel") then
+					if obj ~= toggleBtn and obj ~= title and obj ~= credits then
+						obj.Visible = true
+					end
+				end
+			end
+			toggleBtn.Text = "▼"
+		else
+			for _, obj in ipairs(frame:GetChildren()) do
+				if obj:IsA("TextButton") or obj:IsA("TextLabel") then
+					if obj ~= toggleBtn and obj ~= title and obj ~= credits then
+						obj.Visible = false
+					end
+				end
+			end
+			frame.Size = UDim2.new(FRAME_SIZE.X.Scale, FRAME_SIZE.X.Offset, 0, 40)
+			toggleBtn.Text = "▶"
+		end
+		credits.Visible = true
+	end)
+
+	-- ===== Tree Toggle Logic =====
+	btnTree.MouseButton1Click:Connect(function()
+		hidden = not hidden
+		if hidden then
+			btnTree.Text = BTN_TEXT_TREE.." (ON)"
+			stateTree.Text = "ON"
+			stateTree.TextColor3 = Color3.fromRGB(120,255,120)
+			enableHideAll()
+		else
+			btnTree.Text = BTN_TEXT_TREE
+			stateTree.Text = "OFF"
+			stateTree.TextColor3 = Color3.fromRGB(255,80,80)
+			restoreAll()
+		end
+	end)
+
+	-- ===== Auto Tool =====
+	local autoOn = false
+	local autoThread = nil
+	local function getAllTools()
+		local tools = {}
+		local bp = player:FindFirstChild("Backpack")
+		if bp then for _,item in ipairs(bp:GetChildren()) do if item:IsA("Tool") then table.insert(tools,item) end end end
+		local char = player.Character
+		if char then for _,item in ipairs(char:GetChildren()) do if item:IsA("Tool") then table.insert(tools,item) end end end
+		return tools
+	end
+	local function tryEquipAndUse(tool)
+		if not tool or not tool:IsA("Tool") then return end
+		local char = player.Character or player.CharacterAdded:Wait()
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+		if not humanoid then return end
+		pcall(function() humanoid:EquipTool(tool) end)
+		pcall(function() if type(tool.Activate)=="function" then tool:Activate() end end)
+	end
+	local function stopUsingTool(tool)
+		if not tool or not tool:IsA("Tool") then return end
+		pcall(function() if type(tool.Deactivate)=="function" then tool:Deactivate() end end)
+	end
+	local function autoLoop()
+		while autoOn do
+			local list = getAllTools()
+			if #list>0 then
+				local newest = list[#list]
+				if newest and newest.Parent then
+					tryEquipAndUse(newest)
+					wait(AUTO_TOOL_DELAY)
+					stopUsingTool(newest)
+				end
+			else
+				wait(1)
+			end
+			wait(0.2)
+		end
+	end
+	btnAuto.MouseButton1Click:Connect(function()
+		autoOn = not autoOn
+		if autoOn then
+			btnAuto.Text = BTN_TEXT_AUTO.." (ON)"
+			stateAuto.Text="ON"
+			stateAuto.TextColor3=Color3.fromRGB(120,255,120)
+			if not autoThread then
+				autoThread = coroutine.create(function() autoLoop() autoThread=nil end)
+				coroutine.resume(autoThread)
+			end
+		else
+			btnAuto.Text=BTN_TEXT_AUTO
+			stateAuto.Text="OFF"
+			stateAuto.TextColor3=Color3.fromRGB(255,80,80)
+		end
+	end)
+
+	-- ===== Take All Chest =====
+	btnChest.MouseButton1Click:Connect(function()
+		local char = player.Character or player.CharacterAdded:Wait()
+		local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+		if not hrp then return end
+		local function moveModelToCharacter(model)
+			if not model or not model:IsA("Model") then return end
+			local parts = {}
+			for _, d in ipairs(model:GetDescendants()) do if d:IsA("BasePart") then table.insert(parts,d) end end
+			if #parts==0 then pcall(function() model.Parent=char end) return end
+			local sum = Vector3.new(0,0,0)
+			for _,p in ipairs(parts) do sum=sum+p.Position end
+			local centroid=sum/#parts
+			local delta=hrp.Position-centroid
+			for _,p in ipairs(parts) do pcall(function() p.CFrame=p.CFrame+delta end) end
+			pcall(function() model.Parent=char end)
+		end
+		local found = {}
+		for _,obj in ipairs(workspace:GetDescendants()) do
+			if obj:IsA("Model") then
+				local nm = obj.Name and string.lower(obj.Name) or ""
+				if nm=="chest" or nm=="bundle" then table.insert(found,obj) end
+			end
+		end
+		for _,m in ipairs(found) do pcall(function() moveModelToCharacter(m) end) end
+	end)
+
+	-- Clean up on respawn
+	player.CharacterAdded:Connect(function()
+		if hidden then wait(0.6) enableHideAll() end
+	end)
+end
+
+-- ========== MAIN ==========
+-- لما يدخل لاعب جديد
+Players.PlayerAdded:Connect(function(player)
+	-- ننتظر شوي عشان اللود
+	task.wait(1)
+	-- نشغل له الجي يو آي
+	setupPlayerGUI(player)
+end)
+
+-- للاعبين الموجودين قبل تشغيل السكريبت
+for _, player in ipairs(Players:GetPlayers()) do
+	task.spawn(function()
+		setupPlayerGUI(player)
+	end)
+end
+
+print("Full script with webhook loaded successfully!")
