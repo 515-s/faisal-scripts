@@ -12,7 +12,7 @@ local targets = {
 	["Insane"] = true,
 	["Snake"] = true,
 	["HoleInFloor"] = true,
-	["Wonky"] = true  -- تم الإضافة
+	["Wonky"] = true
 }
 
 -- GUI
@@ -20,34 +20,85 @@ local gui = Instance.new("ScreenGui")
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 180, 0, 50)
-button.Position = UDim2.new(1, -200, 0, 20) -- فوق يمين
-button.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-button.TextColor3 = Color3.new(1,1,1)
-button.TextScaled = true
-button.Text = "حذف الامواج"
-button.Parent = gui
-button.Active = true
-button.Draggable = true
+-- قائمة رئيسية
+local panel = Instance.new("Frame")
+panel.Name = "MainPanel"
+panel.Size = UDim2.new(0, 280, 0, 150)
+panel.Position = UDim2.new(0.5, -140, 0.5, -75)
+panel.BackgroundColor3 = Color3.fromRGB(20,20,20)
+panel.BorderSizePixel = 0
+panel.Active = true
+panel.Draggable = true
+panel.Parent = gui
+panel.ClipsDescendants = true
 
--- عند الضغط على الزر
-button.MouseButton1Click:Connect(function()
-	-- حذف البارتات الموجودة الآن
+local uicorner = Instance.new("UICorner", panel)
+uicorner.CornerRadius = UDim.new(0,12)
+
+local stroke = Instance.new("UIStroke", panel)
+stroke.Thickness = 1
+stroke.Transparency = 0.7
+
+-- عنوان
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -12, 0, 28)
+title.Position = UDim2.new(0,6,0,6)
+title.BackgroundTransparency = 1
+title.Text = "Faisal-Script"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.TextXAlignment = Enum.TextXAlignment.Center
+title.Parent = panel
+
+-- زر الحذف
+local deleteBtn = Instance.new("TextButton")
+deleteBtn.Size = UDim2.new(0.8, 0, 0, 50)
+deleteBtn.Position = UDim2.new(0.1, 0, 0.4, 0)
+deleteBtn.BackgroundColor3 = Color3.fromRGB(180,0,0)
+deleteBtn.TextColor3 = Color3.new(1,1,1)
+deleteBtn.TextScaled = true
+deleteBtn.Text = "Delete Lava 😈"
+deleteBtn.Font = Enum.Font.GothamSemibold
+deleteBtn.Parent = panel
+
+local deleteCorner = Instance.new("UICorner", deleteBtn)
+deleteCorner.CornerRadius = UDim.new(0,10)
+
+-- زر اغلاق/فتح
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 28, 0, 28)
+toggleBtn.Position = UDim2.new(1, -34, 0, 6)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
+toggleBtn.TextColor3 = Color3.new(1,1,1)
+toggleBtn.Text = "X"
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 18
+toggleBtn.Parent = panel
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0,6)
+
+local panelOpen = true
+toggleBtn.MouseButton1Click:Connect(function()
+	panelOpen = not panelOpen
+	panel.Visible = panelOpen
+end)
+
+-- دالة الحذف والمراقبة
+local function startDeletion()
+	-- حذف الموجود
 	for _, obj in ipairs(workspace:GetDescendants()) do
 		if targets[obj.Name] then
 			obj:Destroy()
 		end
 	end
-
-	-- بدء مراقبة أي بارت جديد
+	-- مراقبة جديد
 	workspace.DescendantAdded:Connect(function(obj)
 		if targets[obj.Name] then
 			obj:Destroy()
 		end
 	end)
+	deleteBtn.Text = "تم الحذف ✔ والمراقبة شغالة"
+	deleteBtn.BackgroundColor3 = Color3.fromRGB(0,140,0)
+end
 
-	-- تعديل الزر بعد الضغط
-	button.Text = "تم الحذف ✔ والمراقبة شغالة"
-	button.BackgroundColor3 = Color3.fromRGB(0,120,0)
-end)
+deleteBtn.MouseButton1Click:Connect(startDeletion)
