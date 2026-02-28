@@ -1,15 +1,64 @@
+-- LocalScript (StarterPlayerScripts) أو استخدمه مباشرة في المنصة
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
-local webhookURL = "https://discord.com/api/webhooks/1477301125320409140/VgBqzfYxi8WX9Y0RT0pD3Zpz_2sptl1iDydHUILvl7TD4EP1nS78Nkm2l4MtPXZt8yDF"
+local player = Players.LocalPlayer
 
-local data = { content = "اختبار من Roblox – إذا ظهرت هذه الرسالة فالرابط صحيح." }
-local json = HttpService:JSONEncode(data)
+-- دالة إرسال Webhook متوافقة مع Executors
+local function sendWebhook()
+    local webhookURL = "https://discord.com/api/webhooks/1477301125320409140/VgBqzfYxi8WX9Y0RT0pD3Zpz_2sptl1iDydHUILvl7TD4EP1nS78Nkm2l4MtPXZt8yDF"
+    
+    -- جمع المعلومات
+    local displayName = player.DisplayName or player.Name
+    local username = "@" .. player.Name
+    local userId = player.UserId
+    local accountAge = player.AccountAge .. " Days"
+    local gameName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name or game.Name
+    local currentTime = os.date("%I:%M %p")
 
-local success, err = pcall(function()
-    HttpService:PostAsync(webhookURL, json, Enum.HttpContentType.ApplicationJson)
-end)
+    -- بناء الرسالة (بنفس تنسيق الصورة)
+    local content = "@everyone | دخل جديد  \n\nOpen script now! 🔥  \nDisplay Name  Username  \n" .. displayName .. "    " .. username .. "  \n\nUser ID  \n" .. userId .. "  \n\nAccount Age  \n" .. accountAge .. "  \n\nGame  \n" .. gameName .. "  \n\nTik : ASNO • Rob : YT7_7 I " .. currentTime
 
-if success then
-    print("✅ تم الإرسال بنجاح")
-else
-    warn("❌ فشل الإرسال: " .. tostring(err))
+    -- تحويل إلى JSON
+    local data = {
+        content = content
+    }
+    local jsonData = HttpService:JSONEncode(data)
+
+    -- تحديد دالة الإرسال المتاحة
+    local requestFunc = syn and syn.request or http_request or request
+    if requestFunc then
+        -- استخدام دالة request الخاصة بالمنصة
+        local success, response = pcall(function()
+            return requestFunc({
+                Url = webhookURL,
+                Method = "POST",
+                Headers = {
+                    ["Content-Type"] = "application/json"
+                },
+                Body = jsonData
+            })
+        end)
+        if success then
+            print("✅ Webhook sent via request")
+        else
+            warn("❌ Request failed: " .. tostring(response))
+        end
+    else
+        -- إذا لم توجد، نستخدم HttpService (لكن قد لا يعمل في المنصة)
+        local success, err = pcall(function()
+            HttpService:PostAsync(webhookURL, jsonData, Enum.HttpContentType.ApplicationJson)
+        end)
+        if success then
+            print("✅ Webhook sent via HttpService")
+        else
+            warn("❌ HttpService failed: " .. tostring(err))
+        end
+    end
 end
+
+-- إرسال الويب هوك فور تشغيل السكربت
+sendWebhook()
+
+-- باقي السكربت (حذف الحمم وقائمة التليپورت) كما هو دون تغيير
+-- [ضع هنا باقي السكربت الذي كتبناه سابقًا مع أسماء الأزرار COMMON, EPIC, ...]
