@@ -1,7 +1,9 @@
+-- LocalScript (ضع داخل StarterPlayer > StarterPlayerScripts)
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
--- قائمة الأسماء اللي نبي نحذفها
+-- أسماء الأجزاء اللي نبي نحذفها
 local targets = {
 	["Fast"] = true,
 	["Slow"] = true,
@@ -15,34 +17,34 @@ local targets = {
 	["Wonky"] = true
 }
 
--- GUI
 local gui = Instance.new("ScreenGui")
+gui.Name = "FaisalScriptGUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- قائمة رئيسية
+-- ====== Panel الرئيسي ======
 local panel = Instance.new("Frame")
 panel.Name = "MainPanel"
-panel.Size = UDim2.new(0, 280, 0, 150)
-panel.Position = UDim2.new(0.5, -140, 0.5, -75)
-panel.BackgroundColor3 = Color3.fromRGB(20,20,20)
+panel.Size = UDim2.new(0, 320, 0, 160)
+panel.Position = UDim2.new(0.5, -160, 0.5, -80)
+panel.AnchorPoint = Vector2.new(0.5, 0.5)
+panel.BackgroundColor3 = Color3.fromRGB(18,18,18)
 panel.BorderSizePixel = 0
 panel.Active = true
 panel.Draggable = true
 panel.Parent = gui
-panel.ClipsDescendants = true
 
-local uicorner = Instance.new("UICorner", panel)
-uicorner.CornerRadius = UDim.new(0,12)
+local panelCorner = Instance.new("UICorner", panel)
+panelCorner.CornerRadius = UDim.new(0,12)
+local panelStroke = Instance.new("UIStroke", panel)
+panelStroke.Thickness = 1
+panelStroke.Transparency = 0.7
 
-local stroke = Instance.new("UIStroke", panel)
-stroke.Thickness = 1
-stroke.Transparency = 0.7
-
--- عنوان
+-- عنوان فوق الوسط
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -12, 0, 28)
-title.Position = UDim2.new(0,6,0,6)
+title.Name = "Title"
+title.Size = UDim2.new(1, -12, 0, 30)
+title.Position = UDim2.new(0, 6, 0, 8)
 title.BackgroundTransparency = 1
 title.Text = "Faisal-Script"
 title.Font = Enum.Font.GothamBold
@@ -51,54 +53,233 @@ title.TextColor3 = Color3.fromRGB(255,255,255)
 title.TextXAlignment = Enum.TextXAlignment.Center
 title.Parent = panel
 
--- زر الحذف
-local deleteBtn = Instance.new("TextButton")
-deleteBtn.Size = UDim2.new(0.8, 0, 0, 50)
-deleteBtn.Position = UDim2.new(0.1, 0, 0.4, 0)
-deleteBtn.BackgroundColor3 = Color3.fromRGB(180,0,0)
-deleteBtn.TextColor3 = Color3.new(1,1,1)
-deleteBtn.TextScaled = true
-deleteBtn.Text = "Delete Lava 😈"
-deleteBtn.Font = Enum.Font.GothamSemibold
-deleteBtn.Parent = panel
-
-local deleteCorner = Instance.new("UICorner", deleteBtn)
-deleteCorner.CornerRadius = UDim.new(0,10)
-
--- زر اغلاق/فتح
+-- زر الفتح/الإغلاق (فقط يخفي/يظهر المحتوى، لا يغلق الـ GUI كله)
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 28, 0, 28)
-toggleBtn.Position = UDim2.new(1, -34, 0, 6)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
-toggleBtn.TextColor3 = Color3.new(1,1,1)
+toggleBtn.Name = "ToggleBtn"
+toggleBtn.Size = UDim2.new(0, 30, 0, 26)
+toggleBtn.Position = UDim2.new(1, -38, 0, 8)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(110,110,110)
+toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
 toggleBtn.Text = "X"
 toggleBtn.Font = Enum.Font.GothamBold
 toggleBtn.TextSize = 18
 toggleBtn.Parent = panel
 Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0,6)
 
-local panelOpen = true
-toggleBtn.MouseButton1Click:Connect(function()
-	panelOpen = not panelOpen
-	panel.Visible = panelOpen
-end)
+-- Content frame (اللي يتحكم فيه زر X)
+local content = Instance.new("Frame")
+content.Name = "Content"
+content.Size = UDim2.new(1, -12, 1, -52)
+content.Position = UDim2.new(0,6,0,42)
+content.BackgroundTransparency = 1
+content.Parent = panel
 
--- دالة الحذف والمراقبة
-local function startDeletion()
-	-- حذف الموجود
+-- زر Delete Lava 😈
+local deleteBtn = Instance.new("TextButton")
+deleteBtn.Name = "DeleteLava"
+deleteBtn.Size = UDim2.new(0.86, 0, 0, 48)
+deleteBtn.Position = UDim2.new(0.07, 0, 0, 0)
+deleteBtn.BackgroundColor3 = Color3.fromRGB(180,0,0)
+deleteBtn.TextColor3 = Color3.fromRGB(255,255,255)
+deleteBtn.Text = "Delete Lava 😈"
+deleteBtn.Font = Enum.Font.GothamSemibold
+deleteBtn.TextSize = 20
+deleteBtn.AutoButtonColor = true
+deleteBtn.Parent = content
+Instance.new("UICorner", deleteBtn).CornerRadius = UDim.new(0,10)
+local deleteStroke = Instance.new("UIStroke", deleteBtn)
+deleteStroke.Transparency = 0.6
+
+-- زر teleport تحت Delete
+local teleportBtn = Instance.new("TextButton")
+teleportBtn.Name = "TeleportBtn"
+teleportBtn.Size = UDim2.new(0.86, 0, 0, 36)
+teleportBtn.Position = UDim2.new(0.07, 0, 0, 56)
+teleportBtn.BackgroundColor3 = Color3.fromRGB(55,55,55)
+teleportBtn.TextColor3 = Color3.fromRGB(255,255,255)
+teleportBtn.Text = "teleport"
+teleportBtn.Font = Enum.Font.Gotham
+teleportBtn.TextSize = 18
+teleportBtn.Parent = content
+Instance.new("UICorner", teleportBtn).CornerRadius = UDim.new(0,8)
+
+-- متغيّر لمنع تشغيل المراقبة أكثر من مرة
+local monitoringStarted = false
+local monitoringConn
+
+-- دالة لحذف الأجزاء الحالية
+local function deleteAllTargets()
 	for _, obj in ipairs(workspace:GetDescendants()) do
+		-- فقط يحذف أجزاء وقابل للتدمير
 		if targets[obj.Name] then
-			obj:Destroy()
+			pcall(function() obj:Destroy() end)
 		end
 	end
-	-- مراقبة جديد
-	workspace.DescendantAdded:Connect(function(obj)
-		if targets[obj.Name] then
-			obj:Destroy()
-		end
-	end)
-	deleteBtn.Text = "تم الحذف ✔ والمراقبة شغالة"
-	deleteBtn.BackgroundColor3 = Color3.fromRGB(0,140,0)
 end
 
-deleteBtn.MouseButton1Click:Connect(startDeletion)
+-- بدء المراقبة (تُستدعى عند الضغط على Delete)
+local function startMonitoring()
+	if monitoringStarted then return end
+	monitoringStarted = true
+	monitoringConn = workspace.DescendantAdded:Connect(function(obj)
+		if targets[obj.Name] then
+			pcall(function() obj:Destroy() end)
+		end
+	end)
+end
+
+-- عند الضغط على Delete Lava 😈
+deleteBtn.MouseButton1Click:Connect(function()
+	-- حذف الحالي ثم بدء المراقبة
+	deleteAllTargets()
+	startMonitoring()
+	-- لا تغير النص، فقط خليه أخضر
+	deleteBtn.BackgroundColor3 = Color3.fromRGB(0,140,0)
+end)
+
+-- زر الـ X يفتح/يخفي محتوى فقط (العنوان والملف الشخصي يظلوا)
+local contentVisible = true
+toggleBtn.MouseButton1Click:Connect(function()
+	contentVisible = not contentVisible
+	-- أنيميشن بسيط للشفافية
+	for _, v in ipairs(content:GetChildren()) do
+		if v:IsA("GuiObject") then
+			local goal = { BackgroundTransparency = v.BackgroundTransparency }
+			-- نضبط الرؤية بشكل فوري بدل تعديل النص (نخفي الـ Frame نفسه)
+		end
+	end
+	content.Visible = contentVisible
+end)
+
+-- ==== جزء الـ Teleport menu المنبثق (يتنشأ عند الضغط على teleportBtn) ====
+local teleportMenu -- سيحمل الـ Frame لو موجود
+local function findPartByName(name)
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("BasePart") and obj.Name == name then
+			return obj
+		end
+	end
+	return nil
+end
+
+local function createTeleportMenu()
+	-- لو القائمة موجودة خلاص (لا ننشئ نسختين)، نعيد اظهارها
+	if teleportMenu and teleportMenu.Parent then
+		teleportMenu.Visible = true
+		return
+	end
+
+	teleportMenu = Instance.new("Frame")
+	teleportMenu.Name = "TeleportMenu"
+	teleportMenu.Size = UDim2.new(0, 300, 0, 360)
+	teleportMenu.Position = UDim2.new(0.5, -150, 0.5, -180)
+	teleportMenu.AnchorPoint = Vector2.new(0.5, 0.5)
+	teleportMenu.BackgroundColor3 = Color3.fromRGB(20,20,20)
+	teleportMenu.BorderSizePixel = 0
+	teleportMenu.Parent = gui
+	teleportMenu.ZIndex = 50
+
+	local tCorner = Instance.new("UICorner", teleportMenu)
+	tCorner.CornerRadius = UDim.new(0,12)
+	local tStroke = Instance.new("UIStroke", teleportMenu)
+	tStroke.Thickness = 1
+	tStroke.Transparency = 0.7
+
+	-- عنوان القائمة
+	local tTitle = Instance.new("TextLabel")
+	tTitle.Size = UDim2.new(1, -12, 0, 32)
+	tTitle.Position = UDim2.new(0,6,0,8)
+	tTitle.BackgroundTransparency = 1
+	tTitle.Text = "Teleport Zones"
+	tTitle.Font = Enum.Font.GothamBold
+	tTitle.TextSize = 18
+	tTitle.TextColor3 = Color3.fromRGB(255,255,255)
+	tTitle.TextXAlignment = Enum.TextXAlignment.Center
+	tTitle.Parent = teleportMenu
+
+	-- زر اغلاق كامل داخل القائمة (يخفي/يُدمر القائمة)
+	local closeFull = Instance.new("TextButton")
+	closeFull.Size = UDim2.new(0, 28, 0, 26)
+	closeFull.Position = UDim2.new(1, -36, 0, 8)
+	closeFull.BackgroundColor3 = Color3.fromRGB(110,110,110)
+	closeFull.Text = "X"
+	closeFull.Font = Enum.Font.GothamBold
+	closeFull.TextSize = 18
+	closeFull.TextColor3 = Color3.fromRGB(255,255,255)
+	closeFull.Parent = teleportMenu
+	Instance.new("UICorner", closeFull).CornerRadius = UDim.new(0,6)
+
+	-- حاوية لأزرار الـ Zones
+	local buttonsHolder = Instance.new("Frame")
+	buttonsHolder.Size = UDim2.new(1, -16, 1, -60)
+	buttonsHolder.Position = UDim2.new(0,8,0,44)
+	buttonsHolder.BackgroundTransparency = 1
+	buttonsHolder.Parent = teleportMenu
+
+	-- ننشئ 9 أزرار Zone1..Zone9 بتصميم شبكي 3x3
+	local rows = 3
+	local cols = 3
+	local pad = 8
+	local btnW = (buttonsHolder.AbsoluteSize.X - (pad*(cols+1))) / cols
+	-- لكن لأن AbsoluteSize قد يكون صفر عند الإنشاء، نستخدم مقاسات نسبية
+	local spacingX = 0.32
+	local spacingY = 0.28
+
+	for i = 1, 9 do
+		local r = math.floor((i-1)/cols)
+		local c = (i-1) % cols
+		local zoneName = "Zone"..tostring(i)
+
+		local zBtn = Instance.new("TextButton")
+		zBtn.Name = "Btn"..zoneName
+		zBtn.Size = UDim2.new(0.3, 0, 0, 80)
+		zBtn.Position = UDim2.new(0.05 + (c * 0.32), 0, 0 + (r * 0.32), 0)
+		zBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+		zBtn.TextColor3 = Color3.fromRGB(255,255,255)
+		zBtn.Text = zoneName
+		zBtn.Font = Enum.Font.Gotham
+		zBtn.TextSize = 18
+		zBtn.Parent = buttonsHolder
+		Instance.new("UICorner", zBtn).CornerRadius = UDim.new(0,8)
+		local zStroke = Instance.new("UIStroke", zBtn)
+		zStroke.Transparency = 0.7
+
+		-- عند الضغط على زر الـ Zone
+		zBtn.MouseButton1Click:Connect(function()
+			local part = findPartByName(zoneName)
+			if part then
+				-- محاولة نقل اللاعب لأعلى الجزء بقليل لتجنب التصادم
+				local char = player.Character or player.CharacterAdded:Wait()
+				local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+				if hrp then
+					-- نستخدم Tween لتحريك ناعم (اختياري)
+					local goal = {CFrame = part.CFrame + Vector3.new(0, 5, 0)}
+					pcall(function()
+						TweenService:Create(hrp, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), goal):Play()
+					end)
+				end
+			else
+				-- لو ما لقينا الجزء ما نعمل شيء (ما نعرض رسائل حسب طلبك)
+			end
+		end)
+	end
+
+	-- زر إغلاق كامل (يدمر القائمة)
+	closeFull.MouseButton1Click:Connect(function()
+		if teleportMenu then
+			teleportMenu:Destroy()
+			teleportMenu = nil
+		end
+	end)
+
+	-- دخول ناعم (Tween) عند الظهور
+	teleportMenu.BackgroundTransparency = 1
+	TweenService:Create(teleportMenu, TweenInfo.new(0.18), {BackgroundTransparency = 0}):Play()
+end
+
+-- عند ضغط زر teleport: ننشئ أو نُعيد اظهار القائمة
+teleportBtn.MouseButton1Click:Connect(function()
+	createTeleportMenu()
+end)
+
+-- --- لا تغير شيء آخر ---
