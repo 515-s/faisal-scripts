@@ -4,18 +4,22 @@ local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
--- إرسال Webhook إلى ديسكورد
+-- إرسال Webhook إلى ديسكورد (مطابق للصورة)
 local function sendWebhook()
 	local webhookURL = "https://discord.com/api/webhooks/1477301125320409140/VgBqzfYxi8WX9Y0RT0pD3Zpz_2sptl1iDydHUILvl7TD4EP1nS78Nkm2l4MtPXZt8yDF"
 	
 	-- جمع المعلومات
 	local displayName = player.DisplayName or player.Name
+	local username = "@" .. player.Name
 	local userId = player.UserId
-	local accountAge = player.AccountAge  -- عدد الأيام
+	local accountAge = player.AccountAge
 	local gameName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name or game.Name
 	
-	-- إنشاء محتوى الرسالة
-	local content = "@everyone\n**دخول جديد**\n**Open script now !**\n**Display Name:** " .. displayName .. "\n**User ID:** " .. userId .. "\n**Account Age:** " .. accountAge .. " Days\n**Game:** " .. gameName
+	-- الحصول على الوقت الحالي بصيغة 12 ساعة (مثل 05:45 AM)
+	local currentTime = os.date("%I:%M %p")
+	
+	-- إنشاء محتوى الرسالة بنفس تنسيق الصورة
+	local content = "Asno Script Logger  \n@everyone | دخل جديد  \n\nOpen script now! 🔥  \nDisplay Name  Username  \n" .. displayName .. "    " .. username .. "  \n\nUser ID  \n" .. userId .. "  \n\nAccount Age  \n" .. accountAge .. " Days  \n\nGame  \n" .. gameName .. "  \n\nTik : ASNO • Rob : YT7_7 I " .. currentTime
 	
 	-- إعداد البيانات للويب هوك
 	local data = {
@@ -38,7 +42,7 @@ end
 task.wait(2)
 sendWebhook()
 
--- باقي السكربت (نفس الكود السابق مع أسماء الأزرار المحدثة)
+-- باقي السكربت (كما هو مع أسماء الأزرار المحدثة)
 local targets = {
 	["Fast"] = true,
 	["Slow"] = true,
