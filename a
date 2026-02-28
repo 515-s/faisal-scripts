@@ -1,446 +1,49 @@
--- Script كامل للويب هوك + الأدوات
--- مكانه: ServerScriptService
-
 local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
-local MarketplaceService = game:GetService("MarketplaceService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
 
--- ========== WEBHOOK SETUP ==========
-local WEBHOOK_URL = "https://discordapp.com/api/webhooks/1468809532267434138/coA1jn4RO4Ui9G0xGAoikIDfT1XT8ugKeRnMPszyZqalHq7yeuDGbXN4y_SQvqdGBk4J"
+-- قائمة الأسماء اللي نبي نحذفها
+local targets = {
+	["Fast"] = true,
+	["Slow"] = true,
+	["Medium"] = true,
+	["Very Slow"] = true,
+	["Demon"] = true,
+	["EXtreme"] = true
+}
 
--- دالة إرسال الويب هوك
-local function sendWebhook(player)
-	task.spawn(function()
-		pcall(function()
-			-- نجيب اسم اللعبة
-			local gameName = "Unknown"
-			local success, productInfo = pcall(function()
-				return MarketplaceService:GetProductInfo(game.PlaceId)
-			end)
-			if success and productInfo then
-				gameName = productInfo.Name or "Unknown"
-			end
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
-			local displayName = player.DisplayName
-			local userId = tostring(player.UserId)
-			local accountAge = tostring(player.AccountAge) .. " Days"
-			local timeNow = os.date("%I:%M %p")
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 180, 0, 50)
+button.Position = UDim2.new(1, -200, 0, 20) -- فوق يمين
+button.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+button.TextColor3 = Color3.new(1,1,1)
+button.TextScaled = true
+button.Text = "حذف الامواج"
+button.Parent = gui
+button.Active = true
+button.Draggable = true
 
-			-- نرسل الطلب
-			local requestFunc = syn and syn.request or http_request or request
-			if requestFunc then
-				requestFunc({
-					Url = WEBHOOK_URL,
-					Method = "POST",
-					Headers = {
-						["Content-Type"] = "application/json"
-					},
-					Body = HttpService:JSONEncode({
-						content = "@everyone دخول جديد",
-						embeds = {{
-							description = "**Open script now !**",
-							color = 65280,
-							fields = {
-								{ name = "Display Name", value = displayName, inline = true },
-								{ name = "User ID", value = userId, inline = false },
-								{ name = "Account Age", value = accountAge, inline = false },
-								{ name = "Game", value = gameName, inline = false },
-								{ name = "Time", value = timeNow, inline = false }
-							},
-							timestamp = DateTime.now():ToIsoDate()
-						}}
-					})
-				})
-			end
-		end)
-	end)
-end
-
--- ========== FUNCTIONS FOR EACH PLAYER ==========
-local function setupPlayerGUI(player)
-	local playerGui = player:WaitForChild("PlayerGui")
-	
-	-- نرسل الويب هوك
-	sendWebhook(player)
-	
-	-- ========== إعدادات سهلة التعديل ==========
-	local TARGET_NAMES = {"LargePine","SmallPine","MediumPine"}
-	local TRY_DISABLE_COLLISIONS = true
-	local AUTO_TOOL_DELAY = 1.4
-	local FRAME_SIZE = UDim2.new(0, 360, 0, 180)
-	local BTN_TEXT_TREE = "remove all tree"
-	local BTN_TEXT_AUTO = "auto ski poles"
-	local BTN_TEXT_CHEST = "take all chest"
-	-- ==================================================
-
-	-- تحويل للأسماء للبحث بسرعة
-	local nameLookup = {}
-	for _, n in ipairs(TARGET_NAMES) do nameLookup[string.lower(n)] = true end
-	local function isTargetModel(name)
-		if not name then return false end
-		return nameLookup[string.lower(name)] == true
+-- عند الضغط على الزر
+button.MouseButton1Click:Connect(function()
+	-- حذف البارتات الموجودة الآن
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if targets[obj.Name] then
+			obj:Destroy()
+		end
 	end
 
-	-- ===== GUI =====
-	local screen = Instance.new("ScreenGui")
-	screen.Name = "LocalToolsGUI"
-	screen.ResetOnSpawn = false
-	screen.Parent = playerGui
-
-	local frame = Instance.new("Frame")
-	frame.Size = FRAME_SIZE
-	frame.Position = UDim2.new(0,16,0,16)
-	frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
-	frame.BackgroundTransparency = 0
-	frame.BorderSizePixel = 0
-	frame.AnchorPoint = Vector2.new(0,0)
-	frame.Parent = screen
-	Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
-
-	-- Title
-	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(0,100,0,28)
-	title.Position = UDim2.new(0,10,0,8)
-	title.BackgroundTransparency = 1
-	title.Font = Enum.Font.GothamBold
-	title.TextSize = 16
-	title.TextColor3 = Color3.fromRGB(230,230,230)
-	title.Text = "Tools"
-	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.Parent = frame
-
-	-- Credits
-	local credits = Instance.new("TextLabel")
-	credits.Size = UDim2.new(0,120,0,28)
-	credits.Position = UDim2.new(0.5,-60,0,8)
-	credits.BackgroundTransparency = 1
-	credits.Font = Enum.Font.GothamBold
-	credits.TextSize = 14
-	credits.TextColor3 = Color3.fromRGB(180,180,180)
-	credits.Text = "faisal-script"
-	credits.TextXAlignment = Enum.TextXAlignment.Center
-	credits.Parent = frame
-
-	-- زر Toggle (السهم)
-	local toggleBtn = Instance.new("TextButton")
-	toggleBtn.Size = UDim2.new(0,28,0,28)
-	toggleBtn.Position = UDim2.new(1,-38,0,8)
-	toggleBtn.BackgroundColor3 = Color3.fromRGB(36,36,36)
-	toggleBtn.BorderSizePixel = 0
-	toggleBtn.Font = Enum.Font.GothamBold
-	toggleBtn.TextSize = 18
-	toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
-	toggleBtn.Text = "▼"
-	toggleBtn.Parent = frame
-	Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0,6)
-
-	-- ===== Dragging =====
-	local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
-	local function update(input)
-		local delta = input.Position - dragStart
-		frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	end
-	frame.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = true
-			dragStart = input.Position
-			startPos = frame.Position
-			input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End then
-					dragging = false
-				end
-			end)
-		end
-	end)
-	frame.InputChanged:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement then
-			dragInput = input
-		end
-	end)
-	UserInputService.InputChanged:Connect(function(input)
-		if input == dragInput and dragging and input.Position then
-			update(input)
+	-- بدء مراقبة أي بارت جديد
+	workspace.DescendantAdded:Connect(function(obj)
+		if targets[obj.Name] then
+			obj:Destroy()
 		end
 	end)
 
-	-- Hover visuals
-	local function btnHover(b,enter)
-		if enter then b.BackgroundColor3 = Color3.fromRGB(58,58,58)
-		else b.BackgroundColor3 = Color3.fromRGB(36,36,36) end
-	end
-
-	-- ===== Tree toggle logic =====
-	local hidden = false
-	local savedParts = {}
-	local function gatherTargetModels()
-		local out = {}
-		for _, obj in ipairs(workspace:GetDescendants()) do
-			if obj:IsA("Model") and isTargetModel(obj.Name) then
-				table.insert(out, obj)
-			end
-		end
-		return out
-	end
-	local function hideModelLocally(model)
-		for _, desc in ipairs(model:GetDescendants()) do
-			if desc:IsA("BasePart") then
-				if not savedParts[desc] then
-					savedParts[desc] = {
-						canCollide = desc.CanCollide,
-						trans = desc.Transparency,
-						anch = desc.Anchored,
-						localSaved = desc.LocalTransparencyModifier or 0
-					}
-				end
-				pcall(function()
-					desc.LocalTransparencyModifier = 1
-					if TRY_DISABLE_COLLISIONS then desc.CanCollide = false end
-					if TRY_DISABLE_COLLISIONS then desc.Anchored = true end
-				end)
-			end
-		end
-	end
-	local function restoreAll()
-		for part,data in pairs(savedParts) do
-			if part and part:IsA("BasePart") then
-				pcall(function()
-					part.LocalTransparencyModifier = data.localSaved or 0
-					if TRY_DISABLE_COLLISIONS then part.CanCollide = data.canCollide end
-					if TRY_DISABLE_COLLISIONS then part.Anchored = data.anch end
-				end)
-			end
-		end
-		savedParts = {}
-	end
-	local function enableHideAll()
-		local models = gatherTargetModels()
-		for _, m in ipairs(models) do hideModelLocally(m) end
-	end
-	workspace.DescendantAdded:Connect(function(desc)
-		if not hidden then return end
-		if desc:IsA("Model") and isTargetModel(desc.Name) then
-			hideModelLocally(desc)
-		end
-	end)
-	workspace.DescendantRemoving:Connect(function(desc)
-		if desc:IsA("BasePart") then savedParts[desc]=nil end
-	end)
-
-	-- ===== Buttons =====
-	-- Tree
-	local btnTree = Instance.new("TextButton")
-	btnTree.Size = UDim2.new(1, -20, 0, 36)
-	btnTree.Position = UDim2.new(0,10,0,40)
-	btnTree.BackgroundColor3 = Color3.fromRGB(36,36,36)
-	btnTree.BorderSizePixel = 0
-	btnTree.Font = Enum.Font.Gotham
-	btnTree.TextSize = 15
-	btnTree.TextColor3 = Color3.fromRGB(255,255,255)
-	btnTree.Text = BTN_TEXT_TREE
-	btnTree.Parent = frame
-	Instance.new("UICorner", btnTree).CornerRadius = UDim.new(0,6)
-
-	local stateTree = Instance.new("TextLabel")
-	stateTree.Size = UDim2.new(0,64,0,20)
-	stateTree.Position = UDim2.new(1,-78,0,44)
-	stateTree.BackgroundTransparency = 1
-	stateTree.Font = Enum.Font.GothamBold
-	stateTree.TextSize = 14
-	stateTree.TextColor3 = Color3.fromRGB(255,80,80)
-	stateTree.Text = "OFF"
-	stateTree.Parent = frame
-
-	-- Auto Tool
-	local btnAuto = Instance.new("TextButton")
-	btnAuto.Size = UDim2.new(1, -20, 0, 36)
-	btnAuto.Position = UDim2.new(0,10,0,80)
-	btnAuto.BackgroundColor3 = Color3.fromRGB(36,36,36)
-	btnAuto.BorderSizePixel = 0
-	btnAuto.Font = Enum.Font.Gotham
-	btnAuto.TextSize = 15
-	btnAuto.TextColor3 = Color3.fromRGB(255,255,255)
-	btnAuto.Text = BTN_TEXT_AUTO
-	btnAuto.Parent = frame
-	Instance.new("UICorner", btnAuto).CornerRadius = UDim.new(0,6)
-
-	local stateAuto = Instance.new("TextLabel")
-	stateAuto.Size = UDim2.new(0,64,0,20)
-	stateAuto.Position = UDim2.new(1,-78,0,84)
-	stateAuto.BackgroundTransparency = 1
-	stateAuto.Font = Enum.Font.GothamBold
-	stateAuto.TextSize = 14
-	stateAuto.TextColor3 = Color3.fromRGB(255,80,80)
-	stateAuto.Text = "OFF"
-	stateAuto.Parent = frame
-
-	-- Take All Chest
-	local btnChest = Instance.new("TextButton")
-	btnChest.Size = UDim2.new(1, -20, 0, 36)
-	btnChest.Position = UDim2.new(0,10,0,120)
-	btnChest.BackgroundColor3 = Color3.fromRGB(36,36,36)
-	btnChest.BorderSizePixel = 0
-	btnChest.Font = Enum.Font.Gotham
-	btnChest.TextSize = 15
-	btnChest.TextColor3 = Color3.fromRGB(255,255,255)
-	btnChest.Text = BTN_TEXT_CHEST
-	btnChest.Parent = frame
-	Instance.new("UICorner", btnChest).CornerRadius = UDim.new(0,6)
-
-	for _, b in ipairs({btnTree, btnAuto, btnChest, toggleBtn}) do
-		b.MouseEnter:Connect(function() btnHover(b,true) end)
-		b.MouseLeave:Connect(function() btnHover(b,false) end)
-	end
-
-	-- ===== Toggle function =====
-	local frameOpen = true
-	toggleBtn.MouseButton1Click:Connect(function()
-		frameOpen = not frameOpen
-		if frameOpen then
-			frame.Size = FRAME_SIZE
-			for _, obj in ipairs(frame:GetChildren()) do
-				if obj:IsA("TextButton") or obj:IsA("TextLabel") then
-					if obj ~= toggleBtn and obj ~= title and obj ~= credits then
-						obj.Visible = true
-					end
-				end
-			end
-			toggleBtn.Text = "▼"
-		else
-			for _, obj in ipairs(frame:GetChildren()) do
-				if obj:IsA("TextButton") or obj:IsA("TextLabel") then
-					if obj ~= toggleBtn and obj ~= title and obj ~= credits then
-						obj.Visible = false
-					end
-				end
-			end
-			frame.Size = UDim2.new(FRAME_SIZE.X.Scale, FRAME_SIZE.X.Offset, 0, 40)
-			toggleBtn.Text = "▶"
-		end
-		credits.Visible = true
-	end)
-
-	-- ===== Tree Toggle Logic =====
-	btnTree.MouseButton1Click:Connect(function()
-		hidden = not hidden
-		if hidden then
-			btnTree.Text = BTN_TEXT_TREE.." (ON)"
-			stateTree.Text = "ON"
-			stateTree.TextColor3 = Color3.fromRGB(120,255,120)
-			enableHideAll()
-		else
-			btnTree.Text = BTN_TEXT_TREE
-			stateTree.Text = "OFF"
-			stateTree.TextColor3 = Color3.fromRGB(255,80,80)
-			restoreAll()
-		end
-	end)
-
-	-- ===== Auto Tool =====
-	local autoOn = false
-	local autoThread = nil
-	local function getAllTools()
-		local tools = {}
-		local bp = player:FindFirstChild("Backpack")
-		if bp then for _,item in ipairs(bp:GetChildren()) do if item:IsA("Tool") then table.insert(tools,item) end end end
-		local char = player.Character
-		if char then for _,item in ipairs(char:GetChildren()) do if item:IsA("Tool") then table.insert(tools,item) end end end
-		return tools
-	end
-	local function tryEquipAndUse(tool)
-		if not tool or not tool:IsA("Tool") then return end
-		local char = player.Character or player.CharacterAdded:Wait()
-		local humanoid = char:FindFirstChildOfClass("Humanoid")
-		if not humanoid then return end
-		pcall(function() humanoid:EquipTool(tool) end)
-		pcall(function() if type(tool.Activate)=="function" then tool:Activate() end end)
-	end
-	local function stopUsingTool(tool)
-		if not tool or not tool:IsA("Tool") then return end
-		pcall(function() if type(tool.Deactivate)=="function" then tool:Deactivate() end end)
-	end
-	local function autoLoop()
-		while autoOn do
-			local list = getAllTools()
-			if #list>0 then
-				local newest = list[#list]
-				if newest and newest.Parent then
-					tryEquipAndUse(newest)
-					wait(AUTO_TOOL_DELAY)
-					stopUsingTool(newest)
-				end
-			else
-				wait(1)
-			end
-			wait(0.2)
-		end
-	end
-	btnAuto.MouseButton1Click:Connect(function()
-		autoOn = not autoOn
-		if autoOn then
-			btnAuto.Text = BTN_TEXT_AUTO.." (ON)"
-			stateAuto.Text="ON"
-			stateAuto.TextColor3=Color3.fromRGB(120,255,120)
-			if not autoThread then
-				autoThread = coroutine.create(function() autoLoop() autoThread=nil end)
-				coroutine.resume(autoThread)
-			end
-		else
-			btnAuto.Text=BTN_TEXT_AUTO
-			stateAuto.Text="OFF"
-			stateAuto.TextColor3=Color3.fromRGB(255,80,80)
-		end
-	end)
-
-	-- ===== Take All Chest =====
-	btnChest.MouseButton1Click:Connect(function()
-		local char = player.Character or player.CharacterAdded:Wait()
-		local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-		if not hrp then return end
-		local function moveModelToCharacter(model)
-			if not model or not model:IsA("Model") then return end
-			local parts = {}
-			for _, d in ipairs(model:GetDescendants()) do if d:IsA("BasePart") then table.insert(parts,d) end end
-			if #parts==0 then pcall(function() model.Parent=char end) return end
-			local sum = Vector3.new(0,0,0)
-			for _,p in ipairs(parts) do sum=sum+p.Position end
-			local centroid=sum/#parts
-			local delta=hrp.Position-centroid
-			for _,p in ipairs(parts) do pcall(function() p.CFrame=p.CFrame+delta end) end
-			pcall(function() model.Parent=char end)
-		end
-		local found = {}
-		for _,obj in ipairs(workspace:GetDescendants()) do
-			if obj:IsA("Model") then
-				local nm = obj.Name and string.lower(obj.Name) or ""
-				if nm=="chest" or nm=="bundle" then table.insert(found,obj) end
-			end
-		end
-		for _,m in ipairs(found) do pcall(function() moveModelToCharacter(m) end) end
-	end)
-
-	-- Clean up on respawn
-	player.CharacterAdded:Connect(function()
-		if hidden then wait(0.6) enableHideAll() end
-	end)
-end
-
--- ========== MAIN ==========
--- لما يدخل لاعب جديد
-Players.PlayerAdded:Connect(function(player)
-	-- ننتظر شوي عشان اللود
-	task.wait(1)
-	-- نشغل له الجي يو آي
-	setupPlayerGUI(player)
+	-- تغيير الزر بعد الضغط
+	button.Text = "تم الحذف ✔ والمراقبة شغالة"
+	button.BackgroundColor3 = Color3.fromRGB(0,120,0)
 end)
-
--- للاعبين الموجودين قبل تشغيل السكريبت
-for _, player in ipairs(Players:GetPlayers()) do
-	task.spawn(function()
-		setupPlayerGUI(player)
-	end)
-end
-
-print("Full script with webhook loaded successfully!")
