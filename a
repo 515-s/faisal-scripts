@@ -11,7 +11,8 @@ local targets = {
 	["Extreme"] = true,
 	["Insane"] = true,
 	["Snake"] = true,
-	["HoleInFloor"] = true
+	["HoleInFloor"] = true,
+	["Wonky"] = true  -- تم الإضافة
 }
 
 -- GUI
