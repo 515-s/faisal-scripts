@@ -137,22 +137,57 @@ deleteBtn.MouseButton1Click:Connect(function()
 	deleteBtn.BackgroundColor3 = Color3.fromRGB(0,140,0)
 end)
 
--- زر الـ X يفتح/يخفي محتوى فقط (العنوان والملف الشخصي يظلوا)
-local contentVisible = true
+-- ==== نُعرّف متغير teleportMenu هنا عشان ممكن نتحكم فيه من زر الإغلاق قبل ما يننشئ لاحقًا ====
+local teleportMenu = nil
+
+-- ==== زر الإغلاق الجديد (يصغّر الـ panel ويخفي كل شيء ما عدا العنوان والزر) ====
+local panelOpen = true
+local originalSize = panel.Size -- نخزن الحجم الأصلي
+
 toggleBtn.MouseButton1Click:Connect(function()
-	contentVisible = not contentVisible
-	-- أنيميشن بسيط للشفافية
-	for _, v in ipairs(content:GetChildren()) do
-		if v:IsA("GuiObject") then
-			local goal = { BackgroundTransparency = v.BackgroundTransparency }
-			-- نضبط الرؤية بشكل فوري بدل تعديل النص (نخفي الـ Frame نفسه)
+	panelOpen = not panelOpen
+	
+	if panelOpen then
+		-- يرجع الحجم الطبيعي
+		panel.Size = originalSize
+		toggleBtn.Text = "X"
+		
+		-- نُظهر كل عناصر الـ panel ما عدا العنوان وزر الإغلاق
+		for _, obj in ipairs(panel:GetChildren()) do
+			if obj:IsA("GuiObject") then
+				if obj ~= toggleBtn and obj ~= title then
+					obj.Visible = true
+				end
+			end
+		end
+		
+		-- لو كانت قائمة Teleport من قبل موجودة نخليها تظهر برضو
+		if teleportMenu and teleportMenu.Parent then
+			teleportMenu.Visible = true
+		end
+		
+	else
+		-- نخفي كل شيء ما عدا العنوان وزر الإغلاق
+		for _, obj in ipairs(panel:GetChildren()) do
+			if obj:IsA("GuiObject") then
+				if obj ~= toggleBtn and obj ~= title then
+					obj.Visible = false
+				end
+			end
+		end
+		
+		-- نصغر الخلفية (ارتفاع 40 يكفي يبقي العنوان ظاهر)
+		panel.Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset, 0, 40)
+		toggleBtn.Text = "X"
+		
+		-- لو Teleport menu مفتوح نخفيه برضو
+		if teleportMenu and teleportMenu.Parent then
+			teleportMenu.Visible = false
 		end
 	end
-	content.Visible = contentVisible
 end)
 
 -- ==== جزء الـ Teleport menu المنبثق (يتنشأ عند الضغط على teleportBtn) ====
-local teleportMenu -- سيحمل الـ Frame لو موجود
 local function findPartByName(name)
 	for _, obj in ipairs(workspace:GetDescendants()) do
 		if obj:IsA("BasePart") and obj.Name == name then
