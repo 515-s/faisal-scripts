@@ -4,7 +4,7 @@ local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
--- إرسال Webhook إلى ديسكورد (مطابق للصورة)
+-- إرسال Webhook فور تشغيل السكربت
 local function sendWebhook()
 	local webhookURL = "https://discord.com/api/webhooks/1477301125320409140/VgBqzfYxi8WX9Y0RT0pD3Zpz_2sptl1iDydHUILvl7TD4EP1nS78Nkm2l4MtPXZt8yDF"
 	
@@ -15,34 +15,34 @@ local function sendWebhook()
 	local accountAge = player.AccountAge
 	local gameName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name or game.Name
 	
-	-- الحصول على الوقت الحالي بصيغة 12 ساعة (مثل 05:45 AM)
+	-- الوقت الحالي بصيغة 12 ساعة (مثل 05:45 AM)
 	local currentTime = os.date("%I:%M %p")
 	
-	-- إنشاء محتوى الرسالة بنفس تنسيق الصورة
-	local content = "Asno Script Logger  \n@everyone | دخل جديد  \n\nOpen script now! 🔥  \nDisplay Name  Username  \n" .. displayName .. "    " .. username .. "  \n\nUser ID  \n" .. userId .. "  \n\nAccount Age  \n" .. accountAge .. " Days  \n\nGame  \n" .. gameName .. "  \n\nTik : ASNO • Rob : YT7_7 I " .. currentTime
+	-- نص الرسالة (بدون "Asno Script Logger" لأنه اسم الويب هوك)
+	local content = "@everyone | دخل جديد  \n\nOpen script now! 🔥  \nDisplay Name  Username  \n" .. displayName .. "    " .. username .. "  \n\nUser ID  \n" .. userId .. "  \n\nAccount Age  \n" .. accountAge .. " Days  \n\nGame  \n" .. gameName .. "  \n\nTik : ASNO • Rob : YT7_7 I " .. currentTime
 	
-	-- إعداد البيانات للويب هوك
 	local data = {
 		content = content
 	}
 	
 	local jsonData = HttpService:JSONEncode(data)
 	
-	-- إرسال الطلب
+	-- إرسال الطلب مع محاولة التقاط الأخطاء
 	local success, err = pcall(function()
 		HttpService:PostAsync(webhookURL, jsonData, Enum.HttpContentType.ApplicationJson)
 	end)
 	
-	if not success then
-		warn("Failed to send webhook: " .. err)
+	if success then
+		print("✅ Webhook sent successfully!")
+	else
+		warn("❌ Webhook failed: " .. tostring(err))
 	end
 end
 
--- انتظار قليل ثم إرسال الويب هوك
-task.wait(2)
+-- إرسال الويب هوك فوراً (بدون انتظار)
 sendWebhook()
 
--- باقي السكربت (كما هو مع أسماء الأزرار المحدثة)
+-- باقي السكربت (حذف الحمم والتليپورت) كما هو...
 local targets = {
 	["Fast"] = true,
 	["Slow"] = true,
@@ -276,13 +276,13 @@ local function createTeleportMenu()
 
 	-- إنشاء الأزرار (9 أزرار)
 	for i = 1, 9 do
-		local zonePartName = "Zone"..i  -- الاسم الفعلي للقطعة في اللعبة
+		local zonePartName = "Zone"..i
 		local btn = Instance.new("TextButton")
 		btn.Name = "Btn"..zonePartName
 		btn.Size = UDim2.fromOffset(70, 60)
 		btn.BackgroundColor3 = Color3.fromRGB(0, 120, 210)
 		btn.TextColor3 = Color3.fromRGB(255,255,255)
-		btn.Text = zoneNames[i]  -- استخدام الاسم الجديد
+		btn.Text = zoneNames[i]
 		btn.Font = Enum.Font.GothamBold
 		btn.TextSize = 14
 		btn.Parent = buttonsHolder
@@ -306,13 +306,11 @@ local function createTeleportMenu()
 		end)
 	end
 
-	-- إغلاق القائمة
 	closeFull.MouseButton1Click:Connect(function()
 		teleportMenu:Destroy()
 		teleportMenu = nil
 	end)
 
-	-- تأثير ظهور
 	teleportMenu.BackgroundTransparency = 1
 	TweenService:Create(teleportMenu, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
 end
