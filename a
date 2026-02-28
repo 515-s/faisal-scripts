@@ -8,7 +8,10 @@ local targets = {
 	["Medium"] = true,
 	["Very Slow"] = true,
 	["Demon"] = true,
-	["EXtreme"] = true
+	["Extreme"] = true,
+	["Insane"] = true,
+	["Snake"] = true,
+	["HoleInFloor"] = true
 }
 
 -- GUI
@@ -43,7 +46,7 @@ button.MouseButton1Click:Connect(function()
 		end
 	end)
 
-	-- تغيير الزر بعد الضغط
+	-- تعديل الزر بعد الضغط
 	button.Text = "تم الحذف ✔ والمراقبة شغالة"
 	button.BackgroundColor3 = Color3.fromRGB(0,120,0)
 end)
