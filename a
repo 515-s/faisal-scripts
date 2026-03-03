@@ -1,8 +1,6 @@
--- LocalScript (ضعه في StarterPlayerScripts)
--- يخلق مربع أحمر في منتصف الشاشة. لو دخل لاعب (بطن/رأسه) داخل المربع:
---   -> يلتصق جسدك على بطنه (تتحرك معاه).
---   -> تتبدل منظوري (الكاميرا) لتكون على نفس الموضع.
--- لما يطلع اللاعب من المربع، يرجع كل شيء.
+-- LocalScript (StarterPlayerScripts)
+-- طريقة محسّنة: نستخدم نسخة محلية (proxy) لشخصيتك + كاميرا محلية Scriptable.
+-- مربع أحمر في الوسط: لو دخل لاعب -> تظهر لك كأنك ملتصق على بطنه.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -11,25 +9,23 @@ local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
--- إعدادات قابلة للتعديل:
-local BOX_SIZE = UDim2.new(0.25, 0, 0.25, 0)    -- حجم المربع (نسبة من الشاشة)
-local BOX_POS  = UDim2.new(0.5, 0, 0.5, 0)      -- موقع المربع (نركّزه في الوسط)
-local BOX_ANCHOR = Vector2.new(0.5, 0.5)        -- anchor لتمركزه بالضبط
-local PREVIEW_OFFSET = Vector3.new(0, 0.6, -0.12) -- موضع الكاميرا بالنسبة لبطن الهدف
-local CHECK_RATE = 0 -- 0 => كل فريم (يمكن تغييره إلى قيمة >0 للحد من الفحص)
+-- إعدادات
+local BOX_SIZE = UDim2.new(0.25, 0, 0.25, 0)
+local BOX_POS  = UDim2.new(0.5, 0, 0.5, 0)
+local BOX_ANCHOR = Vector2.new(0.5, 0.5)
+local CHECK_RATE = 0 -- 0 => كل فريم، غيّره لـ0.1 مثلاً لتخفيف الفحص
+local PROXY_OFFSET = CFrame.new(0, 0.7, 0) -- موضع نسخة اللاعب بالنسبة لبطن الهدف
+local CAMERA_OFFSET = Vector3.new(0, 0.9, -0.25) -- مكان الكاميرا نسبة لبطن الهدف (يمكن تعديل)
 
--- دوال مساعدة
+-- دوال مساعدة بسيطة
 local function getBellyPart(character)
     if not character then return nil end
-    -- نستخدم HumanoidRootPart كـ بطن (أقرب ما يكون)
     local hrp = character:FindFirstChild("HumanoidRootPart")
     if hrp then return hrp end
-    -- fallback إلى Torso/UpperTorso
-    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
-    return torso
+    return character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
 end
 
--- إنشاء واجهة المربع الأحمر
+-- GUI المربع الأحمر
 local function createCenterBox()
     local playerGui = LocalPlayer:WaitForChild("PlayerGui")
     local screenGui = Instance.new("ScreenGui")
@@ -43,7 +39,7 @@ local function createCenterBox()
     frame.Position = BOX_POS
     frame.AnchorPoint = BOX_ANCHOR
     frame.BackgroundTransparency = 0.5
-    frame.BackgroundColor3 = Color3.fromRGB(200, 30, 30) -- أحمر
+    frame.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
     frame.BorderSizePixel = 2
     frame.BorderColor3 = Color3.fromRGB(255, 0, 0)
     frame.ZIndex = 10
@@ -54,91 +50,97 @@ end
 
 local redBox = createCenterBox()
 
--- متغيرات لتتبع الإلتصاق
-local currentTarget = nil
-local weldConstraint = nil
-local savedOriginalCFrame = nil
-local attached = false
-local lastCheck = 0
-
--- يلصق لاعبك على بطن اللاعب target
-local function attachToTarget(targetPlayer)
-    if attached then return end
-    if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character.Parent then return end
-    local targetBelly = getBellyPart(targetPlayer.Character)
-    if not targetBelly then return end
-    if not LocalPlayer.Character or not LocalPlayer.Character.Parent then return end
-    local myHRP = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not myHRP then return end
-
-    -- حفظ الوضع الأصلي حتى نقدر نرجع
-    savedOriginalCFrame = myHRP.CFrame
-
-    -- نقل جسمك فوق البطن بسرعة (لتفادي التصادمات، نستخدم مقدار صغير للأعلى)
-    myHRP.CFrame = targetBelly.CFrame * CFrame.new(0, 1.1, 0)
-
-    -- أنشئ WeldConstraint ليلتصق جسدك بالبطن ويتحرك مع الهدف
-    weldConstraint = Instance.new("WeldConstraint")
-    weldConstraint.Name = "AttachToTargetWeld"
-    weldConstraint.Part0 = myHRP
-    weldConstraint.Part1 = targetBelly
-    weldConstraint.Parent = myHRP
-
-    -- ضبط الكاميرا لتكون ثابتة وتنظر إلى بطن الهدف من مسافة صغيرة
-    Camera.CameraType = Enum.CameraType.Scriptable
-    Camera.CFrame = CFrame.new(targetBelly.Position + PREVIEW_OFFSET, targetBelly.Position)
-
-    attached = true
+-- تحويل موقع العالم لنقطة شاشة وفحص داخل المربع
+local function worldPointInFrame(part, frame)
+    if not part or not frame or not Camera then return false end
+    local vx, vy, vz = Camera:WorldToViewportPoint(part.Position)
+    if vz <= 0 then return false end
+    local x, y = vx, vy
+    local absPos = frame.AbsolutePosition
+    local absSize = frame.AbsoluteSize
+    if absSize.X == 0 then return false end
+    return (x >= absPos.X and x <= absPos.X + absSize.X and y >= absPos.Y and y <= absPos.Y + absSize.Y)
 end
 
--- يفصل ويلغي الالتصاق ويرجع كل شيء لوضعه الطبيعي
-local function detachFromTarget()
-    if not attached then return end
-
-    -- تدمير اللحام
-    if weldConstraint then
-        pcall(function() weldConstraint:Destroy() end)
-        weldConstraint = nil
+-- إخفاء/إظهار جسم اللاعب محليًا (transparent + cancollide false)
+local function hideLocalCharacter()
+    local char = LocalPlayer.Character
+    if not char then return end
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.LocalTransparencyModifier = 1 -- فقط للعميل
+            part.CanCollide = false
+        elseif part:IsA("Decal") then
+            part.Transparency = 1
+        end
     end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = true -- يمنع اهتزازات غير مرغوبة
+    end
+end
 
-    -- رجع جسمك لمكانه الأصلي لو موجود
-    if savedOriginalCFrame and LocalPlayer.Character and LocalPlayer.Character.Parent then
-        local myHRP = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if myHRP then
-            -- محاولة إرجاع الموضع المحفوظ (قد يتسبب في تصادم بسيط حسب مكان الهدف)
-            myHRP.CFrame = savedOriginalCFrame
+local function showLocalCharacter()
+    local char = LocalPlayer.Character
+    if not char then return end
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.LocalTransparencyModifier = 0
+            part.CanCollide = true
+        elseif part:IsA("Decal") then
+            part.Transparency = 0
+        end
+    end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = false
+    end
+end
+
+-- إنشاء نسخة محلية خفيفة من شخصيتك (proxy) وتثبيتها لاحقًا
+local function createProxy()
+    if not LocalPlayer.Character then return nil end
+    local proxy = Instance.new("Model")
+    proxy.Name = "LocalProxyModel"
+    proxy.Parent = Workspace -- نحتفظ بها في Workspace
+
+    -- استنساخ الأجزاء فقط بدون الوظائف (نستخدم Anchored parts)
+    for _, obj in pairs(LocalPlayer.Character:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local p = obj:Clone()
+            p.Transparency = 0
+            p.Name = obj.Name
+            p.CanCollide = false
+            p.Anchored = true
+            p.Parent = proxy
+        elseif obj:IsA("Accessory") then
+            local accClone = obj:Clone()
+            accClone.Parent = proxy
+            -- عادة الاكسسوارات تحتوي على Handle (BasePart) التي ستُعالج أعلاه
         end
     end
 
-    -- رجّع الكاميرا للوضع الطبيعي المتبع للاعب
-    Camera.CameraType = Enum.CameraType.Custom
-
-    currentTarget = nil
-    attached = false
-    savedOriginalCFrame = nil
-end
-
--- دالة تفحص إن كان موقع اللاعب (بطنه) داخل المربع الأحمر (بناءً على إحداثيات الشاشة)
-local function bellyIsInsideBox(bellyPart, frame)
-    if not bellyPart or not frame or not Camera then return false end
-    -- ننقل مركز البطن إلى إحداثيات الشاشة
-    local screenPoint = Camera:WorldToViewportPoint(bellyPart.Position)
-    -- WorldToViewportPoint ترجع Vector3: X,Y = بكسل الشاشة, Z = عمق (موجب إذا قدام الكاميرا)
-    if screenPoint.Z <= 0 then return false end -- خلف الكاميرا
-    local x, y = screenPoint.X, screenPoint.Y
-
-    -- جلب حدود المربع (بالبكسل)
-    local absPos = frame.AbsolutePosition
-    local absSize = frame.AbsoluteSize
-    if not absSize or absSize.X == 0 then return false end
-
-    if x >= absPos.X and x <= (absPos.X + absSize.X) and y >= absPos.Y and y <= (absPos.Y + absSize.Y) then
-        return true
+    -- تحديد PrimaryPart (HumanoidRootPart clone)
+    local primary = proxy:FindFirstChild("HumanoidRootPart") or proxy:FindFirstChild("UpperTorso") or proxy:FindFirstChild("Torso")
+    if primary then
+        proxy.PrimaryPart = primary
     end
-    return false
+
+    return proxy
 end
 
--- الحلقة الرئيسية: نبحث كل فريم (أو كل CHECK_RATE ثانية إذا غيرت)
+-- تنظيف البروكسي
+local function destroyProxy(proxy)
+    if proxy and proxy.Parent then
+        proxy:Destroy()
+    end
+end
+
+-- المنطق الرئيسي: تتبع اللاعب داخل المربع وصنع البروكسي والتحكم بالـ camera
+local currentTarget = nil
+local proxyModel = nil
+local lastCheck = 0
+
 RunService.RenderStepped:Connect(function(dt)
     if CHECK_RATE > 0 then
         lastCheck = lastCheck + dt
@@ -146,36 +148,71 @@ RunService.RenderStepped:Connect(function(dt)
         lastCheck = 0
     end
 
-    -- تأكد أن الـ GUI لديه أبعاد صحيحة قبل الفحص (في الإطارات الأولى AbsoluteSize قد تكون صفر)
     if not redBox or redBox.AbsoluteSize.X == 0 then return end
 
+    -- العثور على أول لاعب داخل المربع (حسب بطنه)
     local found = nil
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character.Parent then
             local belly = getBellyPart(p.Character)
-            if belly and bellyIsInsideBox(belly, redBox) then
+            if belly and worldPointInFrame(belly, redBox) then
                 found = p
                 break
             end
         end
     end
 
-    if found and not attached then
-        -- لزوم الحذر: حاول نلصق
-        pcall(function() attachToTarget(found) end)
-        currentTarget = found
-    elseif (not found) and attached then
-        -- ما فيه لاعب داخل المربع -> انفصل ورجع الوضع
-        pcall(detachFromTarget)
+    -- لو دخل لاعب جديد
+    if found and found ~= currentTarget then
+        -- نظف القديم
+        if proxyModel then
+            destroyProxy(proxyModel)
+            proxyModel = nil
+        end
+        showLocalCharacter() -- تأكد من إظهار قبل إخفاء جديد لتجنب حالات غريبة
+
+        -- أنشئ البروكسي وخفي جسمك الحقيقي محليًا
+        proxyModel = createProxy()
+        if proxyModel then
+            hideLocalCharacter()
+            currentTarget = found
+        else
+            currentTarget = nil
+        end
     end
 
-    -- لو لا أحد داخل والصبر لزم - نضمن أن currentTarget نظيف
-    if not found and currentTarget then
-        pcall(detachFromTarget)
+    -- لو فيه هدف حالياً، حدّث موضع البروكسي و الكاميرا
+    if currentTarget and currentTarget.Character and currentTarget.Character.Parent and proxyModel and proxyModel.PrimaryPart then
+        local belly = getBellyPart(currentTarget.Character)
+        if belly then
+            -- ضع نسخة البروكسي عند بطن الهدف + offset
+            local targetCFrame = belly.CFrame * PROXY_OFFSET
+            proxyModel:SetPrimaryPartCFrame(targetCFrame)
+
+            -- اجعل الكاميرا تنظر من موقع ثابت قريب لبطن الهدف
+            Camera.CameraType = Enum.CameraType.Scriptable
+            Camera.CFrame = CFrame.new(belly.Position + CAMERA_OFFSET, belly.Position)
+        else
+            -- لو فقدنا البطن، نفصل
+            destroyProxy(proxyModel)
+            proxyModel = nil
+            showLocalCharacter()
+            Camera.CameraType = Enum.CameraType.Custom
+            currentTarget = nil
+        end
+
+    elseif (not found) and currentTarget then
+        -- هدف خرج من المربع: تراجع وننظف
+        if proxyModel then destroyProxy(proxyModel); proxyModel = nil end
+        showLocalCharacter()
+        Camera.CameraType = Enum.CameraType.Custom
+        currentTarget = nil
     end
 end)
 
--- تنظيف لو اللاعب خرج من اللعبة أو الشخصية انحذفت
+-- تنظيف لو خرجت الشخصية
 LocalPlayer.CharacterRemoving:Connect(function()
-    pcall(detachFromTarget)
+    if proxyModel then destroyProxy(proxyModel); proxyModel = nil end
+    showLocalCharacter()
+    Camera.CameraType = Enum.CameraType.Custom
 end)
