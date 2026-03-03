@@ -1,184 +1,192 @@
--- NUCLEAR GIB_T HOMING AIMBOT (Part-Only Delete + Body Lock)
--- يحذف بس الـ "Part" parts + Homing bullets
+-- سكربت لوضع في LocalScript داخل StarterPlayerScripts
+-- يثبت الكاميرا على بطن أقرب لاعب غير نفس اللاعب ويُميّز اللاعبين بألوان
+-- شرح بسيط بالخطوات داخل التعليقات
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local Workspace = workspace
+local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 local Camera = Workspace.CurrentCamera
 
-getgenv().NuclearAim = {
-    Enabled = true,
-    DeleteParts = true,  -- حذف الـ "Part" parts بس
-    LockBody = true,
-    HomingForce = 5000,
-    FOV = 400
-}
+-- إعدادات: عدّل القيم إذا تبي سلوك مختلف
+local CHECK_INTERVAL = 1 -- يفحص كل ثانية من طلبك
+local CAMERA_DISTANCE = 8 -- بعد الكاميرا خلف الهدف (يمكن ضبطه)
+local CAMERA_HEIGHT = 2 -- ارتفاع الكاميرا فوق بطن الهدف
+local SMOOTH_SPEED = 12 -- سرعة تعجيل حركة الكاميرا (أكبر = أسرع)
 
-print("🎯 NUCLEAR PART-ONLY AIMBOT LOADING...")
+-- جدول لتخزين Highlight لكل لاعب
+local highlights = {}
 
--- 1. DELETE ONLY "Part" PARTS (دقيق جدًا)
-if NuclearAim.DeleteParts then
-    spawn(function()
-        for i = 1, 5 do  -- 5 دورات كفاية
-            for _, obj in pairs(Workspace:GetDescendants()) do
-                if obj:IsA("BasePart") and obj.Name == "Part" and obj.Parent ~= Character then
-                    pcall(function()
-                        obj:Destroy()
-                    end)
-                end
-            end
-            wait(0.2)
-        end
-        print("🗑️ ALL 'Part' PARTS DELETED!")
-    end)
-    
-    -- Monitor new "Part" parts
-    Workspace.DescendantAdded:Connect(function(desc)
-        if desc.Name == "Part" and desc:IsA("BasePart") and desc.Parent ~= Character then
-            wait(0.1)
-            pcall(function() desc:Destroy() end)
-        end
-    end)
+-- دالة مساعدة لإيجاد جزء "البطن" المناسب (HumanoidRootPart أو Torso)
+local function getBellyPart(character)
+    if not character then return nil end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if hrp then return hrp end
+    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+    return torso
 end
 
--- 2. BODY LOCK + NOCLIP
-local Humanoid = Character:WaitForChild("Humanoid")
-Humanoid.PlatformStand = NuclearAim.LockBody
+-- يفحص إذا كان الهدف مخفيًا خلف أي جسم عن الكاميرا
+local function isOccluded(targetCharacter)
+    local belly = getBellyPart(targetCharacter)
+    if not belly then return true end
 
-local function NoClip()
-    for _, part in pairs(Character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
-        end
+    local origin = Camera.CFrame.Position
+    local direction = belly.Position - origin
+
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+    -- تجاهل جسم اللاعب المحلي عشان ما يتصادم مع نفسه
+    if LocalPlayer.Character then
+        table.insert(rayParams.FilterDescendantsInstances, LocalPlayer.Character)
     end
-end
-RunService.Stepped:Connect(NoClip)
 
--- 3. TARGET FINDER
-local function GetClosestEnemy()
-    local closest, dist = nil, NuclearAim.FOV
+    local result = Workspace:Raycast(origin, direction, rayParams)
+    if not result then
+        -- ما ضرب شي: نعتبره غير محجوب
+        return false
+    end
+
+    if result.Instance and result.Instance:IsDescendantOf(targetCharacter) then
+        return false -- ضرب الهدف نفسه => غير محجوب
+    end
+
+    return true -- فيه شيء بين الكاميرا والهدف
+end
+
+-- ينشئ أو يرجع Highlight للاعب
+local function getOrCreateHighlight(player)
+    if highlights[player] and highlights[player].Instance and highlights[player].Instance.Parent then
+        return highlights[player].Instance
+    end
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "AutoHighlighter"
+    highlight.Adornee = player.Character or nil
+    highlight.Enabled = true
+    highlight.FillTransparency = 1 -- نخلي الملء شفاف بحيث تبقى فقط الخط الخارجي
+    highlight.OutlineTransparency = 0
+    highlight.Parent = Camera -- نخليها في الكاميرا أو في PlayerGui
+
+    highlights[player] = { Instance = highlight }
+    return highlight
+end
+
+-- حدث لأخذ أقرب لاعب (حسب المسافة) مع تفضيل اللاعبين غير المخفيين
+local function findBestTarget()
+    local bestPlayer = nil
+    local bestDistance = math.huge
+    if not LocalPlayer.Character then return nil end
+    local myBelly = getBellyPart(LocalPlayer.Character)
+    if not myBelly then return nil end
+
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local targetHRP = player.Character.HumanoidRootPart
-            local screenPos, onScreen = Camera:WorldToScreenPoint(targetHRP.Position)
-            if onScreen then
-                local distance = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-                if distance < dist then
-                    closest = targetHRP
-                    dist = distance
+        if player ~= LocalPlayer and player.Character and player.Character.Parent then
+            local belly = getBellyPart(player.Character)
+            if belly then
+                local dist = (belly.Position - myBelly.Position).Magnitude
+                -- نفضل اللاعبين الظاهرين (غير محجوبين)
+                local occluded = isOccluded(player.Character)
+                -- معامل للأولوية: اجعل اللاعبين غير المحجوبين أقل قيمة حتى يتفوقوا
+                local priorityDist = dist + (occluded and 10000 or 0)
+                if priorityDist < bestDistance then
+                    bestDistance = priorityDist
+                    bestPlayer = player
                 end
             end
         end
     end
-    return closest
+
+    return bestPlayer
 end
 
--- 4. GIB_T + BULLET HOMING (القلب!)
-local targetLock = nil
-
-Workspace.DescendantAdded:Connect(function(descendant)
-    if NuclearAim.Enabled and descendant:IsA("BasePart") then
-        -- صيد Gib_T أو أي bullet صغير
-        local isBullet = descendant.Name:find("Gib") or 
-                        descendant.Name:find("Bullet") or 
-                        descendant.Name:find("Projectile") or 
-                        (descendant.Size.Magnitude < 3 and descendant.Size.Magnitude > 0.1)
-        
-        if isBullet then
-            targetLock = GetClosestEnemy()
-            if targetLock then
-                spawn(function()
-                    wait(0.05)  -- شوية delay عشان الـ bullet يستقر
-                    if descendant.Parent and targetLock.Parent then
-                        local bv = Instance.new("BodyVelocity", descendant)
-                        bv.MaxForce = Vector3.new(NuclearAim.HomingForce, NuclearAim.HomingForce, NuclearAim.HomingForce)
-                        bv.Velocity = Vector3.new(0,0,0)
-                        
-                        -- Homing loop
-                        local homingConn
-                        homingConn = RunService.Heartbeat:Connect(function()
-                            if descendant.Parent and targetLock and targetLock.Parent then
-                                local direction = (targetLock.Position + targetLock.AssemblyLinearVelocity * 0.08 - descendant.Position).Unit
-                                bv.Velocity = direction * 350
-                            else
-                                homingConn:Disconnect()
-                                if bv then bv:Destroy() end
-                            end
-                        end)
-                    end
-                end)
+-- تحديث ألوان الـ Highlight لكل اللاعبين: أخضر إذا ظاهر، أحمر إذا مخفي
+local function updateHighlights()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character.Parent then
+            local hl = getOrCreateHighlight(player)
+            hl.Adornee = player.Character
+            local occluded = isOccluded(player.Character)
+            if occluded then
+                hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- يظهر من ورا الجدران
+                hl.OutlineColor = Color3.fromRGB(255, 0, 0) -- أحمر
+                hl.FillTransparency = 0.9
+            else
+                hl.DepthMode = Enum.HighlightDepthMode.Occluded -- يظهر طبيعي (أو مختف لو مخفي)
+                hl.OutlineColor = Color3.fromRGB(0, 255, 0) -- أخضر
+                hl.FillTransparency = 1
+            end
+        else
+            -- إذا اللاعب لا يملك شخصية، نتأكد نحذف الهلايت أو نطفئه
+            if highlights[player] and highlights[player].Instance then
+                highlights[player].Instance:Destroy()
+                highlights[player] = nil
             end
         end
     end
+end
+
+-- تحكم بالكاميرا: نجعل الكاميرا تتحرك إلى موضع خلف الهدف وتوجهه نحو بطنه
+local targetPlayer = nil
+local targetLastSwitch = 0
+local cameraTargetCFrame = Camera.CFrame
+
+-- نفحص كل CHECK_INTERVAL لتحديد أفضل هدف، ونحدِّث الهايلايتس
+spawn(function()
+    while true do
+        pcall(function()
+            updateHighlights()
+            local newTarget = findBestTarget()
+            targetPlayer = newTarget
+        end)
+        wait(CHECK_INTERVAL)
+    end
 end)
 
--- 5. BODY + CAMERA LOCK
-RunService.RenderStepped:Connect(function()
-    if NuclearAim.Enabled then
-        local target = GetClosestEnemy()
-        if target then
-            -- Body face target
-            if NuclearAim.LockBody then
-                HumanoidRootPart.CFrame = CFrame.lookAt(HumanoidRootPart.Position, target.Position) * CFrame.Angles(0, math.rad(180), 0)
-            end
-            
-            -- Camera smooth lock
-            Camera.CFrame = Camera.CFrame:Lerp(
-                CFrame.lookAt(Camera.CFrame.Position, target.Position), 
-                0.12
-            )
-            
-            -- Auto-shoot عند mouse1
-            if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-                spawn(function()
-                    for _, remote in pairs(game.ReplicatedStorage:GetDescendants()) do
-                        if remote:IsA("RemoteEvent") and (
-                            remote.Name:lower():find("shoot") or 
-                            remote.Name:lower():find("fire") or 
-                            remote.Name:lower():find("gun") or
-                            remote.Name:lower():find("bullet")
-                        ) then
-                            pcall(function()
-                                remote:FireServer(target.Position, target)
-                            end)
-                        end
-                    end
-                end)
-            end
+-- نثبت الكاميرا في RenderStepped بحيث تتبع الهدف بسلاسة
+RunService.RenderStepped:Connect(function(dt)
+    if not Camera then return end
+
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character.Parent then
+        local belly = getBellyPart(targetPlayer.Character)
+        if belly then
+            -- موضع الكاميرا: خلف الهدف بمسافة CAMERA_DISTANCE بالنسبة لاتجاه الكاميرا الحالية
+            -- أفضل وضع ثابت: وضع الكاميرا بالنسبة للهدف (مثلاً على محور Z)
+            local targetPos = belly.Position
+            -- نضع الكاميرا بمقدار ثابت خلف وبمستوى أعلى من بطن الهدف
+            local offset = Vector3.new(0, CAMERA_HEIGHT, CAMERA_DISTANCE)
+            -- نبي الكاميرا تكون خلف الهدف بالنسبة لاتجاه الكاميرا العالمية (يمكن تعديل)
+            local desiredPos = targetPos + Vector3.new(0, CAMERA_HEIGHT, CAMERA_DISTANCE)
+
+            -- نحسب CFrame ينظر مباشرة لبطن الهدف
+            local desiredCFrame = CFrame.new(desiredPos, targetPos)
+
+            -- نعالج سلاسة الحركة
+            cameraTargetCFrame = cameraTargetCFrame:Lerp(desiredCFrame, math.clamp(SMOOTH_SPEED * dt, 0, 1))
+            Camera.CameraType = Enum.CameraType.Scriptable
+            Camera.CFrame = cameraTargetCFrame
+            return
         end
     end
-end)
 
--- 6. CONTROLS
-UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.Insert then
-        NuclearAim.Enabled = not NuclearAim.Enabled
-        Humanoid.PlatformStand = NuclearAim.Enabled and NuclearAim.LockBody
-        print("💥 NUCLEAR AIM:", NuclearAim.Enabled and "ON" or "OFF")
-    elseif input.KeyCode == Enum.KeyCode.Delete then
-        NuclearAim.DeleteParts = not NuclearAim.DeleteParts
-        print("🗑️ 'Part' Delete:", NuclearAim.DeleteParts and "ON" or "OFF")
-    elseif input.KeyCode == Enum.KeyCode.End then
-        NuclearAim.LockBody = not NuclearAim.LockBody
-        Humanoid.PlatformStand = NuclearAim.LockBody
-        print("🔒 Body Lock:", NuclearAim.LockBody and "ON" or "OFF")
+    -- إذا ما فيه هدف، نخلي الكاميرا على الوضع الحر الافتراضي
+    if Camera.CameraType == Enum.CameraType.Scriptable then
+        Camera.CameraType = Enum.CameraType.Custom
     end
 end)
 
--- Character respawn
-LocalPlayer.CharacterAdded:Connect(function(char)
-    Character = char
-    HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
-    Humanoid = char:WaitForChild("Humanoid")
+-- تنظيف عند الخروج
+LocalPlayer.AncestryChanged:Connect(function()
+    for p, t in pairs(highlights) do
+        if t.Instance then t.Instance:Destroy() end
+    end
+    highlights = {}
 end)
 
-print("🎯 NUCLEAR PART-ONLY AIMBOT READY!")
-print("Insert = Toggle Aim | Delete = Part Delete | End = Body Lock")
-print("🗑️ يحذف بس 'Part' parts")
-print("🎮 Mouse1 في أي مكان = Gib_T homing للـ target!")
+-- ملاحظة:
+-- • ضع هذا السكربت في StarterPlayerScripts كـ LocalScript.
+-- • Highlight يحتاج أن يعمل على العميل (LocalScript) حتى تظهر مؤثرات AlwaysOnTop.
+-- • يمكنك تعديل القيم في الأعلى (CHECK_INTERVAL, CAMERA_DISTANCE, CAMERA_HEIGHT) حسب ما تفضّل.
+-- • السكربت يحاول تمييز أقرب لاعب ظاهر (أو مخفي إن لم يكن هناك ظاهر) ويجعله هدف الكاميرا.
+-- • كن حذرًا عند استخدام تغييرات الكاميرا لأن بعض ألعاب الأونلاين لا تسمح تغييرات الكاميرا أو تحظر من يخترق قوانين اللعبة.
