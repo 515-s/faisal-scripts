@@ -1,4 +1,4 @@
--- THE HACKER - Advanced Script Loader & Viewer
+-- THE HACKER - Compact Advanced Script Loader & Viewer
 -- Authorized Penetration Testing Tool
 
 local Players = game:GetService("Players")
@@ -11,24 +11,24 @@ ScreenGui.Name = "THE_HACKER"
 ScreenGui.Parent = PlayerGui
 ScreenGui.ResetOnSpawn = false
 
--- Main Frame (Full screen)
+-- Main Frame (صغير شوي - 85% width, 90% height)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(1, 0, 1, 0)
-MainFrame.Position = UDim2.new(0, 0, 0, 0)
+MainFrame.Size = UDim2.new(0.85, 0, 0.90, 0)
+MainFrame.Position = UDim2.new(0.075, 0, 0.05, 0) -- مركزي
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
 
 -- Title Bar
 local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 50)
+TitleBar.Size = UDim2.new(1, 0, 0, 45)
 TitleBar.Position = UDim2.new(0, 0, 0, 0)
 TitleBar.BackgroundColor3 = Color3.fromRGB(0, 102, 204)
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = MainFrame
 
 local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(1, 0, 1, 0)
+TitleLabel.Size = UDim2.new(1, -80, 1, 0)
 TitleLabel.BackgroundTransparency = 1
 TitleLabel.Text = "THE HACKER"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -38,8 +38,8 @@ TitleLabel.Parent = TitleBar
 
 -- Close Button
 local CloseButton = Instance.new("TextButton")
-CloseButton.Size = UDim2.new(0, 40, 0, 30)
-CloseButton.Position = UDim2.new(1, -50, 0, 10)
+CloseButton.Size = UDim2.new(0, 35, 0, 25)
+CloseButton.Position = UDim2.new(1, -45, 0, 10)
 CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 CloseButton.Text = "X"
 CloseButton.TextColor3 = Color3.white
@@ -47,38 +47,60 @@ CloseButton.TextScaled = true
 CloseButton.Font = Enum.Font.GothamBold
 CloseButton.Parent = TitleBar
 
--- Main Scroll Frame (Huge content area)
+-- Drag functionality
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+
+TitleBar.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+TitleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- Main Scroll Frame
 local MainScroll = Instance.new("ScrollingFrame")
-MainScroll.Size = UDim2.new(1, -20, 1, -70)
-MainScroll.Position = UDim2.new(0, 10, 0, 60)
+MainScroll.Size = UDim2.new(1, -20, 1, -65)
+MainScroll.Position = UDim2.new(0, 10, 0, 55)
 MainScroll.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainScroll.BorderSizePixel = 0
-MainScroll.ScrollBarThickness = 12
+MainScroll.ScrollBarThickness = 10
 MainScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 102, 204)
 MainScroll.Parent = MainFrame
 
 local MainLayout = Instance.new("UIListLayout")
 MainLayout.SortOrder = Enum.SortOrder.LayoutOrder
-MainLayout.Padding = UDim.new(0, 5)
+MainLayout.Padding = UDim.new(0, 4)
 MainLayout.Parent = MainScroll
 
--- States: "scripts" or "content"
+-- States
 local currentState = "scripts"
 local selectedScriptContent = ""
 local scriptButtons = {}
 
--- POWERFUL RECURSIVE SCRIPT SCANNER
+-- POWERFUL RECURSIVE SCRIPT SCANNER (same power)
 local function scanScripts(parent, path)
     local scripts = {}
-    
-    -- Scan all descendants
     for _, obj in pairs(parent:GetDescendants()) do
         if obj:IsA("LocalScript") or obj:IsA("Script") then
             table.insert(scripts, obj)
         end
     end
-    
-    -- Scan workspace, lighting, etc. for hidden scripts
     local targets = {
         game:GetService("Workspace"),
         game:GetService("Lighting"),
@@ -88,7 +110,6 @@ local function scanScripts(parent, path)
         game:GetService("StarterPack"),
         game:GetService("ReplicatedFirst")
     }
-    
     for _, target in pairs(targets) do
         for _, obj in pairs(target:GetDescendants()) do
             if obj:IsA("LocalScript") or obj:IsA("Script") then
@@ -96,8 +117,6 @@ local function scanScripts(parent, path)
             end
         end
     end
-    
-    -- Remove duplicates
     local uniqueScripts = {}
     local seen = {}
     for _, script in pairs(scripts) do
@@ -106,153 +125,124 @@ local function scanScripts(parent, path)
             table.insert(uniqueScripts, script)
         end
     end
-    
     return uniqueScripts
 end
 
--- Get script source (BYPASS ALL PROTECTION)
+-- Get script source (same power)
 local function getScriptSource(scriptObj)
     local success, source = pcall(function()
-        -- Method 1: Direct Source
-        if scriptObj.Source then
-            return scriptObj.Source
-        end
-        
-        -- Method 2: Decompile attempt
+        if scriptObj.Source then return scriptObj.Source end
         if scriptObj:IsA("LocalScript") then
             local func = scriptObj.Source
             if type(func) == "function" then
-                local src = debug.getinfo(func).source
-                return src or "Source protected - Function only"
+                return debug.getinfo(func).source or "Source protected"
             end
         end
-        
-        -- Method 3: Advanced dump
         local ok, result = pcall(function()
             return scriptObj.Source or "No source available"
         end)
-        
-        return ok and result or "Source extraction failed - Protected"
+        return ok and result or "Extraction failed"
     end)
-    
-    return success and source or "ERROR: Could not extract source"
+    return success and source or "ERROR: Protected"
 end
 
 -- Create Scripts List
 local function createScriptsList()
-    -- Clear existing content
     for _, child in pairs(MainScroll:GetChildren()) do
         if child:IsA("TextButton") or child:IsA("Frame") then
             child:Destroy()
         end
     end
     
-    -- Add header
     local header = Instance.new("TextLabel")
-    header.Size = UDim2.new(1, -20, 0, 40)
+    header.Size = UDim2.new(1, -20, 0, 35)
     header.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    header.Text = "🔍 FOUND SCRIPTS (" .. #scriptButtons .. ")"
+    header.Text = "🔍 FOUND SCRIPTS"
     header.TextColor3 = Color3.fromRGB(0, 255, 0)
     header.TextScaled = true
     header.Font = Enum.Font.GothamBold
     header.Parent = MainScroll
     
-    -- Scan ALL scripts
     local allScripts = scanScripts(game, "")
-    print("THE HACKER: Found " .. #allScripts .. " scripts in map")
+    print("THE HACKER: Found " .. #allScripts .. " scripts")
     
-    -- Create buttons for each script
     for i, scriptObj in pairs(allScripts) do
-        local scriptName = scriptObj.Name
-        if scriptName == "" then scriptName = "Unnamed Script" end
-        
-        local scriptPath = game:GetService("PathfindingService"):CreatePath().ComputeAsync(scriptObj:GetFullName())
+        local scriptName = scriptObj.Name ~= "" and scriptObj.Name or "Unnamed"
         local fullPath = scriptObj:GetFullName()
         
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, -20, 0, 60)
+        btn.Size = UDim2.new(1, -20, 0, 55)
         btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
         btn.BorderSizePixel = 0
         btn.Text = ""
         btn.LayoutOrder = i
         btn.Parent = MainScroll
         
-        -- Hover effects
-        btn.MouseEnter:Connect(function()
-            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        end)
-        btn.MouseLeave:Connect(function()
-            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        end)
+        btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60) end)
+        btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) end)
         
         local nameLabel = Instance.new("TextLabel")
-        nameLabel.Size = UDim2.new(1, -100, 0.5, 0)
-        nameLabel.Position = UDim2.new(0, 10, 0, 5)
+        nameLabel.Size = UDim2.new(1, -90, 0.6, 0)
+        nameLabel.Position = UDim2.new(0, 10, 0, 3)
         nameLabel.BackgroundTransparency = 1
         nameLabel.Text = scriptName
-        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLabel.TextColor3 = Color3.white
         nameLabel.TextScaled = true
         nameLabel.Font = Enum.Font.GothamBold
         nameLabel.TextXAlignment = Enum.TextXAlignment.Left
         nameLabel.Parent = btn
         
         local pathLabel = Instance.new("TextLabel")
-        pathLabel.Size = UDim2.new(1, -100, 0.5, 0)
-        pathLabel.Position = UDim2.new(0, 10, 0.5, 0)
+        pathLabel.Size = UDim2.new(1, -90, 0.4, 0)
+        pathLabel.Position = UDim2.new(0, 10, 0.6, 0)
         pathLabel.BackgroundTransparency = 1
         pathLabel.Text = fullPath
-        pathLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
+        pathLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
         pathLabel.TextScaled = true
         pathLabel.Font = Enum.Font.Gotham
         pathLabel.TextXAlignment = Enum.TextXAlignment.Left
         pathLabel.Parent = btn
         
-        local copyIcon = Instance.new("TextLabel")
-        copyIcon.Size = UDim2.new(0, 80, 1, 0)
-        copyIcon.Position = UDim2.new(1, -90, 0, 0)
-        copyIcon.BackgroundTransparency = 1
-        copyIcon.Text = "👁️ VIEW"
-        copyIcon.TextColor3 = Color3.fromRGB(0, 255, 0)
-        copyIcon.TextScaled = true
-        copyIcon.Font = Enum.Font.GothamBold
-        copyIcon.Parent = btn
+        local viewIcon = Instance.new("TextLabel")
+        viewIcon.Size = UDim2.new(0, 70, 1, 0)
+        viewIcon.Position = UDim2.new(1, -80, 0, 0)
+        viewIcon.BackgroundTransparency = 1
+        viewIcon.Text = "👁️"
+        viewIcon.TextColor3 = Color3.fromRGB(0, 255, 0)
+        viewIcon.TextScaled = true
+        viewIcon.Font = Enum.Font.GothamBold
+        viewIcon.Parent = btn
         
-        -- Store script data
         btn.scriptObj = scriptObj
         btn.scriptContent = getScriptSource(scriptObj)
         
-        -- Click to view content
         btn.MouseButton1Click:Connect(function()
             currentState = "content"
-            selectedScriptContent = btn.scriptContent
             createContentView(scriptName, fullPath, btn.scriptContent)
         end)
         
         scriptButtons[scriptName] = btn
     end
     
-    -- Update scroll size
-    MainScroll.CanvasSize = UDim2.new(0, 0, 0, MainLayout.AbsoluteContentSize.Y + 20)
+    MainScroll.CanvasSize = UDim2.new(0, 0, 0, MainLayout.AbsoluteContentSize.Y + 15)
 end
 
--- Create Content View
+-- Create Content View (compact)
 function createContentView(scriptName, scriptPath, content)
-    -- Clear
     for _, child in pairs(MainScroll:GetChildren()) do
         if child:IsA("TextButton") or child:IsA("Frame") or child:IsA("TextLabel") then
             child:Destroy()
         end
     end
     
-    -- Header
     local headerFrame = Instance.new("Frame")
-    headerFrame.Size = UDim2.new(1, -20, 0, 80)
+    headerFrame.Size = UDim2.new(1, -20, 0, 70)
     headerFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     headerFrame.Parent = MainScroll
     
     local headerTitle = Instance.new("TextLabel")
-    headerTitle.Size = UDim2.new(0.7, 0, 0.6, 0)
-    headerTitle.Position = UDim2.new(0, 10, 0, 10)
+    headerTitle.Size = UDim2.new(0.65, 0, 0.6, 0)
+    headerTitle.Position = UDim2.new(0, 10, 0, 8)
     headerTitle.BackgroundTransparency = 1
     headerTitle.Text = scriptName
     headerTitle.TextColor3 = Color3.fromRGB(0, 255, 255)
@@ -261,7 +251,7 @@ function createContentView(scriptName, scriptPath, content)
     headerTitle.Parent = headerFrame
     
     local pathLabel = Instance.new("TextLabel")
-    pathLabel.Size = UDim2.new(0.7, 0, 0.4, 0)
+    pathLabel.Size = UDim2.new(0.65, 0, 0.4, 0)
     pathLabel.Position = UDim2.new(0, 10, 0.6, 0)
     pathLabel.BackgroundTransparency = 1
     pathLabel.Text = scriptPath
@@ -270,12 +260,11 @@ function createContentView(scriptName, scriptPath, content)
     pathLabel.Font = Enum.Font.Gotham
     pathLabel.Parent = headerFrame
     
-    -- Back Button
     local backBtn = Instance.new("TextButton")
-    backBtn.Size = UDim2.new(0, 120, 0, 40)
-    backBtn.Position = UDim2.new(0, 10, 0.7, 0)
+    backBtn.Size = UDim2.new(0, 110, 0, 35)
+    backBtn.Position = UDim2.new(0, 10, 0.65, 0)
     backBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-    backBtn.Text = "← BACK TO SCRIPTS"
+    backBtn.Text = "← BACK"
     backBtn.TextColor3 = Color3.white
     backBtn.TextScaled = true
     backBtn.Font = Enum.Font.GothamBold
@@ -286,12 +275,11 @@ function createContentView(scriptName, scriptPath, content)
         createScriptsList()
     end)
     
-    -- Copy Button
     local copyBtn = Instance.new("TextButton")
-    copyBtn.Size = UDim2.new(0, 120, 0, 40)
-    copyBtn.Position = UDim2.new(1, -130, 0.7, 0)
+    copyBtn.Size = UDim2.new(0, 110, 0, 35)
+    copyBtn.Position = UDim2.new(1, -120, 0.65, 0)
     copyBtn.BackgroundColor3 = Color3.fromRGB(0, 102, 204)
-    copyBtn.Text = "📋 COPY ALL"
+    copyBtn.Text = "📋 COPY"
     copyBtn.TextColor3 = Color3.white
     copyBtn.TextScaled = true
     copyBtn.Font = Enum.Font.GothamBold
@@ -299,68 +287,46 @@ function createContentView(scriptName, scriptPath, content)
     
     copyBtn.MouseButton1Click:Connect(function()
         setclipboard(content)
-        copyBtn.Text = "✅ COPIED!"
+        copyBtn.Text = "✅ COPIED"
         copyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
         wait(1)
-        copyBtn.Text = "📋 COPY ALL"
+        copyBtn.Text = "📋 COPY"
         copyBtn.BackgroundColor3 = Color3.fromRGB(0, 102, 204)
     end)
     
-    -- Content Scroll Frame
     local contentScroll = Instance.new("ScrollingFrame")
-    contentScroll.Size = UDim2.new(1, -20, 1, -100)
-    contentScroll.Position = UDim2.new(0, 10, 0, 90)
+    contentScroll.Size = UDim2.new(1, -20, 1, -85)
+    contentScroll.Position = UDim2.new(0, 10, 0, 80)
     contentScroll.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     contentScroll.BorderSizePixel = 2
     contentScroll.BorderColor3 = Color3.fromRGB(0, 102, 204)
-    contentScroll.ScrollBarThickness = 12
+    contentScroll.ScrollBarThickness = 10
     contentScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 0)
     contentScroll.Parent = MainScroll
     
     local contentText = Instance.new("TextLabel")
-    contentText.Size = UDim2.new(1, -20, 0, 10000) -- Huge for scrolling
+    contentText.Size = UDim2.new(1, -20, 0, 10000)
     contentText.BackgroundTransparency = 1
-    contentText.Text = content ~= "" and content or "No source code available. Script is protected."
+    contentText.Text = content ~= "" and content or "No source - Protected"
     contentText.TextColor3 = Color3.fromRGB(0, 255, 100)
-    contentText.TextScaled = false
-    contentText.TextSize = 14
+    contentText.TextSize = 13
     contentText.Font = Enum.Font.Code
     contentText.TextXAlignment = Enum.TextXAlignment.Left
     contentText.TextYAlignment = Enum.TextYAlignment.Top
     contentText.TextWrapped = true
     contentText.Parent = contentScroll
     
-    -- Line numbers
-    local lines = content:split("\n")
-    local lineText = ""
-    for i = 1, #lines do
-        lineText = lineText .. i .. "\n"
-    end
-    
-    local lineNumbers = Instance.new("TextLabel")
-    lineNumbers.Size = UDim2.new(0, 50, 1, 0)
-    lineNumbers.Position = UDim2.new(-0.06, 0, 0, 0)
-    lineNumbers.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    lineNumbers.BorderSizePixel = 0
-    lineNumbers.Text = lineText
-    lineNumbers.TextColor3 = Color3.fromRGB(100, 100, 100)
-    lineNumbers.TextSize = 12
-    lineNumbers.Font = Enum.Font.Code
-    lineNumbers.TextXAlignment = Enum.TextXAlignment.Right
-    lineNumbers.Parent = contentScroll
-    
-    contentScroll.CanvasSize = UDim2.new(0, 0, 0, contentText.TextBounds.Y + 20)
+    contentScroll.CanvasSize = UDim2.new(0, 0, 0, contentText.TextBounds.Y + 15)
 end
 
--- Close GUI
+-- Close
 CloseButton.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- INITIALIZE - POWER SCAN
+-- INIT
 createScriptsList()
 
--- Auto-refresh every 10 seconds
 spawn(function()
     while ScreenGui.Parent do
         wait(10)
@@ -370,4 +336,4 @@ spawn(function()
     end
 end)
 
-print("THE HACKER: Loaded successfully! Scanning all map scripts...")
+print("THE HACKER: Compact version loaded!")
