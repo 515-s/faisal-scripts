@@ -3,19 +3,36 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local root = character:WaitForChild("HumanoidRootPart")
 
--- حذف كل موديل اسمه Tree
-for _, obj in ipairs(workspace:GetDescendants()) do
-    if obj:IsA("Model") and obj.Name == "Tree" then
-        obj:Destroy()
-    end
+local workspace = game:GetService("Workspace")
+
+-- 🔥 حذف موديل Tree بالكامل
+local function removeTree(obj)
+	if obj:IsA("Model") and obj.Name == "Tree" then
+		obj:Destroy()
+	end
 end
 
--- سحب كل موديل اسمه Chest1 لموقعك
-for _, obj in ipairs(workspace:GetDescendants()) do
-    if obj:IsA("Model") and obj.Name == "Chest1" then
-        local part = obj:FindFirstChildWhichIsA("BasePart")
-        if part then
-            obj:PivotTo(root.CFrame * CFrame.new(0, 0, -5)) -- قدامك بـ 5 ستد
-        end
-    end
+-- 🔥 سحب الشست فعليًا
+local function pullChest(obj)
+	if obj:IsA("Model") and obj.Name == "Chest1" then
+		for _, part in ipairs(obj:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.Anchored = false
+				part.CanCollide = true
+			end
+		end
+		obj:PivotTo(root.CFrame * CFrame.new(0,0,-6))
+	end
 end
+
+-- 🔁 حذف الموجود حالياً
+for _, obj in ipairs(workspace:GetDescendants()) do
+	removeTree(obj)
+	pullChest(obj)
+end
+
+-- 👁️ مراقبة أي شي ينضاف جديد
+workspace.DescendantAdded:Connect(function(obj)
+	removeTree(obj)
+	pullChest(obj)
+end)
