@@ -1,49 +1,107 @@
--- ضع هذا السكربت في ServerScriptService أو داخل أداة (Tool) عند تفعيلها
+-- Silent Aim لـ Roblox (Universal لمعظم ألعاب MapleStory/shooters)
+-- يعدل Camera.CFrame و raycast direction بدون تغيير الـ view الخاص بك
 
-local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
 
--- دالة لحذف جميع القطع من الخريطة مع استثناء شخصيات اللاعبين
-local function deleteAllParts()
-    for _, obj in ipairs(Workspace:GetChildren()) do
-        -- نتجنب حذف الشخصيات (اللاعبين) لأنها تحتوي على Humanoid
-        if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
-            continue
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+local SilentAimSettings = {
+    Enabled = true,
+    TeamCheck = true,  -- ما يضرب الـ teammates
+    VisibleCheck = true,  -- يستهدف اللي ظاهر بس
+    FOVRadius = 200,  -- نصف قطر الـ FOV (pixels)
+    TargetPart = "Head",  -- أو "HumanoidRootPart" للـ body
+    HitChance = 100  -- % فرصة الضرب (randomize عشان مش مشبوه)
+}
+
+-- FOV Circle (اختياري للـ visualization)
+local ScreenGui = Instance.new("ScreenGui")
+local FOVCircle = Instance.new("Frame")
+FOVCircle.Size = UDim2.new(0, SilentAimSettings.FOVRadius * 2, 0, SilentAimSettings.FOVRadius * 2)
+FOVCircle.Position = UDim2.new(0.5, -SilentAimSettings.FOVRadius, 0.5, -SilentAimSettings.FOVRadius)
+FOVCircle.BackgroundTransparency = 1
+FOVCircle.Parent = ScreenGui
+
+local Circle = Instance.new("ImageLabel")
+Circle.Size = UDim2.new(1, 0, 1, 0)
+Circle.BackgroundTransparency = 1
+Circle.Image = "rbxassetid://4996891970"  -- circle image
+Circle.ImageColor3 = Color3.new(0, 1, 0)
+Circle.ImageTransparency = 0.5
+Circle.ScaleType = Enum.ScaleType.Fit
+Circle.Parent = FOVCircle
+ScreenGui.Parent = game.CoreGui
+
+-- Functions
+local function GetClosestPlayer()
+    local ClosestPlayer = nil
+    local ShortestDistance = SilentAimSettings.FOVRadius
+
+    for _, Player in pairs(Players:GetPlayers()) do
+        if Player ~= LocalPlayer and Player.Character and Player.Character:FindFirstChild("Humanoid") and Player.Character.Humanoid.Health > 0 then
+            if SilentAimSettings.TeamCheck and Player.Team == LocalPlayer.Team then continue end
+            
+            local TargetPart = Player.Character:FindFirstChild(SilentAimSettings.TargetPart)
+            if not TargetPart then continue end
+
+            if SilentAimSettings.VisibleCheck then
+                local Raycast = workspace:Raycast(TargetPart.Position, (TargetPart.Position - Camera.CFrame.Position).Unit * 1000)
+                if Raycast and Raycast.Instance.Parent:FindFirstChild("Humanoid") ~= Player.Character:FindFirstChild("Humanoid") then continue end
+            end
+
+            local ScreenPoint, OnScreen = Camera:WorldToScreenPoint(TargetPart.Position)
+            if OnScreen then
+                local Distance = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(ScreenPoint.X, ScreenPoint.Y)).Magnitude
+                if Distance < ShortestDistance then
+                    ClosestPlayer = Player
+                    ShortestDistance = Distance
+                end
+            end
         end
-        
-        -- إذا كان الكائن قطعة (Part, MeshPart, Union, إلخ) فاحذفه
-        if obj:IsA("BasePart") then
-            obj:Destroy()
-        end
-        -- يمكنك إضافة المزيد من الشروط لحذف أنواع أخرى إذا أردت
     end
+    return ClosestPlayer
 end
 
--- دالة لإنشاء قطعة ثابتة أسفل قدم لاعب معين
-local function createPartUnderPlayer(player)
-    local character = player.Character
-    if not character then return end
-    
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then return end
-    
-    -- إنشاء قطعة جديدة
-    local part = Instance.new("Part")
-    part.Name = "GroundPart"
-    part.Anchored = true   -- ثابت
-    part.Size = Vector3.new(4, 1, 4)   -- حجم مناسب (يمكنك تغييره)
-    part.BrickColor = BrickColor.new("Bright red")   -- لون أحمر
-    part.Material = Enum.Material.SmoothPlastic
-    part.Position = rootPart.Position - Vector3.new(0, rootPart.Size.Y/2 + part.Size.Y/2, 0)
-    
-    -- وضع القطعة في الخريطة
-    part.Parent = Workspace
-end
+-- Hook Mouse.Hit للـ Silent Aim
+local mt = getrawmetatable(game)
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local args = {...}
+    local method = getnamecallmethod()
 
--- تنفيذ الحذف أولاً
-deleteAllParts()
+    if SilentAimSettings.Enabled and self:IsA("BasePart") and method == "Raycast" and args[2] then
+        local TargetPlayer = GetClosestPlayer()
+        if TargetPlayer and TargetPlayer.Character and math.random(1, 100) <= SilentAimSettings.HitChance then
+            local TargetPart = TargetPlayer.Character:FindFirstChild(SilentAimSettings.TargetPart)
+            if TargetPart then
+                args[1] = TargetPart.Position - self.Position  -- تعديل الـ direction للـ target
+            end
+        end
+    end
 
--- إنشاء قطعة تحت كل لاعب متصل حالياً
-for _, player in ipairs(Players:GetPlayers()) do
-    createPartUnderPlayer(player)
-end
+    return oldNamecall(self, unpack(args))
+end)
+
+-- Update FOV Circle position
+RunService.Heartbeat:Connect(function()
+    if SilentAimSettings.Enabled then
+        FOVCircle.Position = UDim2.new(0.5, -SilentAimSettings.FOVRadius + Mouse.X, 0.5, -SilentAimSettings.FOVRadius + Mouse.Y)
+        Circle.ImageTransparency = 0.5
+    else
+        Circle.ImageTransparency = 1
+    end
+end)
+
+-- Toggle مع RightShift
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        SilentAimSettings.Enabled = not SilentAimSettings.Enabled
+        print("Silent Aim:", SilentAimSettings.Enabled and "ON" or "OFF")
+    end
+end)
+
+print("Silent Aim loaded! RightShift للـ toggle. FOV أخضر = active.")
