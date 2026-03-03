@@ -1,165 +1,166 @@
--- Gib_T Projectile Hijack Silent Aim (مخصص للعبة مع Gib_T bullets)
--- يسرق الـ Gib_T parts ويوجهها للـ target تلقائيًا
+-- NUCLEAR GIB_T HOMING AIMBOT (Map Delete + Body Lock + Auto-Homing)
+-- أقوى حل في التاريخ - كل طلقة تتبع الـ target زي المجنون!
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local Debris = game:GetService("Debris")
-local Camera = workspace.CurrentCamera
+local PhysicsService = game:GetService("PhysicsService")
+local Workspace = workspace
 
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local Camera = Workspace.CurrentCamera
 
-getgenv().GibAim = {
+getgenv().NuclearAim = {
     Enabled = true,
-    FOV = 300,
-    Smoothing = 0.08,
-    Predict = true,
-    AutoFire = true
+    DeleteMap = true,  -- حذف الماب للـ clear sight
+    LockBody = true,   -- تثبيت الجسم
+    HomingForce = 5000, -- قوة جذب الـ bullets
+    FOV = 400
 }
 
--- FOV Indicator
-local sg = Instance.new("ScreenGui", game.CoreGui)
-local fov = Instance.new("Frame", sg)
-fov.Size = UDim2.new(0, GibAim.FOV*2, 0, GibAim.FOV*2)
-fov.Position = UDim2.new(0.5, -GibAim.FOV, 0.5, -GibAim.FOV)
-fov.BackgroundTransparency = 1
-fov.AnchorPoint = Vector2.new(0.5, 0.5)
+print("🚀 NUCLEAR AIMBOT LOADING...")
 
-local circ = Instance.new("ImageLabel", fov)
-circ.Size = UDim2.new(1,0,1,0)
-circ.BackgroundTransparency = 1
-circ.Image = "rbxassetid://4996891970"
-circ.ImageTransparency = 0.3
-circ.ImageColor3 = Color3.new(0,1,0)
-circ.ScaleType = "Fit"
-
--- Universal Target Finder (أقوى version)
-local function FindTarget()
-    local bestTarget, bestDist = nil, GibAim.FOV
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr == LocalPlayer or not plr.Character or not plr.Character:FindFirstChildOfClass("Humanoid") then continue end
-        if plr.Team == LocalPlayer.Team then continue end
-        
-        -- ابحث عن أي part مناسب (Head, Torso, Arms, Legs, أو أي part كبير)
-        for _, part in pairs(plr.Character:GetChildren()) do
-            if part:IsA("BasePart") and part.Size.Magnitude > 1.5 and part ~= plr.Character:FindFirstChild("HumanoidRootPart") then
-                local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
-                if onScreen then
-                    local dist = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(pos.X, pos.Y)).Magnitude
-                    if dist < bestDist then
-                        bestTarget = part
-                        bestDist = dist
-                    end
+-- 1. DELETE MAP (Clear Line of Sight)
+if NuclearAim.DeleteMap then
+    spawn(function()
+        for i = 1, 10 do
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and obj.Parent ~= Character and obj.Parent ~= Camera and not obj.Parent:FindFirstChild("Humanoid") then
+                    pcall(function() obj:Destroy() end)
                 end
             end
+            wait(0.1)
         end
-    end
-    return bestTarget
+        print("🗑️ MAP DELETED - CLEAR SIGHT!")
+    end)
 end
 
-local currentTarget = nil
+-- 2. BODY LOCK (PlatformStand + NoClip)
+local Humanoid = Character:WaitForChild("Humanoid")
+Humanoid.PlatformStand = true
+PhysicsService:SetPartCollisionGroup(HumanoidRootPart, "NoCollision")
 
--- MAIN GIB_T HIJACK (السحر هنا!)
-local mt = getrawmetatable(game)
-local connections = {}
-
--- Hook على إنشاء Gib_T parts
-hookfunction(getrawmetatable(game).__index, function(self, index)
-    if index == "Parent" and tostring(self):lower():find("gib_t") then
-        -- لقطنا Gib_T part!
-        spawn(function()
-            if GibAim.Enabled and currentTarget then
-                local bullet = self
-                local bodyVelocity = Instance.new("BodyVelocity")
-                bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
-                bodyVelocity.Velocity = (currentTarget.Position - bullet.Position).Unit * 200  -- سرعة الـ bullet
-                
-                if GibAim.Predict then
-                    bodyVelocity.Velocity = (currentTarget.Position + currentTarget.Velocity * 0.1 - bullet.Position).Unit * 200
-                end
-                
-                bodyVelocity.Parent = bullet
-                Debris:AddItem(bodyVelocity, 3)
-                
-                -- Hit effect simulation
-                spawn(function()
-                    wait(0.1)
-                    if bullet.Parent then
-                        local hitEffect = Instance.new("Explosion")
-                        hitEffect.Position = currentTarget.Position
-                        hitEffect.BlastRadius = 0
-                        hitEffect.BlastPressure = 0
-                        hitEffect.Parent = workspace
-                    end
-                end)
-            end
-        end)
+-- NoClip function
+local function NoClip()
+    for _, part in pairs(Character:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+        end
     end
-    return mt.__index(self, index)
+end
+RunService.Stepped:Connect(NoClip)
+
+-- 3. TARGET FINDER (أقرب player)
+local function GetClosestEnemy()
+    local closest, dist = nil, NuclearAim.FOV
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPart = player.Character.HumanoidRootPart
+            local screenPos, onScreen = Camera:WorldToScreenPoint(targetPart.Position)
+            if onScreen then
+                local distance = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                if distance < dist then
+                    closest = targetPart
+                    dist = distance
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- 4. GIB_T BULLET HOMING (السحر الحقيقي!)
+local targetLock = nil
+local bulletConnections = {}
+
+-- Monitor ALL new parts (Gib_T أو أي bullet)
+Workspace.DescendantAdded:Connect(function(descendant)
+    if NuclearAim.Enabled and descendant:IsA("BasePart") and (descendant.Name:find("Gib") or descendant.Name:find("Bullet") or descendant.Name:find("Projectile") or descendant.Size.Magnitude < 2) then
+        targetLock = GetClosestEnemy()
+        if targetLock then
+            -- Homing BodyVelocity
+            local bv = Instance.new("BodyVelocity")
+            bv.MaxForce = Vector3.new(NuclearAim.HomingForce, NuclearAim.HomingForce, NuclearAim.HomingForce)
+            bv.Velocity = (targetLock.Position - descendant.Position).Unit * 300
+            
+            bv.Parent = descendant
+            
+            -- Update direction every frame
+            local conn
+            conn = RunService.Heartbeat:Connect(function()
+                if descendant.Parent and targetLock and targetLock.Parent then
+                    local newDir = (targetLock.Position + targetLock.Velocity * 0.05 - descendant.Position).Unit
+                    bv.Velocity = newDir * 300
+                else
+                    conn:Disconnect()
+                end
+            end)
+            
+            table.insert(bulletConnections, conn)
+            
+            -- Hit confirmation
+            spawn(function()
+                wait(0.5)
+                if descendant.Position:Distance(targetLock.Position) < 10 then
+                    print("🎯 GIB_T HIT CONFIRMED!")
+                end
+            end)
+        end
+    end
 end)
 
--- Camera aim للـ legit look
+-- 5. BODY + CAMERA AUTO-AIM
 RunService.Heartbeat:Connect(function()
-    fov.Position = UDim2.new(0.5, Mouse.X-GibAim.FOV, 0.5, Mouse.Y-GibAim.FOV)
-    
-    if GibAim.Enabled then
-        local target = FindTarget()
+    if NuclearAim.Enabled then
+        local target = GetClosestEnemy()
         if target then
-            circ.ImageColor3 = Color3.new(0,1,0)
-            circ.ImageTransparency = 0.2
-            currentTarget = target
+            -- Lock body to face target
+            if NuclearAim.LockBody then
+                HumanoidRootPart.CFrame = CFrame.lookAt(HumanoidRootPart.Position, target.Position)
+            end
             
             -- Smooth camera
-            local tween = TweenService:Create(Camera, TweenInfo.new(GibAim.Smoothing), {CFrame = CFrame.lookAt(Camera.CFrame.Position, target.Position)})
-            tween:Play()
+            local camTween = TweenService:Create(Camera, TweenInfo.new(0.05), {
+                CFrame = CFrame.lookAt(Camera.CFrame.Position, target.Position)
+            })
+            camTween:Play()
             
-            -- Auto fire trigger (اضغط mouse1)
-            if GibAim.AutoFire and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-                -- Trigger shooting (ابحث عن shoot remote أو fire)
-                pcall(function()
-                    for _, v in pairs(game.ReplicatedStorage:GetDescendants()) do
-                        if v:IsA("RemoteEvent") and (v.Name:lower():find("shoot") or v.Name:lower():find("fire") or v.Name:lower():find("gun")) then
-                            v:FireServer(target.Position)
-                        end
+            -- Auto-shoot trigger
+            if UserInputService:IsMouseButtonPressed(1) then
+                -- Spam shoot remotes
+                for _, rem in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+                    if rem:IsA("RemoteEvent") and rem.Name:lower():find("shoot") then
+                        rem:FireServer(target.Position)
                     end
-                end)
+                end
             end
-        else
-            circ.ImageColor3 = Color3.new(1,0,0)
-            circ.ImageTransparency = 0.6
-            currentTarget = nil
         end
-    else
-        circ.ImageTransparency = 1
     end
 end)
 
--- Projectile Velocity Override (backup method)
-local oldIndex
-oldIndex = hookmetamethod(game, "__index", function(self, key)
-    if key == "Velocity" and self.Name == "Gib_T" and GibAim.Enabled and currentTarget then
-        return (currentTarget.Position - self.Position).Unit * 250
-    end
-    return oldIndex(self, key)
-end)
-
--- Controls
-UserInputService.InputBegan:Connect(function(key)
-    if key.KeyCode == Enum.KeyCode.RightControl then
-        GibAim.Enabled = not GibAim.Enabled
-        print("Gib_T Aim:", GibAim.Enabled and "ACTIVE" or "DISABLED")
-    elseif key.KeyCode == Enum.KeyCode.LeftControl then
-        GibAim.Smoothing = GibAim.Smoothing == 0.08 and 0.2 or 0.08
-        print("Aim Speed toggled:", GibAim.Smoothing)
+-- 6. CONTROLS
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Insert then
+        NuclearAim.Enabled = not NuclearAim.Enabled
+        Humanoid.PlatformStand = NuclearAim.Enabled
+        print("💥 NUCLEAR AIM:", NuclearAim.Enabled and "ON" or "OFF")
+    elseif input.KeyCode == Enum.KeyCode.Delete then
+        NuclearAim.DeleteMap = not NuclearAim.DeleteMap
+        print("🗑️ Map Delete:", NuclearAim.DeleteMap and "ON" or "OFF")
     end
 end)
 
-print("🔥 GIB_T SILENT AIM LOADED! 🔥")
-print("RightCtrl = Toggle | LeftCtrl = Speed")
-print("الـ Gib_T bullets هتضرب الـ targets تلقائيًا!")
-print("اضغط Mouse1 + RightCtrl للـ auto fire")
+-- Respawn handler
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    Character = newChar
+    HumanoidRootPart = newChar:WaitForChild("HumanoidRootPart")
+    Humanoid = newChar:WaitForChild("Humanoid")
+end)
 
--- Anti-detection
-setfpscap(60)
+print("💣 NUCLEAR GIB_T HOMING AIMBOT ACTIVE!")
+print("Insert = Toggle | Delete = Map Delete Toggle")
+print("🎮 اضغط Mouse1 في أي مكان = الـ Gib_T تروح للـ target!")
+print("🗺️ الماب محذوف + جسمك مثبت + bullets homing = GG!")
