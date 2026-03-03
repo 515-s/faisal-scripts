@@ -18,41 +18,38 @@ local SMOOTH_SPEED = 12 -- سرعة تعجيل حركة الكاميرا (أكب
 -- جدول لتخزين Highlight لكل لاعب
 local highlights = {}
 
--- دالة مساعدة لإيجاد جزء "البطن" المناسب (HumanoidRootPart أو Torso)
-local function getBellyPart(character)
+-- دالة مساعدة لإيجاد الرأس
+local function getHeadPart(character)
     if not character then return nil end
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if hrp then return hrp end
-    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
-    return torso
+    return character:FindFirstChild("Head")
 end
 
 -- يفحص إذا كان الهدف مخفيًا خلف أي جسم عن الكاميرا
 local function isOccluded(targetCharacter)
-    local belly = getBellyPart(targetCharacter)
-    if not belly then return true end
+    local head = getHeadPart(targetCharacter)
+    if not head then return true end
 
     local origin = Camera.CFrame.Position
-    local direction = belly.Position - origin
+    local direction = head.Position - origin
 
     local rayParams = RaycastParams.new()
     rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-    -- تجاهل جسم اللاعب المحلي عشان ما يتصادم مع نفسه
+    rayParams.FilterDescendantsInstances = {}
+
     if LocalPlayer.Character then
         table.insert(rayParams.FilterDescendantsInstances, LocalPlayer.Character)
     end
 
     local result = Workspace:Raycast(origin, direction, rayParams)
     if not result then
-        -- ما ضرب شي: نعتبره غير محجوب
         return false
     end
 
     if result.Instance and result.Instance:IsDescendantOf(targetCharacter) then
-        return false -- ضرب الهدف نفسه => غير محجوب
+        return false
     end
 
-    return true -- فيه شيء بين الكاميرا والهدف
+    return true
 end
 
 -- ينشئ أو يرجع Highlight للاعب
@@ -78,17 +75,15 @@ local function findBestTarget()
     local bestPlayer = nil
     local bestDistance = math.huge
     if not LocalPlayer.Character then return nil end
-    local myBelly = getBellyPart(LocalPlayer.Character)
-    if not myBelly then return nil end
+    local myHead = getHeadPart(LocalPlayer.Character)
+    if not myHead then return nil end
 
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character.Parent then
-            local belly = getBellyPart(player.Character)
-            if belly then
-                local dist = (belly.Position - myBelly.Position).Magnitude
-                -- نفضل اللاعبين الظاهرين (غير محجوبين)
+            local head = getHeadPart(player.Character)
+            if head then
+                local dist = (head.Position - myHead.Position).Magnitude
                 local occluded = isOccluded(player.Character)
-                -- معامل للأولوية: اجعل اللاعبين غير المحجوبين أقل قيمة حتى يتفوقوا
                 local priorityDist = dist + (occluded and 10000 or 0)
                 if priorityDist < bestDistance then
                     bestDistance = priorityDist
@@ -149,28 +144,21 @@ RunService.RenderStepped:Connect(function(dt)
     if not Camera then return end
 
     if targetPlayer and targetPlayer.Character and targetPlayer.Character.Parent then
-        local belly = getBellyPart(targetPlayer.Character)
-        if belly then
-            -- موضع الكاميرا: خلف الهدف بمسافة CAMERA_DISTANCE بالنسبة لاتجاه الكاميرا الحالية
-            -- أفضل وضع ثابت: وضع الكاميرا بالنسبة للهدف (مثلاً على محور Z)
-            local targetPos = belly.Position
-            -- نضع الكاميرا بمقدار ثابت خلف وبمستوى أعلى من بطن الهدف
-            local offset = Vector3.new(0, CAMERA_HEIGHT, CAMERA_DISTANCE)
-            -- نبي الكاميرا تكون خلف الهدف بالنسبة لاتجاه الكاميرا العالمية (يمكن تعديل)
-            local desiredPos = targetPos + Vector3.new(0, CAMERA_HEIGHT, CAMERA_DISTANCE)
+        local head = getHeadPart(targetPlayer.Character)
+        if head then
+            -- كاميرا قريبة جدًا وثابتة على الرأس
+            local targetPos = head.Position
+            local offset = head.CFrame.LookVector * -0.5 -- نصف ستد فقط خلف الرأس
+            local desiredPos = targetPos + offset
 
-            -- نحسب CFrame ينظر مباشرة لبطن الهدف
             local desiredCFrame = CFrame.new(desiredPos, targetPos)
 
-            -- نعالج سلاسة الحركة
-            cameraTargetCFrame = cameraTargetCFrame:Lerp(desiredCFrame, math.clamp(SMOOTH_SPEED * dt, 0, 1))
             Camera.CameraType = Enum.CameraType.Scriptable
-            Camera.CFrame = cameraTargetCFrame
+            Camera.CFrame = desiredCFrame
             return
         end
     end
 
-    -- إذا ما فيه هدف، نخلي الكاميرا على الوضع الحر الافتراضي
     if Camera.CameraType == Enum.CameraType.Scriptable then
         Camera.CameraType = Enum.CameraType.Custom
     end
