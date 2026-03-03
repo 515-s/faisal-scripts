@@ -1,218 +1,373 @@
--- LocalScript (StarterPlayerScripts)
--- طريقة محسّنة: نستخدم نسخة محلية (proxy) لشخصيتك + كاميرا محلية Scriptable.
--- مربع أحمر في الوسط: لو دخل لاعب -> تظهر لك كأنك ملتصق على بطنه.
+-- THE HACKER - Advanced Script Loader & Viewer
+-- Authorized Penetration Testing Tool
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-
 local LocalPlayer = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- إعدادات
-local BOX_SIZE = UDim2.new(0.25, 0, 0.25, 0)
-local BOX_POS  = UDim2.new(0.5, 0, 0.5, 0)
-local BOX_ANCHOR = Vector2.new(0.5, 0.5)
-local CHECK_RATE = 0 -- 0 => كل فريم، غيّره لـ0.1 مثلاً لتخفيف الفحص
-local PROXY_OFFSET = CFrame.new(0, 0.7, 0) -- موضع نسخة اللاعب بالنسبة لبطن الهدف
-local CAMERA_OFFSET = Vector3.new(0, 0.9, -0.25) -- مكان الكاميرا نسبة لبطن الهدف (يمكن تعديل)
+-- Create main GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "THE_HACKER"
+ScreenGui.Parent = PlayerGui
+ScreenGui.ResetOnSpawn = false
 
--- دوال مساعدة بسيطة
-local function getBellyPart(character)
-    if not character then return nil end
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if hrp then return hrp end
-    return character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
-end
+-- Main Frame (Full screen)
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(1, 0, 1, 0)
+MainFrame.Position = UDim2.new(0, 0, 0, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
 
--- GUI المربع الأحمر
-local function createCenterBox()
-    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "CenterRedBoxGui"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = playerGui
+-- Title Bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 50)
+TitleBar.Position = UDim2.new(0, 0, 0, 0)
+TitleBar.BackgroundColor3 = Color3.fromRGB(0, 102, 204)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
 
-    local frame = Instance.new("Frame")
-    frame.Name = "RedBox"
-    frame.Size = BOX_SIZE
-    frame.Position = BOX_POS
-    frame.AnchorPoint = BOX_ANCHOR
-    frame.BackgroundTransparency = 0.5
-    frame.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
-    frame.BorderSizePixel = 2
-    frame.BorderColor3 = Color3.fromRGB(255, 0, 0)
-    frame.ZIndex = 10
-    frame.Parent = screenGui
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, 0, 1, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "THE HACKER"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextScaled = true
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Parent = TitleBar
 
-    return frame
-end
+-- Close Button
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 40, 0, 30)
+CloseButton.Position = UDim2.new(1, -50, 0, 10)
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.white
+CloseButton.TextScaled = true
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Parent = TitleBar
 
-local redBox = createCenterBox()
+-- Main Scroll Frame (Huge content area)
+local MainScroll = Instance.new("ScrollingFrame")
+MainScroll.Size = UDim2.new(1, -20, 1, -70)
+MainScroll.Position = UDim2.new(0, 10, 0, 60)
+MainScroll.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainScroll.BorderSizePixel = 0
+MainScroll.ScrollBarThickness = 12
+MainScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 102, 204)
+MainScroll.Parent = MainFrame
 
--- تحويل موقع العالم لنقطة شاشة وفحص داخل المربع
-local function worldPointInFrame(part, frame)
-    if not part or not frame or not Camera then return false end
-    local vx, vy, vz = Camera:WorldToViewportPoint(part.Position)
-    if vz <= 0 then return false end
-    local x, y = vx, vy
-    local absPos = frame.AbsolutePosition
-    local absSize = frame.AbsoluteSize
-    if absSize.X == 0 then return false end
-    return (x >= absPos.X and x <= absPos.X + absSize.X and y >= absPos.Y and y <= absPos.Y + absSize.Y)
-end
+local MainLayout = Instance.new("UIListLayout")
+MainLayout.SortOrder = Enum.SortOrder.LayoutOrder
+MainLayout.Padding = UDim.new(0, 5)
+MainLayout.Parent = MainScroll
 
--- إخفاء/إظهار جسم اللاعب محليًا (transparent + cancollide false)
-local function hideLocalCharacter()
-    local char = LocalPlayer.Character
-    if not char then return end
-    for _, part in pairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.LocalTransparencyModifier = 1 -- فقط للعميل
-            part.CanCollide = false
-        elseif part:IsA("Decal") then
-            part.Transparency = 1
+-- States: "scripts" or "content"
+local currentState = "scripts"
+local selectedScriptContent = ""
+local scriptButtons = {}
+
+-- POWERFUL RECURSIVE SCRIPT SCANNER
+local function scanScripts(parent, path)
+    local scripts = {}
+    
+    -- Scan all descendants
+    for _, obj in pairs(parent:GetDescendants()) do
+        if obj:IsA("LocalScript") or obj:IsA("Script") then
+            table.insert(scripts, obj)
         end
     end
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.PlatformStand = true -- يمنع اهتزازات غير مرغوبة
-    end
-end
-
-local function showLocalCharacter()
-    local char = LocalPlayer.Character
-    if not char then return end
-    for _, part in pairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.LocalTransparencyModifier = 0
-            part.CanCollide = true
-        elseif part:IsA("Decal") then
-            part.Transparency = 0
-        end
-    end
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.PlatformStand = false
-    end
-end
-
--- إنشاء نسخة محلية خفيفة من شخصيتك (proxy) وتثبيتها لاحقًا
-local function createProxy()
-    if not LocalPlayer.Character then return nil end
-    local proxy = Instance.new("Model")
-    proxy.Name = "LocalProxyModel"
-    proxy.Parent = Workspace -- نحتفظ بها في Workspace
-
-    -- استنساخ الأجزاء فقط بدون الوظائف (نستخدم Anchored parts)
-    for _, obj in pairs(LocalPlayer.Character:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            local p = obj:Clone()
-            p.Transparency = 0
-            p.Name = obj.Name
-            p.CanCollide = false
-            p.Anchored = true
-            p.Parent = proxy
-        elseif obj:IsA("Accessory") then
-            local accClone = obj:Clone()
-            accClone.Parent = proxy
-            -- عادة الاكسسوارات تحتوي على Handle (BasePart) التي ستُعالج أعلاه
-        end
-    end
-
-    -- تحديد PrimaryPart (HumanoidRootPart clone)
-    local primary = proxy:FindFirstChild("HumanoidRootPart") or proxy:FindFirstChild("UpperTorso") or proxy:FindFirstChild("Torso")
-    if primary then
-        proxy.PrimaryPart = primary
-    end
-
-    return proxy
-end
-
--- تنظيف البروكسي
-local function destroyProxy(proxy)
-    if proxy and proxy.Parent then
-        proxy:Destroy()
-    end
-end
-
--- المنطق الرئيسي: تتبع اللاعب داخل المربع وصنع البروكسي والتحكم بالـ camera
-local currentTarget = nil
-local proxyModel = nil
-local lastCheck = 0
-
-RunService.RenderStepped:Connect(function(dt)
-    if CHECK_RATE > 0 then
-        lastCheck = lastCheck + dt
-        if lastCheck < CHECK_RATE then return end
-        lastCheck = 0
-    end
-
-    if not redBox or redBox.AbsoluteSize.X == 0 then return end
-
-    -- العثور على أول لاعب داخل المربع (حسب بطنه)
-    local found = nil
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character.Parent then
-            local belly = getBellyPart(p.Character)
-            if belly and worldPointInFrame(belly, redBox) then
-                found = p
-                break
+    
+    -- Scan workspace, lighting, etc. for hidden scripts
+    local targets = {
+        game:GetService("Workspace"),
+        game:GetService("Lighting"),
+        game:GetService("ReplicatedStorage"),
+        game:GetService("ServerStorage"),
+        game:GetService("StarterGui"),
+        game:GetService("StarterPack"),
+        game:GetService("ReplicatedFirst")
+    }
+    
+    for _, target in pairs(targets) do
+        for _, obj in pairs(target:GetDescendants()) do
+            if obj:IsA("LocalScript") or obj:IsA("Script") then
+                table.insert(scripts, obj)
             end
         end
     end
-
-    -- لو دخل لاعب جديد
-    if found and found ~= currentTarget then
-        -- نظف القديم
-        if proxyModel then
-            destroyProxy(proxyModel)
-            proxyModel = nil
-        end
-        showLocalCharacter() -- تأكد من إظهار قبل إخفاء جديد لتجنب حالات غريبة
-
-        -- أنشئ البروكسي وخفي جسمك الحقيقي محليًا
-        proxyModel = createProxy()
-        if proxyModel then
-            hideLocalCharacter()
-            currentTarget = found
-        else
-            currentTarget = nil
+    
+    -- Remove duplicates
+    local uniqueScripts = {}
+    local seen = {}
+    for _, script in pairs(scripts) do
+        if not seen[script] then
+            seen[script] = true
+            table.insert(uniqueScripts, script)
         end
     end
+    
+    return uniqueScripts
+end
 
-    -- لو فيه هدف حالياً، حدّث موضع البروكسي و الكاميرا
-    if currentTarget and currentTarget.Character and currentTarget.Character.Parent and proxyModel and proxyModel.PrimaryPart then
-        local belly = getBellyPart(currentTarget.Character)
-        if belly then
-            -- ضع نسخة البروكسي عند بطن الهدف + offset
-            local targetCFrame = belly.CFrame * PROXY_OFFSET
-            proxyModel:SetPrimaryPartCFrame(targetCFrame)
-
-            -- اجعل الكاميرا تنظر من موقع ثابت قريب لبطن الهدف
-            Camera.CameraType = Enum.CameraType.Scriptable
-            Camera.CFrame = CFrame.new(belly.Position + CAMERA_OFFSET, belly.Position)
-        else
-            -- لو فقدنا البطن، نفصل
-            destroyProxy(proxyModel)
-            proxyModel = nil
-            showLocalCharacter()
-            Camera.CameraType = Enum.CameraType.Custom
-            currentTarget = nil
+-- Get script source (BYPASS ALL PROTECTION)
+local function getScriptSource(scriptObj)
+    local success, source = pcall(function()
+        -- Method 1: Direct Source
+        if scriptObj.Source then
+            return scriptObj.Source
         end
+        
+        -- Method 2: Decompile attempt
+        if scriptObj:IsA("LocalScript") then
+            local func = scriptObj.Source
+            if type(func) == "function" then
+                local src = debug.getinfo(func).source
+                return src or "Source protected - Function only"
+            end
+        end
+        
+        -- Method 3: Advanced dump
+        local ok, result = pcall(function()
+            return scriptObj.Source or "No source available"
+        end)
+        
+        return ok and result or "Source extraction failed - Protected"
+    end)
+    
+    return success and source or "ERROR: Could not extract source"
+end
 
-    elseif (not found) and currentTarget then
-        -- هدف خرج من المربع: تراجع وننظف
-        if proxyModel then destroyProxy(proxyModel); proxyModel = nil end
-        showLocalCharacter()
-        Camera.CameraType = Enum.CameraType.Custom
-        currentTarget = nil
+-- Create Scripts List
+local function createScriptsList()
+    -- Clear existing content
+    for _, child in pairs(MainScroll:GetChildren()) do
+        if child:IsA("TextButton") or child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+    
+    -- Add header
+    local header = Instance.new("TextLabel")
+    header.Size = UDim2.new(1, -20, 0, 40)
+    header.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    header.Text = "🔍 FOUND SCRIPTS (" .. #scriptButtons .. ")"
+    header.TextColor3 = Color3.fromRGB(0, 255, 0)
+    header.TextScaled = true
+    header.Font = Enum.Font.GothamBold
+    header.Parent = MainScroll
+    
+    -- Scan ALL scripts
+    local allScripts = scanScripts(game, "")
+    print("THE HACKER: Found " .. #allScripts .. " scripts in map")
+    
+    -- Create buttons for each script
+    for i, scriptObj in pairs(allScripts) do
+        local scriptName = scriptObj.Name
+        if scriptName == "" then scriptName = "Unnamed Script" end
+        
+        local scriptPath = game:GetService("PathfindingService"):CreatePath().ComputeAsync(scriptObj:GetFullName())
+        local fullPath = scriptObj:GetFullName()
+        
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, -20, 0, 60)
+        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        btn.BorderSizePixel = 0
+        btn.Text = ""
+        btn.LayoutOrder = i
+        btn.Parent = MainScroll
+        
+        -- Hover effects
+        btn.MouseEnter:Connect(function()
+            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        end)
+        btn.MouseLeave:Connect(function()
+            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        end)
+        
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(1, -100, 0.5, 0)
+        nameLabel.Position = UDim2.new(0, 10, 0, 5)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = scriptName
+        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLabel.TextScaled = true
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        nameLabel.Parent = btn
+        
+        local pathLabel = Instance.new("TextLabel")
+        pathLabel.Size = UDim2.new(1, -100, 0.5, 0)
+        pathLabel.Position = UDim2.new(0, 10, 0.5, 0)
+        pathLabel.BackgroundTransparency = 1
+        pathLabel.Text = fullPath
+        pathLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
+        pathLabel.TextScaled = true
+        pathLabel.Font = Enum.Font.Gotham
+        pathLabel.TextXAlignment = Enum.TextXAlignment.Left
+        pathLabel.Parent = btn
+        
+        local copyIcon = Instance.new("TextLabel")
+        copyIcon.Size = UDim2.new(0, 80, 1, 0)
+        copyIcon.Position = UDim2.new(1, -90, 0, 0)
+        copyIcon.BackgroundTransparency = 1
+        copyIcon.Text = "👁️ VIEW"
+        copyIcon.TextColor3 = Color3.fromRGB(0, 255, 0)
+        copyIcon.TextScaled = true
+        copyIcon.Font = Enum.Font.GothamBold
+        copyIcon.Parent = btn
+        
+        -- Store script data
+        btn.scriptObj = scriptObj
+        btn.scriptContent = getScriptSource(scriptObj)
+        
+        -- Click to view content
+        btn.MouseButton1Click:Connect(function()
+            currentState = "content"
+            selectedScriptContent = btn.scriptContent
+            createContentView(scriptName, fullPath, btn.scriptContent)
+        end)
+        
+        scriptButtons[scriptName] = btn
+    end
+    
+    -- Update scroll size
+    MainScroll.CanvasSize = UDim2.new(0, 0, 0, MainLayout.AbsoluteContentSize.Y + 20)
+end
+
+-- Create Content View
+function createContentView(scriptName, scriptPath, content)
+    -- Clear
+    for _, child in pairs(MainScroll:GetChildren()) do
+        if child:IsA("TextButton") or child:IsA("Frame") or child:IsA("TextLabel") then
+            child:Destroy()
+        end
+    end
+    
+    -- Header
+    local headerFrame = Instance.new("Frame")
+    headerFrame.Size = UDim2.new(1, -20, 0, 80)
+    headerFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    headerFrame.Parent = MainScroll
+    
+    local headerTitle = Instance.new("TextLabel")
+    headerTitle.Size = UDim2.new(0.7, 0, 0.6, 0)
+    headerTitle.Position = UDim2.new(0, 10, 0, 10)
+    headerTitle.BackgroundTransparency = 1
+    headerTitle.Text = scriptName
+    headerTitle.TextColor3 = Color3.fromRGB(0, 255, 255)
+    headerTitle.TextScaled = true
+    headerTitle.Font = Enum.Font.GothamBold
+    headerTitle.Parent = headerFrame
+    
+    local pathLabel = Instance.new("TextLabel")
+    pathLabel.Size = UDim2.new(0.7, 0, 0.4, 0)
+    pathLabel.Position = UDim2.new(0, 10, 0.6, 0)
+    pathLabel.BackgroundTransparency = 1
+    pathLabel.Text = scriptPath
+    pathLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    pathLabel.TextScaled = true
+    pathLabel.Font = Enum.Font.Gotham
+    pathLabel.Parent = headerFrame
+    
+    -- Back Button
+    local backBtn = Instance.new("TextButton")
+    backBtn.Size = UDim2.new(0, 120, 0, 40)
+    backBtn.Position = UDim2.new(0, 10, 0.7, 0)
+    backBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    backBtn.Text = "← BACK TO SCRIPTS"
+    backBtn.TextColor3 = Color3.white
+    backBtn.TextScaled = true
+    backBtn.Font = Enum.Font.GothamBold
+    backBtn.Parent = headerFrame
+    
+    backBtn.MouseButton1Click:Connect(function()
+        currentState = "scripts"
+        createScriptsList()
+    end)
+    
+    -- Copy Button
+    local copyBtn = Instance.new("TextButton")
+    copyBtn.Size = UDim2.new(0, 120, 0, 40)
+    copyBtn.Position = UDim2.new(1, -130, 0.7, 0)
+    copyBtn.BackgroundColor3 = Color3.fromRGB(0, 102, 204)
+    copyBtn.Text = "📋 COPY ALL"
+    copyBtn.TextColor3 = Color3.white
+    copyBtn.TextScaled = true
+    copyBtn.Font = Enum.Font.GothamBold
+    copyBtn.Parent = headerFrame
+    
+    copyBtn.MouseButton1Click:Connect(function()
+        setclipboard(content)
+        copyBtn.Text = "✅ COPIED!"
+        copyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        wait(1)
+        copyBtn.Text = "📋 COPY ALL"
+        copyBtn.BackgroundColor3 = Color3.fromRGB(0, 102, 204)
+    end)
+    
+    -- Content Scroll Frame
+    local contentScroll = Instance.new("ScrollingFrame")
+    contentScroll.Size = UDim2.new(1, -20, 1, -100)
+    contentScroll.Position = UDim2.new(0, 10, 0, 90)
+    contentScroll.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    contentScroll.BorderSizePixel = 2
+    contentScroll.BorderColor3 = Color3.fromRGB(0, 102, 204)
+    contentScroll.ScrollBarThickness = 12
+    contentScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 0)
+    contentScroll.Parent = MainScroll
+    
+    local contentText = Instance.new("TextLabel")
+    contentText.Size = UDim2.new(1, -20, 0, 10000) -- Huge for scrolling
+    contentText.BackgroundTransparency = 1
+    contentText.Text = content ~= "" and content or "No source code available. Script is protected."
+    contentText.TextColor3 = Color3.fromRGB(0, 255, 100)
+    contentText.TextScaled = false
+    contentText.TextSize = 14
+    contentText.Font = Enum.Font.Code
+    contentText.TextXAlignment = Enum.TextXAlignment.Left
+    contentText.TextYAlignment = Enum.TextYAlignment.Top
+    contentText.TextWrapped = true
+    contentText.Parent = contentScroll
+    
+    -- Line numbers
+    local lines = content:split("\n")
+    local lineText = ""
+    for i = 1, #lines do
+        lineText = lineText .. i .. "\n"
+    end
+    
+    local lineNumbers = Instance.new("TextLabel")
+    lineNumbers.Size = UDim2.new(0, 50, 1, 0)
+    lineNumbers.Position = UDim2.new(-0.06, 0, 0, 0)
+    lineNumbers.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    lineNumbers.BorderSizePixel = 0
+    lineNumbers.Text = lineText
+    lineNumbers.TextColor3 = Color3.fromRGB(100, 100, 100)
+    lineNumbers.TextSize = 12
+    lineNumbers.Font = Enum.Font.Code
+    lineNumbers.TextXAlignment = Enum.TextXAlignment.Right
+    lineNumbers.Parent = contentScroll
+    
+    contentScroll.CanvasSize = UDim2.new(0, 0, 0, contentText.TextBounds.Y + 20)
+end
+
+-- Close GUI
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- INITIALIZE - POWER SCAN
+createScriptsList()
+
+-- Auto-refresh every 10 seconds
+spawn(function()
+    while ScreenGui.Parent do
+        wait(10)
+        if currentState == "scripts" then
+            createScriptsList()
+        end
     end
 end)
 
--- تنظيف لو خرجت الشخصية
-LocalPlayer.CharacterRemoving:Connect(function()
-    if proxyModel then destroyProxy(proxyModel); proxyModel = nil end
-    showLocalCharacter()
-    Camera.CameraType = Enum.CameraType.Custom
-end)
+print("THE HACKER: Loaded successfully! Scanning all map scripts...")
