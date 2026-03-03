@@ -1,11 +1,10 @@
--- NUCLEAR GIB_T HOMING AIMBOT (Map Delete + Body Lock + Auto-Homing)
--- أقوى حل في التاريخ - كل طلقة تتبع الـ target زي المجنون!
+-- NUCLEAR GIB_T HOMING AIMBOT (Part-Only Delete + Body Lock)
+-- يحذف بس الـ "Part" parts + Homing bullets
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local PhysicsService = game:GetService("PhysicsService")
 local Workspace = workspace
 
 local LocalPlayer = Players.LocalPlayer
@@ -15,37 +14,45 @@ local Camera = Workspace.CurrentCamera
 
 getgenv().NuclearAim = {
     Enabled = true,
-    DeleteMap = true,  -- حذف الماب للـ clear sight
-    LockBody = true,   -- تثبيت الجسم
-    HomingForce = 5000, -- قوة جذب الـ bullets
+    DeleteParts = true,  -- حذف الـ "Part" parts بس
+    LockBody = true,
+    HomingForce = 5000,
     FOV = 400
 }
 
-print("🚀 NUCLEAR AIMBOT LOADING...")
+print("🎯 NUCLEAR PART-ONLY AIMBOT LOADING...")
 
--- 1. DELETE MAP (Clear Line of Sight)
-if NuclearAim.DeleteMap then
+-- 1. DELETE ONLY "Part" PARTS (دقيق جدًا)
+if NuclearAim.DeleteParts then
     spawn(function()
-        for i = 1, 10 do
+        for i = 1, 5 do  -- 5 دورات كفاية
             for _, obj in pairs(Workspace:GetDescendants()) do
-                if obj:IsA("BasePart") and obj.Parent ~= Character and obj.Parent ~= Camera and not obj.Parent:FindFirstChild("Humanoid") then
-                    pcall(function() obj:Destroy() end)
+                if obj:IsA("BasePart") and obj.Name == "Part" and obj.Parent ~= Character then
+                    pcall(function()
+                        obj:Destroy()
+                    end)
                 end
             end
-            wait(0.1)
+            wait(0.2)
         end
-        print("🗑️ MAP DELETED - CLEAR SIGHT!")
+        print("🗑️ ALL 'Part' PARTS DELETED!")
+    end)
+    
+    -- Monitor new "Part" parts
+    Workspace.DescendantAdded:Connect(function(desc)
+        if desc.Name == "Part" and desc:IsA("BasePart") and desc.Parent ~= Character then
+            wait(0.1)
+            pcall(function() desc:Destroy() end)
+        end
     end)
 end
 
--- 2. BODY LOCK (PlatformStand + NoClip)
+-- 2. BODY LOCK + NOCLIP
 local Humanoid = Character:WaitForChild("Humanoid")
-Humanoid.PlatformStand = true
-PhysicsService:SetPartCollisionGroup(HumanoidRootPart, "NoCollision")
+Humanoid.PlatformStand = NuclearAim.LockBody
 
--- NoClip function
 local function NoClip()
-    for _, part in pairs(Character:GetChildren()) do
+    for _, part in pairs(Character:GetDescendants()) do
         if part:IsA("BasePart") then
             part.CanCollide = false
         end
@@ -53,17 +60,17 @@ local function NoClip()
 end
 RunService.Stepped:Connect(NoClip)
 
--- 3. TARGET FINDER (أقرب player)
+-- 3. TARGET FINDER
 local function GetClosestEnemy()
     local closest, dist = nil, NuclearAim.FOV
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local targetPart = player.Character.HumanoidRootPart
-            local screenPos, onScreen = Camera:WorldToScreenPoint(targetPart.Position)
+            local targetHRP = player.Character.HumanoidRootPart
+            local screenPos, onScreen = Camera:WorldToScreenPoint(targetHRP.Position)
             if onScreen then
                 local distance = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
                 if distance < dist then
-                    closest = targetPart
+                    closest = targetHRP
                     dist = distance
                 end
             end
@@ -72,70 +79,77 @@ local function GetClosestEnemy()
     return closest
 end
 
--- 4. GIB_T BULLET HOMING (السحر الحقيقي!)
+-- 4. GIB_T + BULLET HOMING (القلب!)
 local targetLock = nil
-local bulletConnections = {}
 
--- Monitor ALL new parts (Gib_T أو أي bullet)
 Workspace.DescendantAdded:Connect(function(descendant)
-    if NuclearAim.Enabled and descendant:IsA("BasePart") and (descendant.Name:find("Gib") or descendant.Name:find("Bullet") or descendant.Name:find("Projectile") or descendant.Size.Magnitude < 2) then
-        targetLock = GetClosestEnemy()
-        if targetLock then
-            -- Homing BodyVelocity
-            local bv = Instance.new("BodyVelocity")
-            bv.MaxForce = Vector3.new(NuclearAim.HomingForce, NuclearAim.HomingForce, NuclearAim.HomingForce)
-            bv.Velocity = (targetLock.Position - descendant.Position).Unit * 300
-            
-            bv.Parent = descendant
-            
-            -- Update direction every frame
-            local conn
-            conn = RunService.Heartbeat:Connect(function()
-                if descendant.Parent and targetLock and targetLock.Parent then
-                    local newDir = (targetLock.Position + targetLock.Velocity * 0.05 - descendant.Position).Unit
-                    bv.Velocity = newDir * 300
-                else
-                    conn:Disconnect()
-                end
-            end)
-            
-            table.insert(bulletConnections, conn)
-            
-            -- Hit confirmation
-            spawn(function()
-                wait(0.5)
-                if descendant.Position:Distance(targetLock.Position) < 10 then
-                    print("🎯 GIB_T HIT CONFIRMED!")
-                end
-            end)
+    if NuclearAim.Enabled and descendant:IsA("BasePart") then
+        -- صيد Gib_T أو أي bullet صغير
+        local isBullet = descendant.Name:find("Gib") or 
+                        descendant.Name:find("Bullet") or 
+                        descendant.Name:find("Projectile") or 
+                        (descendant.Size.Magnitude < 3 and descendant.Size.Magnitude > 0.1)
+        
+        if isBullet then
+            targetLock = GetClosestEnemy()
+            if targetLock then
+                spawn(function()
+                    wait(0.05)  -- شوية delay عشان الـ bullet يستقر
+                    if descendant.Parent and targetLock.Parent then
+                        local bv = Instance.new("BodyVelocity", descendant)
+                        bv.MaxForce = Vector3.new(NuclearAim.HomingForce, NuclearAim.HomingForce, NuclearAim.HomingForce)
+                        bv.Velocity = Vector3.new(0,0,0)
+                        
+                        -- Homing loop
+                        local homingConn
+                        homingConn = RunService.Heartbeat:Connect(function()
+                            if descendant.Parent and targetLock and targetLock.Parent then
+                                local direction = (targetLock.Position + targetLock.AssemblyLinearVelocity * 0.08 - descendant.Position).Unit
+                                bv.Velocity = direction * 350
+                            else
+                                homingConn:Disconnect()
+                                if bv then bv:Destroy() end
+                            end
+                        end)
+                    end
+                end)
+            end
         end
     end
 end)
 
--- 5. BODY + CAMERA AUTO-AIM
-RunService.Heartbeat:Connect(function()
+-- 5. BODY + CAMERA LOCK
+RunService.RenderStepped:Connect(function()
     if NuclearAim.Enabled then
         local target = GetClosestEnemy()
         if target then
-            -- Lock body to face target
+            -- Body face target
             if NuclearAim.LockBody then
-                HumanoidRootPart.CFrame = CFrame.lookAt(HumanoidRootPart.Position, target.Position)
+                HumanoidRootPart.CFrame = CFrame.lookAt(HumanoidRootPart.Position, target.Position) * CFrame.Angles(0, math.rad(180), 0)
             end
             
-            -- Smooth camera
-            local camTween = TweenService:Create(Camera, TweenInfo.new(0.05), {
-                CFrame = CFrame.lookAt(Camera.CFrame.Position, target.Position)
-            })
-            camTween:Play()
+            -- Camera smooth lock
+            Camera.CFrame = Camera.CFrame:Lerp(
+                CFrame.lookAt(Camera.CFrame.Position, target.Position), 
+                0.12
+            )
             
-            -- Auto-shoot trigger
-            if UserInputService:IsMouseButtonPressed(1) then
-                -- Spam shoot remotes
-                for _, rem in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-                    if rem:IsA("RemoteEvent") and rem.Name:lower():find("shoot") then
-                        rem:FireServer(target.Position)
+            -- Auto-shoot عند mouse1
+            if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                spawn(function()
+                    for _, remote in pairs(game.ReplicatedStorage:GetDescendants()) do
+                        if remote:IsA("RemoteEvent") and (
+                            remote.Name:lower():find("shoot") or 
+                            remote.Name:lower():find("fire") or 
+                            remote.Name:lower():find("gun") or
+                            remote.Name:lower():find("bullet")
+                        ) then
+                            pcall(function()
+                                remote:FireServer(target.Position, target)
+                            end)
+                        end
                     end
-                end
+                end)
             end
         end
     end
@@ -145,22 +159,26 @@ end)
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.Insert then
         NuclearAim.Enabled = not NuclearAim.Enabled
-        Humanoid.PlatformStand = NuclearAim.Enabled
+        Humanoid.PlatformStand = NuclearAim.Enabled and NuclearAim.LockBody
         print("💥 NUCLEAR AIM:", NuclearAim.Enabled and "ON" or "OFF")
     elseif input.KeyCode == Enum.KeyCode.Delete then
-        NuclearAim.DeleteMap = not NuclearAim.DeleteMap
-        print("🗑️ Map Delete:", NuclearAim.DeleteMap and "ON" or "OFF")
+        NuclearAim.DeleteParts = not NuclearAim.DeleteParts
+        print("🗑️ 'Part' Delete:", NuclearAim.DeleteParts and "ON" or "OFF")
+    elseif input.KeyCode == Enum.KeyCode.End then
+        NuclearAim.LockBody = not NuclearAim.LockBody
+        Humanoid.PlatformStand = NuclearAim.LockBody
+        print("🔒 Body Lock:", NuclearAim.LockBody and "ON" or "OFF")
     end
 end)
 
--- Respawn handler
-LocalPlayer.CharacterAdded:Connect(function(newChar)
-    Character = newChar
-    HumanoidRootPart = newChar:WaitForChild("HumanoidRootPart")
-    Humanoid = newChar:WaitForChild("Humanoid")
+-- Character respawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    Character = char
+    HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
+    Humanoid = char:WaitForChild("Humanoid")
 end)
 
-print("💣 NUCLEAR GIB_T HOMING AIMBOT ACTIVE!")
-print("Insert = Toggle | Delete = Map Delete Toggle")
-print("🎮 اضغط Mouse1 في أي مكان = الـ Gib_T تروح للـ target!")
-print("🗺️ الماب محذوف + جسمك مثبت + bullets homing = GG!")
+print("🎯 NUCLEAR PART-ONLY AIMBOT READY!")
+print("Insert = Toggle Aim | Delete = Part Delete | End = Body Lock")
+print("🗑️ يحذف بس 'Part' parts")
+print("🎮 Mouse1 في أي مكان = Gib_T homing للـ target!")
