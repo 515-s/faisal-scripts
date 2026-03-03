@@ -140,27 +140,49 @@ spawn(function()
 end)
 
 -- نثبت الكاميرا في RenderStepped بحيث تتبع الهدف بسلاسة
-RunService.RenderStepped:Connect(function(dt)
-    if not Camera then return end
+-- ==============================
+-- الكاميرا الثانية (بدون ما تلغي كاميرتك الأساسية)
+-- ==============================
 
+-- إنشاء واجهة فيها ViewportFrame
+local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "SecondCameraGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+local viewport = Instance.new("ViewportFrame")
+viewport.Size = UDim2.new(0.3,0,0.3,0) -- مربع صغير في الزاوية
+viewport.Position = UDim2.new(0.68,0,0.68,0)
+viewport.BackgroundTransparency = 0
+viewport.BorderSizePixel = 0
+viewport.Parent = screenGui
+
+local secondCamera = Instance.new("Camera")
+viewport.CurrentCamera = secondCamera
+secondCamera.Parent = viewport
+
+-- تحديث الكاميرا الثانية فقط
+RunService.RenderStepped:Connect(function()
     if targetPlayer and targetPlayer.Character and targetPlayer.Character.Parent then
         local head = getHeadPart(targetPlayer.Character)
         if head then
-            -- كاميرا قريبة جدًا وثابتة على الرأس
-            local targetPos = head.Position
-            local offset = head.CFrame.LookVector * -0.5 -- نصف ستد فقط خلف الرأس
-            local desiredPos = targetPos + offset
+            -- نسخ شخصية الهدف داخل الـ Viewport
+            viewport:ClearAllChildren()
+            secondCamera = Instance.new("Camera")
+            viewport.CurrentCamera = secondCamera
+            secondCamera.Parent = viewport
 
-            local desiredCFrame = CFrame.new(desiredPos, targetPos)
+            local clone = targetPlayer.Character:Clone()
+            clone.Parent = viewport
 
-            Camera.CameraType = Enum.CameraType.Scriptable
-            Camera.CFrame = desiredCFrame
-            return
+            local headClone = clone:FindFirstChild("Head")
+            if headClone then
+                local pos = headClone.Position
+                local offset = headClone.CFrame.LookVector * -0.5
+                secondCamera.CFrame = CFrame.new(pos + offset, pos)
+            end
         end
-    end
-
-    if Camera.CameraType == Enum.CameraType.Scriptable then
-        Camera.CameraType = Enum.CameraType.Custom
     end
 end)
 
