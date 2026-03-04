@@ -1,38 +1,6 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local root = character:WaitForChild("HumanoidRootPart")
-
-local workspace = game:GetService("Workspace")
-
--- 🔥 حذف موديل Tree بالكامل
-local function removeTree(obj)
-	if obj:IsA("Model") and obj.Name == "Tree" then
-		obj:Destroy()
-	end
-end
-
--- 🔥 سحب الشست فعليًا
-local function pullChest(obj)
-	if obj:IsA("Model") and obj.Name == "Chest1" then
-		for _, part in ipairs(obj:GetDescendants()) do
-			if part:IsA("BasePart") then
-				part.Anchored = false
-				part.CanCollide = true
-			end
-		end
-		obj:PivotTo(root.CFrame * CFrame.new(0,0,-6))
-	end
-end
-
--- 🔁 حذف الموجود حالياً
-for _, obj in ipairs(workspace:GetDescendants()) do
-	removeTree(obj)
-	pullChest(obj)
-end
-
--- 👁️ مراقبة أي شي ينضاف جديد
-workspace.DescendantAdded:Connect(function(obj)
-	removeTree(obj)
-	pullChest(obj)
-end)
+local part = Instance.new("Part")
+part.Size = Vector3.new(500, 1, 5) -- طويل يمين ويسار
+part.Position = Vector3.new(0, 5, 0) -- مكانه
+part.Anchored = true -- ثابت
+part.Color = Color3.new(1,1,1) -- أبيض
+part.Parent = workspace
