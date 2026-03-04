@@ -1,6 +1,146 @@
-local part = Instance.new("Part")
-part.Size = Vector3.new(500, 1, 5) -- طويل يمين ويسار
-part.Position = Vector3.new(0, 5, 0) -- مكانه
-part.Anchored = true -- ثابت
-part.Color = Color3.new(1,1,1) -- أبيض
-part.Parent = workspace
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local UserInputService = game:GetService("UserInputService")
+
+local FRAME_SIZE = UDim2.new(0,240,0,110)
+
+local screen = Instance.new("ScreenGui")
+screen.Name = "LocalToolsGUI"
+screen.ResetOnSpawn = false
+screen.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = FRAME_SIZE
+frame.Position = UDim2.new(0,16,0,16)
+frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Parent = screen
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(0,120,0,30)
+title.Position = UDim2.new(0,10,0,8)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 17
+title.TextColor3 = Color3.fromRGB(230,230,230)
+title.Text = "Tools"
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = frame
+
+-- Credits
+local credits = Instance.new("TextLabel")
+credits.Size = UDim2.new(0,140,0,30)
+credits.Position = UDim2.new(0.5,-70,0,8)
+credits.BackgroundTransparency = 1
+credits.Font = Enum.Font.GothamBold
+credits.TextSize = 15
+credits.TextColor3 = Color3.fromRGB(180,180,180)
+credits.Text = "faisal-script"
+credits.TextXAlignment = Enum.TextXAlignment.Center
+credits.Parent = frame
+
+-- Toggle button
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0,30,0,30)
+toggleBtn.Position = UDim2.new(1,-40,0,8)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(36,36,36)
+toggleBtn.BorderSizePixel = 0
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 18
+toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
+toggleBtn.Text = "▼"
+toggleBtn.Parent = frame
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0,6)
+
+-- زر No Void
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(1,-20,0,44)
+button.Position = UDim2.new(0,10,0,52)
+button.BackgroundColor3 = Color3.fromRGB(36,36,36)
+button.BorderSizePixel = 0
+button.Text = "No Void"
+button.Font = Enum.Font.Gotham
+button.TextSize = 15
+button.TextColor3 = Color3.new(1,1,1)
+button.Parent = frame
+Instance.new("UICorner", button).CornerRadius = UDim.new(0,6)
+
+-- ===== Drag system (مصحح) =====
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(
+		startPos.X.Scale,
+		startPos.X.Offset + delta.X,
+		startPos.Y.Scale,
+		startPos.Y.Offset + delta.Y
+	)
+end
+
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input == dragInput then
+		update(input)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+-- Toggle open/close
+local open = true
+toggleBtn.MouseButton1Click:Connect(function()
+	open = not open
+	button.Visible = open
+	toggleBtn.Text = open and "▼" or "▲"
+
+	if open then
+		frame.Size = UDim2.new(0,240,0,110)
+	else
+		frame.Size = UDim2.new(0,240,0,46)
+	end
+end)
+
+-- إنشاء البارت
+button.MouseButton1Click:Connect(function()
+
+	local character = player.Character or player.CharacterAdded:Wait()
+	local hrp = character:WaitForChild("HumanoidRootPart")
+
+	local part = Instance.new("Part")
+	part.Size = Vector3.new(1000,1,1000)
+	part.Position = hrp.Position - Vector3.new(0,4,0)
+	part.Anchored = true
+	part.Transparency = 1
+	part.Parent = workspace
+
+end)
