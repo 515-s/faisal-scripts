@@ -156,7 +156,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- Speed
+-- Speed update
 local function updateSpeed()
 	local char = player.Character
 	if char and char:FindFirstChild("Humanoid") then
@@ -173,6 +173,20 @@ end)
 down.MouseButton1Click:Connect(function()
 	speed = math.clamp(speed - 10,0,100)
 	updateSpeed()
+end)
+
+-- تأكيد السرعة كل نصف ثانية
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+
+		local char = player.Character
+		if char and char:FindFirstChild("Humanoid") then
+			if char.Humanoid.WalkSpeed ~= speed then
+				char.Humanoid.WalkSpeed = speed
+			end
+		end
+	end
 end)
 
 -- No Void
