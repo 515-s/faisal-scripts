@@ -5,6 +5,7 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 local speed = 16
+local espEnabled = false
 
 -- GUI
 local screen = Instance.new("ScreenGui")
@@ -13,7 +14,7 @@ screen.ResetOnSpawn = false
 screen.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,260,0,150)
+frame.Size = UDim2.new(0,260,0,190)
 frame.Position = UDim2.new(0,16,0,16)
 frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
 frame.BorderSizePixel = 0
@@ -59,7 +60,7 @@ Instance.new("UICorner",toggleBtn).CornerRadius = UDim.new(0,6)
 
 -- No Void
 local noVoid = Instance.new("TextButton")
-noVoid.Size = UDim2.new(1,-20,0,36)
+noVoid.Size = UDim2.new(1,-20,0,32)
 noVoid.Position = UDim2.new(0,10,0,40)
 noVoid.BackgroundColor3 = Color3.fromRGB(36,36,36)
 noVoid.BorderSizePixel = 0
@@ -68,12 +69,25 @@ noVoid.TextSize = 14
 noVoid.TextColor3 = Color3.fromRGB(255,255,255)
 noVoid.Text = "No Void"
 noVoid.Parent = frame
-Instance.new("UICorner",noVoid).CornerRadius = UDim.new(0,6)
+Instance.new("UICorner",noVoid)
+
+-- ESP زر
+local espBtn = Instance.new("TextButton")
+espBtn.Size = UDim2.new(1,-20,0,32)
+espBtn.Position = UDim2.new(0,10,0,76)
+espBtn.BackgroundColor3 = Color3.fromRGB(36,36,36)
+espBtn.BorderSizePixel = 0
+espBtn.Font = Enum.Font.Gotham
+espBtn.TextSize = 14
+espBtn.TextColor3 = Color3.fromRGB(255,255,255)
+espBtn.Text = "ESP"
+espBtn.Parent = frame
+Instance.new("UICorner",espBtn)
 
 -- Speed Label
 local speedLabel = Instance.new("TextLabel")
-speedLabel.Size = UDim2.new(1,-60,0,36)
-speedLabel.Position = UDim2.new(0,10,0,85)
+speedLabel.Size = UDim2.new(1,-60,0,32)
+speedLabel.Position = UDim2.new(0,10,0,112)
 speedLabel.BackgroundColor3 = Color3.fromRGB(36,36,36)
 speedLabel.BorderSizePixel = 0
 speedLabel.Font = Enum.Font.Gotham
@@ -81,12 +95,12 @@ speedLabel.TextSize = 14
 speedLabel.TextColor3 = Color3.fromRGB(255,255,255)
 speedLabel.Text = "Speed: 16"
 speedLabel.Parent = frame
-Instance.new("UICorner",speedLabel).CornerRadius = UDim.new(0,6)
+Instance.new("UICorner",speedLabel)
 
 -- Speed Up
 local up = Instance.new("TextButton")
-up.Size = UDim2.new(0,36,0,16)
-up.Position = UDim2.new(1,-46,0,85)
+up.Size = UDim2.new(0,36,0,14)
+up.Position = UDim2.new(1,-46,0,112)
 up.BackgroundColor3 = Color3.fromRGB(36,36,36)
 up.BorderSizePixel = 0
 up.Text = "▲"
@@ -94,12 +108,12 @@ up.TextColor3 = Color3.new(1,1,1)
 up.Font = Enum.Font.GothamBold
 up.TextSize = 12
 up.Parent = frame
-Instance.new("UICorner",up).CornerRadius = UDim.new(0,6)
+Instance.new("UICorner",up)
 
 -- Speed Down
 local down = Instance.new("TextButton")
-down.Size = UDim2.new(0,36,0,16)
-down.Position = UDim2.new(1,-46,0,105)
+down.Size = UDim2.new(0,36,0,14)
+down.Position = UDim2.new(1,-46,0,130)
 down.BackgroundColor3 = Color3.fromRGB(36,36,36)
 down.BorderSizePixel = 0
 down.Text = "▼"
@@ -107,7 +121,7 @@ down.TextColor3 = Color3.new(1,1,1)
 down.Font = Enum.Font.GothamBold
 down.TextSize = 12
 down.Parent = frame
-Instance.new("UICorner",down).CornerRadius = UDim.new(0,6)
+Instance.new("UICorner",down)
 
 -- Collapse
 local opened = true
@@ -116,12 +130,13 @@ toggleBtn.MouseButton1Click:Connect(function()
 	opened = not opened
 
 	noVoid.Visible = opened
+	espBtn.Visible = opened
 	speedLabel.Visible = opened
 	up.Visible = opened
 	down.Visible = opened
 
 	if opened then
-		frame.Size = UDim2.new(0,260,0,150)
+		frame.Size = UDim2.new(0,260,0,190)
 		toggleBtn.Text = "▼"
 	else
 		frame.Size = UDim2.new(0,260,0,40)
@@ -189,34 +204,37 @@ task.spawn(function()
 	end
 end)
 
--- ESP لكل اللاعبين
+-- ESP function
 local function applyESP(plr)
 	if plr == player then return end
-
 	local char = plr.Character
 	if not char then return end
 
-	local highlight = char:FindFirstChild("ESPHighlight")
-
-	if not highlight then
-		highlight = Instance.new("Highlight")
+	if not char:FindFirstChild("ESPHighlight") then
+		local highlight = Instance.new("Highlight")
 		highlight.Name = "ESPHighlight"
 		highlight.FillColor = Color3.fromRGB(255,0,0)
 		highlight.OutlineColor = Color3.fromRGB(255,0,0)
 		highlight.FillTransparency = 0.5
-		highlight.OutlineTransparency = 0
 		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 		highlight.Parent = char
 	end
 end
 
--- تأكيد ESP كل نص ثانية
+-- ESP زر
+espBtn.MouseButton1Click:Connect(function()
+	espEnabled = not espEnabled
+end)
+
+-- تأكيد ESP
 task.spawn(function()
 	while true do
 		task.wait(0.5)
 
-		for _,plr in pairs(Players:GetPlayers()) do
-			applyESP(plr)
+		if espEnabled then
+			for _,plr in pairs(Players:GetPlayers()) do
+				applyESP(plr)
+			end
 		end
 	end
 end)
