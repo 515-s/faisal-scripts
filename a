@@ -109,7 +109,7 @@ down.TextSize = 12
 down.Parent = frame
 Instance.new("UICorner",down).CornerRadius = UDim.new(0,6)
 
--- Collapse logic
+-- Collapse
 local opened = true
 toggleBtn.MouseButton1Click:Connect(function()
 
@@ -175,7 +175,7 @@ down.MouseButton1Click:Connect(function()
 	updateSpeed()
 end)
 
--- تأكيد السرعة كل نصف ثانية
+-- تأكيد السرعة
 task.spawn(function()
 	while true do
 		task.wait(0.5)
@@ -185,6 +185,38 @@ task.spawn(function()
 			if char.Humanoid.WalkSpeed ~= speed then
 				char.Humanoid.WalkSpeed = speed
 			end
+		end
+	end
+end)
+
+-- ESP لكل اللاعبين
+local function applyESP(plr)
+	if plr == player then return end
+
+	local char = plr.Character
+	if not char then return end
+
+	local highlight = char:FindFirstChild("ESPHighlight")
+
+	if not highlight then
+		highlight = Instance.new("Highlight")
+		highlight.Name = "ESPHighlight"
+		highlight.FillColor = Color3.fromRGB(255,0,0)
+		highlight.OutlineColor = Color3.fromRGB(255,0,0)
+		highlight.FillTransparency = 0.5
+		highlight.OutlineTransparency = 0
+		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+		highlight.Parent = char
+	end
+end
+
+-- تأكيد ESP كل نص ثانية
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+
+		for _,plr in pairs(Players:GetPlayers()) do
+			applyESP(plr)
 		end
 	end
 end)
