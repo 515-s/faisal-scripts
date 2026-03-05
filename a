@@ -1,30 +1,32 @@
-local player = game.Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
-local FRAME_SIZE = UDim2.new(0,240,0,110)
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
+local speed = 16
+
+-- GUI
 local screen = Instance.new("ScreenGui")
 screen.Name = "LocalToolsGUI"
 screen.ResetOnSpawn = false
 screen.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = FRAME_SIZE
+frame.Size = UDim2.new(0,260,0,150)
 frame.Position = UDim2.new(0,16,0,16)
 frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
 frame.BorderSizePixel = 0
-frame.Active = true
 frame.Parent = screen
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
+Instance.new("UICorner",frame).CornerRadius = UDim.new(0,8)
 
 -- Title
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(0,120,0,30)
+title.Size = UDim2.new(0,100,0,28)
 title.Position = UDim2.new(0,10,0,8)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
-title.TextSize = 17
+title.TextSize = 16
 title.TextColor3 = Color3.fromRGB(230,230,230)
 title.Text = "Tools"
 title.TextXAlignment = Enum.TextXAlignment.Left
@@ -32,20 +34,20 @@ title.Parent = frame
 
 -- Credits
 local credits = Instance.new("TextLabel")
-credits.Size = UDim2.new(0,140,0,30)
-credits.Position = UDim2.new(0.5,-70,0,8)
+credits.Size = UDim2.new(0,120,0,28)
+credits.Position = UDim2.new(0.5,-60,0,8)
 credits.BackgroundTransparency = 1
 credits.Font = Enum.Font.GothamBold
-credits.TextSize = 15
+credits.TextSize = 14
 credits.TextColor3 = Color3.fromRGB(180,180,180)
 credits.Text = "faisal-script"
 credits.TextXAlignment = Enum.TextXAlignment.Center
 credits.Parent = frame
 
--- Toggle button
+-- Toggle
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0,30,0,30)
-toggleBtn.Position = UDim2.new(1,-40,0,8)
+toggleBtn.Size = UDim2.new(0,28,0,28)
+toggleBtn.Position = UDim2.new(1,-38,0,8)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(36,36,36)
 toggleBtn.BorderSizePixel = 0
 toggleBtn.Font = Enum.Font.GothamBold
@@ -53,60 +55,91 @@ toggleBtn.TextSize = 18
 toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
 toggleBtn.Text = "▼"
 toggleBtn.Parent = frame
-Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0,6)
+Instance.new("UICorner",toggleBtn).CornerRadius = UDim.new(0,6)
 
--- زر No Void
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(1,-20,0,44)
-button.Position = UDim2.new(0,10,0,52)
-button.BackgroundColor3 = Color3.fromRGB(36,36,36)
-button.BorderSizePixel = 0
-button.Text = "No Void"
-button.Font = Enum.Font.Gotham
-button.TextSize = 15
-button.TextColor3 = Color3.new(1,1,1)
-button.Parent = frame
-Instance.new("UICorner", button).CornerRadius = UDim.new(0,6)
+-- No Void
+local noVoid = Instance.new("TextButton")
+noVoid.Size = UDim2.new(1,-20,0,36)
+noVoid.Position = UDim2.new(0,10,0,40)
+noVoid.BackgroundColor3 = Color3.fromRGB(36,36,36)
+noVoid.BorderSizePixel = 0
+noVoid.Font = Enum.Font.Gotham
+noVoid.TextSize = 14
+noVoid.TextColor3 = Color3.fromRGB(255,255,255)
+noVoid.Text = "No Void"
+noVoid.Parent = frame
+Instance.new("UICorner",noVoid).CornerRadius = UDim.new(0,6)
 
--- ===== Drag system (مصحح) =====
+-- Speed Label
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(1,-60,0,36)
+speedLabel.Position = UDim2.new(0,10,0,85)
+speedLabel.BackgroundColor3 = Color3.fromRGB(36,36,36)
+speedLabel.BorderSizePixel = 0
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.TextSize = 14
+speedLabel.TextColor3 = Color3.fromRGB(255,255,255)
+speedLabel.Text = "Speed: 16"
+speedLabel.Parent = frame
+Instance.new("UICorner",speedLabel).CornerRadius = UDim.new(0,6)
+
+-- Speed Up
+local up = Instance.new("TextButton")
+up.Size = UDim2.new(0,36,0,16)
+up.Position = UDim2.new(1,-46,0,85)
+up.BackgroundColor3 = Color3.fromRGB(36,36,36)
+up.BorderSizePixel = 0
+up.Text = "▲"
+up.TextColor3 = Color3.new(1,1,1)
+up.Font = Enum.Font.GothamBold
+up.TextSize = 12
+up.Parent = frame
+Instance.new("UICorner",up).CornerRadius = UDim.new(0,6)
+
+-- Speed Down
+local down = Instance.new("TextButton")
+down.Size = UDim2.new(0,36,0,16)
+down.Position = UDim2.new(1,-46,0,105)
+down.BackgroundColor3 = Color3.fromRGB(36,36,36)
+down.BorderSizePixel = 0
+down.Text = "▼"
+down.TextColor3 = Color3.new(1,1,1)
+down.Font = Enum.Font.GothamBold
+down.TextSize = 12
+down.Parent = frame
+Instance.new("UICorner",down).CornerRadius = UDim.new(0,6)
+
+-- Collapse logic
+local opened = true
+toggleBtn.MouseButton1Click:Connect(function()
+
+	opened = not opened
+
+	noVoid.Visible = opened
+	speedLabel.Visible = opened
+	up.Visible = opened
+	down.Visible = opened
+
+	if opened then
+		frame.Size = UDim2.new(0,260,0,150)
+		toggleBtn.Text = "▼"
+	else
+		frame.Size = UDim2.new(0,260,0,40)
+		toggleBtn.Text = "▲"
+	end
+
+end)
+
+-- Drag
 local dragging = false
-local dragInput
 local dragStart
 local startPos
-
-local function update(input)
-	local delta = input.Position - dragStart
-	frame.Position = UDim2.new(
-		startPos.X.Scale,
-		startPos.X.Offset + delta.X,
-		startPos.Y.Scale,
-		startPos.Y.Offset + delta.Y
-	)
-end
 
 frame.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = true
 		dragStart = input.Position
 		startPos = frame.Position
-
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-
-frame.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement then
-		dragInput = input
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if dragging and input == dragInput then
-		update(input)
 	end
 end)
 
@@ -116,25 +149,37 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
--- Toggle open/close
-local open = true
-toggleBtn.MouseButton1Click:Connect(function()
-	open = not open
-	button.Visible = open
-	toggleBtn.Text = open and "▼" or "▲"
-
-	if open then
-		frame.Size = UDim2.new(0,240,0,110)
-	else
-		frame.Size = UDim2.new(0,240,0,46)
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(startPos.X.Scale,startPos.X.Offset + delta.X,startPos.Y.Scale,startPos.Y.Offset + delta.Y)
 	end
 end)
 
--- إنشاء البارت
-button.MouseButton1Click:Connect(function()
+-- Speed
+local function updateSpeed()
+	local char = player.Character
+	if char and char:FindFirstChild("Humanoid") then
+		char.Humanoid.WalkSpeed = speed
+	end
+	speedLabel.Text = "Speed: "..speed
+end
 
-	local character = player.Character or player.CharacterAdded:Wait()
-	local hrp = character:WaitForChild("HumanoidRootPart")
+up.MouseButton1Click:Connect(function()
+	speed = math.clamp(speed + 10,0,100)
+	updateSpeed()
+end)
+
+down.MouseButton1Click:Connect(function()
+	speed = math.clamp(speed - 10,0,100)
+	updateSpeed()
+end)
+
+-- No Void
+noVoid.MouseButton1Click:Connect(function()
+
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
 
 	local part = Instance.new("Part")
 	part.Size = Vector3.new(1000,1,1000)
