@@ -1,46 +1,417 @@
-local Players = game:GetService("Players")
+--[[
+	اسم السكربت: WordListGUI
+	المكان: StarterGui (أو أي LocalScript داخل واجهة)
+	الوصف: عند كتابة حرف واحد في TextBox، تظهر قائمة تحتوي على 100 كلمة مشهورة تبدأ بذا الحرف.
+	تحديث: الكلمات قابلة للنسخ (عبر تحديد النص ونسخه).
+--]]
 
-local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local humanoid = char:WaitForChild("Humanoid")
+local player = game.Players.LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "WordListGUI"
+gui.Parent = player:WaitForChild("PlayerGui")
 
-local saved = {}
-local removed = false
+-- إطار الخلفية
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 300, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+mainFrame.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+mainFrame.BackgroundTransparency = 0.2
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = gui
 
--- زر
-local screenGui = Instance.new("ScreenGui", player.PlayerGui)
+-- عنوان
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Text = "اكتب حرفاً واحداً"
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 20
+title.Parent = mainFrame
 
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0,150,0,50)
-button.Position = UDim2.new(0,20,0,20)
-button.Text = "Toggle Humanoid"
-button.Parent = screenGui
+-- مربع الإدخال
+local textBox = Instance.new("TextBox")
+textBox.Size = UDim2.new(1, -20, 0, 40)
+textBox.Position = UDim2.new(0, 10, 0, 40)
+textBox.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+textBox.TextColor3 = Color3.new(1, 1, 1)
+textBox.PlaceholderText = "مثال: h"
+textBox.PlaceholderColor3 = Color3.new(0.7, 0.7, 0.7)
+textBox.Font = Enum.Font.SourceSans
+textBox.TextSize = 24
+textBox.ClearTextOnFocus = false
+textBox.Parent = mainFrame
 
-button.MouseButton1Click:Connect(function()
+-- إطار القائمة (ScrollingFrame)
+local listFrame = Instance.new("ScrollingFrame")
+listFrame.Size = UDim2.new(1, -20, 1, -100)  -- ترك مساحة للإطار والعنوان
+listFrame.Position = UDim2.new(0, 10, 0, 90)
+listFrame.BackgroundColor3 = Color3.new(0.15, 0.15, 0.15)
+listFrame.BorderSizePixel = 0
+listFrame.ScrollBarThickness = 8
+listFrame.CanvasSize = UDim2.new(0, 0, 0, 0) -- سيتم تحديثه ديناميكياً
+listFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+listFrame.Parent = mainFrame
 
-	if not removed then
-		
-		saved = {}
+-- تخطيط عمودي للكلمات
+local layout = Instance.new("UIListLayout")
+layout.Parent = listFrame
+layout.SortOrder = Enum.SortOrder.Name
+layout.Padding = UDim.new(0, 2)
 
-		for _,v in pairs(humanoid:GetChildren()) do
-			local clone = v:Clone()
-			table.insert(saved, clone)
-			v:Destroy()
+-- قاعدة بيانات الكلمات (100 كلمة شهيرة لكل حرف A-Z)
+local wordDatabase = {
+	["a"] = {
+		"about", "above", "across", "act", "add", "afraid", "after", "again", "against", "age",
+		"ago", "agree", "air", "all", "allow", "also", "always", "am", "among", "and",
+		"anger", "animal", "annoy", "answer", "ant", "any", "apart", "apple", "area", "argue",
+		"arm", "army", "around", "arrive", "art", "as", "ask", "at", "attack", "aunt",
+		"autumn", "away", "awful", "baby", "back", "bad", "bag", "bake", "ball", "banana",
+		"band", "bank", "bar", "base", "basket", "bath", "be", "bean", "bear", "beautiful",
+		"bed", "bedroom", "bee", "beer", "before", "beg", "begin", "behave", "behind", "believe",
+		"bell", "below", "beside", "best", "better", "between", "big", "bill", "bird", "birthday",
+		"bit", "bite", "black", "blame", "blank", "blind", "block", "blood", "blow", "blue",
+		"board", "boat", "body", "boil", "bone", "book", "boot", "border", "born", "borrow",
+	},
+	["b"] = {
+		"baby", "back", "bad", "bag", "bake", "ball", "banana", "band", "bank", "bar",
+		"base", "basket", "bath", "be", "bean", "bear", "beautiful", "bed", "bee", "beer",
+		"before", "beg", "begin", "behave", "behind", "believe", "bell", "below", "beside", "best",
+		"better", "between", "big", "bill", "bird", "birthday", "bit", "bite", "black", "blame",
+		"blank", "blind", "block", "blood", "blow", "blue", "board", "boat", "body", "boil",
+		"bone", "book", "boot", "border", "born", "borrow", "boss", "both", "bottle", "bottom",
+		"bowl", "box", "boy", "branch", "brave", "bread", "break", "breakfast", "breathe", "bridge",
+		"bright", "bring", "brother", "brown", "brush", "build", "bullet", "burn", "burst", "bury",
+		"bus", "business", "busy", "but", "butter", "button", "buy", "by", "bye", "cabbage",
+	},
+	["c"] = {
+		"cake", "call", "camera", "camp", "can", "candle", "candy", "cap", "car", "card",
+		"care", "careful", "carry", "cart", "cat", "catch", "cattle", "cause", "cave", "cent",
+		"center", "cereal", "certain", "chain", "chair", "chalk", "chance", "change", "charge", "cheap",
+		"cheese", "chicken", "child", "children", "chocolate", "choice", "choose", "circle", "city", "class",
+		"clean", "clear", "clever", "climb", "clock", "close", "cloth", "clothes", "cloud", "club",
+		"coal", "coast", "coat", "code", "coffee", "cold", "collect", "college", "color", "comb",
+		"come", "comfort", "common", "company", "compare", "complete", "computer", "condition", "contain", "continue",
+		"control", "cook", "cool", "copper", "copy", "corn", "corner", "correct", "cost", "cotton",
+		"cough", "could", "count", "country", "course", "court", "cover", "cow", "crash", "crazy",
+	},
+	["d"] = {
+		"dad", "dance", "danger", "dark", "date", "daughter", "day", "dead", "deal", "dear",
+		"death", "decide", "declare", "deep", "deer", "degree", "delay", "depend", "describe", "desert",
+		"design", "desk", "destroy", "detail", "develop", "die", "difference", "different", "difficult", "dig",
+		"dinner", "direct", "direction", "dirt", "dirty", "discover", "discuss", "disease", "dish", "divide",
+		"do", "doctor", "dog", "dollar", "door", "double", "doubt", "down", "draw", "dream",
+		"dress", "drink", "drive", "drop", "drum", "dry", "duck", "dull", "during", "dust",
+		"duty", "each", "eager", "ear", "early", "earn", "earth", "east", "easy", "eat",
+		"edge", "education", "effect", "effort", "egg", "eight", "either", "electric", "elephant", "else",
+	},
+	["e"] = {
+		"each", "ear", "early", "earth", "east", "easy", "eat", "edge", "egg", "eight",
+		"either", "electric", "elephant", "else", "empty", "end", "enemy", "energy", "engine", "enjoy",
+		"enough", "enter", "entire", "equal", "escape", "even", "evening", "event", "ever", "every",
+		"exact", "except", "excite", "excuse", "exercise", "exist", "expect", "expensive", "experience", "explain",
+		"extra", "eye", "face", "fact", "fail", "fall", "false", "family", "famous", "far",
+		"farm", "fast", "fat", "father", "fault", "fear", "feed", "feel", "female", "few",
+		"field", "fight", "figure", "file", "fill", "film", "final", "find", "fine", "finger",
+		"finish", "fire", "firm", "first", "fish", "fit", "five", "fix", "flag", "flat",
+		"floor", "flour", "flow", "flower", "fly", "fold", "food", "fool", "foot", "for",
+	},
+	["f"] = {
+		"face", "fact", "fail", "fall", "family", "famous", "far", "farm", "fast", "fat",
+		"father", "fault", "fear", "feed", "feel", "female", "few", "field", "fight", "figure",
+		"file", "fill", "film", "final", "find", "fine", "finger", "finish", "fire", "firm",
+		"first", "fish", "fit", "five", "fix", "flag", "flat", "floor", "flour", "flower",
+		"fly", "fold", "food", "fool", "foot", "for", "force", "forest", "forget", "fork",
+		"form", "fortune", "forward", "four", "free", "freedom", "freeze", "fresh", "friend", "from",
+		"front", "fruit", "fuel", "full", "fun", "funny", "future", "game", "garden", "gas",
+		"gate", "gather", "general", "gentle", "get", "gift", "girl", "give", "glad", "glass",
+		"go", "goal", "god", "gold", "good", "govern", "grand", "grass", "gray", "great",
+	},
+	["g"] = {
+		"game", "garden", "gas", "gate", "gather", "general", "gentle", "get", "gift", "girl",
+		"give", "glad", "glass", "go", "goal", "god", "gold", "good", "govern", "grand",
+		"grass", "gray", "great", "green", "ground", "group", "grow", "guess", "guide", "gun",
+		"hair", "half", "hall", "hand", "hang", "happen", "happy", "hard", "harm", "hat",
+		"hate", "have", "he", "head", "healthy", "hear", "heart", "heat", "heavy", "hello",
+		"help", "her", "here", "hide", "high", "hill", "him", "history", "hit", "hold",
+		"hole", "holiday", "home", "hope", "horse", "hospital", "hot", "hotel", "hour", "house",
+		"how", "huge", "human", "hungry", "hurry", "hurt", "husband", "ice", "idea", "if",
+	},
+	["h"] = {
+		"hair", "half", "hall", "hand", "hang", "happen", "happy", "hard", "harm", "hat",
+		"hate", "have", "he", "head", "healthy", "hear", "heart", "heat", "heavy", "hello",
+		"help", "her", "here", "hide", "high", "hill", "him", "history", "hit", "hold",
+		"hole", "holiday", "home", "hope", "horse", "hospital", "hot", "hotel", "hour", "house",
+		"how", "huge", "human", "hungry", "hurry", "hurt", "husband", "ice", "idea", "if",
+		"ill", "important", "in", "inch", "include", "inside", "instead", "instrument", "interest", "into",
+		"invent", "iron", "island", "job", "join", "juice", "jump", "just", "keep", "key",
+	},
+	["i"] = {
+		"ice", "idea", "if", "ill", "important", "in", "inch", "include", "inside", "instead",
+		"instrument", "interest", "into", "invent", "iron", "island", "job", "join", "juice", "jump",
+		"just", "keep", "key", "kick", "kid", "kill", "kind", "king", "kiss", "kitchen",
+		"knee", "knife", "knock", "know", "lab", "lack", "lady", "lake", "land", "language",
+		"large", "last", "late", "laugh", "law", "lay", "lead", "learn", "leave", "left",
+		"leg", "legal", "lend", "length", "less", "lesson", "let", "letter", "level", "lie",
+		"life", "lift", "light", "like", "limit", "line", "link", "lip", "list", "listen",
+		"little", "live", "load", "local", "lock", "long", "look", "lord", "lose", "loss",
+		"lot", "love", "low", "luck", "lunch", "machine", "magazine", "magic", "mail", "main",
+	},
+	["j"] = {
+		"job", "join", "juice", "jump", "just", "jacket", "jar", "jaw", "jazz", "jealous",
+		"jeans", "jelly", "jewel", "job", "join", "joke", "journey", "joy", "judge", "juice",
+		"jump", "just", "kick", "kid", "kill", "kind", "king", "kiss", "kitchen", "knee",
+		"knife", "knock", "know", "lab", "lack", "lady", "lake", "land", "language", "large",
+		"last", "late", "laugh", "law", "lay", "lead", "learn", "leave", "left", "leg",
+		"legal", "lend", "length", "less", "lesson", "let", "letter", "level", "lie", "life",
+		"lift", "light", "like", "limit", "line", "link", "lip", "list", "listen", "little",
+		"live", "load", "local", "lock", "long", "look", "lord", "lose", "loss", "lot",
+		"love", "low", "luck", "lunch", "machine", "magazine", "magic", "mail", "main", "make",
+	},
+	["k"] = {
+		"keep", "key", "kick", "kid", "kill", "kind", "king", "kiss", "kitchen", "knee",
+		"knife", "knock", "know", "knowledge", "lab", "lack", "lady", "lake", "land", "language",
+		"large", "last", "late", "laugh", "law", "lay", "lead", "learn", "leave", "left",
+		"leg", "legal", "lend", "length", "less", "lesson", "let", "letter", "level", "lie",
+		"life", "lift", "light", "like", "limit", "line", "link", "lip", "list", "listen",
+		"little", "live", "load", "local", "lock", "long", "look", "lord", "lose", "loss",
+		"lot", "love", "low", "luck", "lunch", "machine", "magazine", "magic", "mail", "main",
+		"make", "male", "man", "many", "map", "mark", "market", "marry", "match", "matter",
+	},
+	["l"] = {
+		"lab", "lack", "lady", "lake", "land", "language", "large", "last", "late", "laugh",
+		"law", "lay", "lead", "learn", "leave", "left", "leg", "legal", "lend", "length",
+		"less", "lesson", "let", "letter", "level", "lie", "life", "lift", "light", "like",
+		"limit", "line", "link", "lip", "list", "listen", "little", "live", "load", "local",
+		"lock", "long", "look", "lord", "lose", "loss", "lot", "love", "low", "luck",
+		"lunch", "machine", "magazine", "magic", "mail", "main", "make", "male", "man", "many",
+		"map", "mark", "market", "marry", "match", "matter", "may", "maybe", "me", "meal",
+		"mean", "measure", "meat", "meet", "member", "memory", "men", "mention", "middle", "might",
+	},
+	["m"] = {
+		"machine", "magazine", "magic", "mail", "main", "make", "male", "man", "many", "map",
+		"mark", "market", "marry", "match", "matter", "may", "maybe", "me", "meal", "mean",
+		"measure", "meat", "meet", "member", "memory", "men", "mention", "middle", "might", "mile",
+		"milk", "mind", "mine", "minute", "miss", "model", "moment", "money", "month", "more",
+		"morning", "most", "mother", "mountain", "mouth", "move", "movie", "much", "music", "must",
+		"my", "name", "narrow", "nation", "nature", "near", "nearly", "neck", "need", "needle",
+		"neighbor", "neither", "net", "never", "new", "news", "newspaper", "next", "nice", "night",
+		"nine", "no", "noble", "noise", "none", "nor", "north", "nose", "not", "note",
+	},
+	["n"] = {
+		"name", "narrow", "nation", "nature", "near", "nearly", "neck", "need", "needle", "neighbor",
+		"neither", "net", "never", "new", "news", "newspaper", "next", "nice", "night", "nine",
+		"no", "noble", "noise", "none", "nor", "north", "nose", "not", "note", "nothing",
+		"notice", "now", "number", "obey", "object", "occur", "ocean", "odd", "of", "off",
+		"offer", "office", "often", "oil", "old", "on", "once", "one", "only", "open",
+		"operate", "opinion", "opposite", "or", "orange", "order", "other", "ought", "our", "out",
+		"outside", "over", "own", "page", "pain", "paint", "paper", "parallel", "parcel", "part",
+		"past", "paste", "pay", "peace", "pen", "pencil", "people", "pepper", "per", "perhaps",
+	},
+	["o"] = {
+		"obey", "object", "occur", "ocean", "odd", "of", "off", "offer", "office", "often",
+		"oil", "old", "on", "once", "one", "only", "open", "operate", "opinion", "opposite",
+		"or", "orange", "order", "other", "ought", "our", "out", "outside", "over", "own",
+		"page", "pain", "paint", "paper", "parallel", "parcel", "part", "past", "paste", "pay",
+		"peace", "pen", "pencil", "people", "pepper", "per", "perhaps", "period", "permit", "person",
+		"photograph", "piano", "pick", "picture", "piece", "pipe", "place", "plain", "plane", "plant",
+		"plate", "play", "please", "pleasure", "plenty", "pocket", "point", "poison", "polish", "political",
+		"poor", "porter", "position", "possible", "potato", "powder", "power", "present", "price", "prince",
+	},
+	["p"] = {
+		"page", "pain", "paint", "paper", "parallel", "parcel", "part", "past", "paste", "pay",
+		"peace", "pen", "pencil", "people", "pepper", "per", "perhaps", "period", "permit", "person",
+		"photograph", "piano", "pick", "picture", "piece", "pipe", "place", "plain", "plane", "plant",
+		"plate", "play", "please", "pleasure", "plenty", "pocket", "point", "poison", "polish", "political",
+		"poor", "porter", "position", "possible", "potato", "powder", "power", "present", "price", "prince",
+		"prison", "private", "probable", "problem", "process", "produce", "profit", "program", "promise", "property",
+		"protect", "prove", "provide", "public", "pull", "punish", "pupil", "purpose", "push", "put",
+	},
+	["q"] = {
+		"quality", "quantity", "quarter", "queen", "question", "quick", "quiet", "quite", "quote", "rabbit",
+		"race", "radio", "rail", "rain", "raise", "range", "rate", "rather", "reach", "read",
+		"ready", "real", "reason", "receive", "recent", "recognize", "record", "red", "regret", "regular",
+		"relation", "remember", "remove", "repair", "repeat", "replace", "reply", "report", "republic", "request",
+		"respect", "rest", "result", "return", "rice", "rich", "ride", "right", "ring", "ripe",
+		"rise", "risk", "river", "road", "rock", "roll", "roof", "room", "root", "rough",
+		"round", "rub", "rule", "run", "rush", "sad", "safe", "sail", "salt", "same",
+		"sand", "save", "say", "scale", "school", "science", "scissors", "screen", "sea", "search",
+	},
+	["r"] = {
+		"rabbit", "race", "radio", "rail", "rain", "raise", "range", "rate", "rather", "reach",
+		"read", "ready", "real", "reason", "receive", "recent", "recognize", "record", "red", "regret",
+		"regular", "relation", "remember", "remove", "repair", "repeat", "replace", "reply", "report", "republic",
+		"request", "respect", "rest", "result", "return", "rice", "rich", "ride", "right", "ring",
+		"ripe", "rise", "risk", "river", "road", "rock", "roll", "roof", "room", "root",
+		"rough", "round", "rub", "rule", "run", "rush", "sad", "safe", "sail", "salt",
+		"same", "sand", "save", "say", "scale", "school", "science", "scissors", "screen", "sea",
+		"search", "season", "seat", "second", "secret", "section", "secure", "see", "seed", "seek",
+	},
+	["s"] = {
+		"sad", "safe", "sail", "salt", "same", "sand", "save", "say", "scale", "school",
+		"science", "scissors", "screen", "sea", "search", "season", "seat", "second", "secret", "section",
+		"secure", "see", "seed", "seek", "sell", "send", "sense", "sentence", "separate", "serve",
+		"service", "set", "settle", "seven", "sex", "shade", "shake", "shall", "shape", "share",
+		"sharp", "she", "sheep", "sheet", "shelf", "shine", "ship", "shirt", "shock", "shoe",
+		"shoot", "shop", "short", "should", "shoulder", "shout", "show", "sick", "side", "sight",
+		"sign", "silence", "silly", "silver", "similar", "simple", "since", "sing", "single", "sink",
+		"sir", "sister", "sit", "situation", "six", "size", "skill", "skin", "skirt", "sky",
+	},
+	["t"] = {
+		"table", "tail", "take", "talk", "tall", "taste", "tax", "tea", "teach", "team",
+		"tear", "telephone", "television", "tell", "ten", "tend", "term", "terrible", "test", "than",
+		"thank", "that", "the", "their", "them", "then", "there", "therefore", "these", "they",
+		"thick", "thin", "thing", "think", "third", "this", "those", "though", "thought", "thousand",
+		"thread", "three", "throat", "through", "throw", "thus", "ticket", "tie", "tight", "till",
+		"time", "tin", "tire", "to", "today", "together", "tomorrow", "tone", "too", "took",
+		"tool", "tooth", "top", "total", "touch", "toward", "town", "track", "trade", "traffic",
+		"train", "transport", "travel", "tree", "trouble", "trousers", "true", "trust", "try", "tube",
+	},
+	["u"] = {
+		"ugly", "umbrella", "uncle", "under", "understand", "unit", "universe", "university", "unless", "until",
+		"up", "upon", "upper", "upward", "us", "use", "usual", "vegetable", "vehicle", "very",
+		"victory", "view", "village", "violin", "visit", "voice", "wait", "walk", "wall", "want",
+		"war", "warm", "was", "wash", "waste", "watch", "water", "wave", "way", "we",
+		"weak", "wear", "week", "weight", "welcome", "well", "west", "wet", "what", "wheel",
+		"when", "where", "which", "while", "white", "who", "why", "wide", "wife", "wild",
+		"will", "win", "wind", "window", "wine", "wing", "winter", "wire", "wise", "wish",
+		"with", "within", "without", "woman", "wonder", "wood", "word", "work", "world", "worry",
+	},
+	["v"] = {
+		"valley", "valuable", "value", "vegetable", "vehicle", "very", "victory", "view", "village", "violin",
+		"visit", "voice", "wait", "walk", "wall", "want", "war", "warm", "was", "wash",
+		"waste", "watch", "water", "wave", "way", "we", "weak", "wear", "week", "weight",
+		"welcome", "well", "west", "wet", "what", "wheel", "when", "where", "which", "while",
+		"white", "who", "why", "wide", "wife", "wild", "will", "win", "wind", "window",
+		"wine", "wing", "winter", "wire", "wise", "wish", "with", "within", "without", "woman",
+		"wonder", "wood", "word", "work", "world", "worry", "would", "write", "wrong", "yard",
+	},
+	["w"] = {
+		"wait", "walk", "wall", "want", "war", "warm", "was", "wash", "waste", "watch",
+		"water", "wave", "way", "we", "weak", "wear", "week", "weight", "welcome", "well",
+		"west", "wet", "what", "wheel", "when", "where", "which", "while", "white", "who",
+		"why", "wide", "wife", "wild", "will", "win", "wind", "window", "wine", "wing",
+		"winter", "wire", "wise", "wish", "with", "within", "without", "woman", "wonder", "wood",
+		"word", "work", "world", "worry", "would", "write", "wrong", "yard", "year", "yellow",
+		"yes", "yesterday", "yet", "you", "young", "your", "zero", "zoo", "actual", "age",
+	},
+	["x"] = {
+		"x-ray", "xenon", "xerox", "xylophone", "xenophobia", "xylem", "xanthic", "xeric", "xerophyte", "xenial",
+		"xenon", "xyloid", "xylograph", "xyst", "xenodochy", "xenomania", "xenophile", "xenophobe", "xerarch", "xerasia",
+		"xeriscape", "xeroderma", "xerophile", "xerophily", "xerophthalmia", "xerophyte", "xerostomia", "xiphoid", "xiphosuran", "xylocarp",
+		"xylograph", "xyloid", "xylophagous", "xylophone", "xylose", "xylyl", "xyster", "xystus", "xenopus", "xenurine",
+		"xenyl", "xerafin", "xeric", "xerocopy", "xerogel", "xerography", "xeroma", "xerophagia", "xerophilous", "xerophytic",
+		"xerothermic", "xiphias", "xiphisterna", "xiphoid", "xiphophyllous", "xiphopagus", "xylanthrax", "xylate", "xylem", "xylene",
+		"xylenol", "xylia", "xylidic", "xylidine", "xylite", "xylitol", "xylobalsamum", "xylocarpous", "xylochrome", "xylocopa",
+		"xylogen", "xyloglyphy", "xylograph", "xylographer", "xylography", "xyloid", "xyloidin", "xylol", "xylolite", "xylology",
+		"xyloma", "xylometer", "xylophagan", "xylophage", "xylophagous", "xylophilous", "xylophone", "xylophonic", "xylopia", "xylose",
+	},
+	["y"] = {
+		"yard", "year", "yellow", "yes", "yesterday", "yet", "you", "young", "your", "yacht",
+		"yank", "yap", "yard", "yarn", "yawn", "yeah", "year", "yell", "yellow", "yes",
+		"yesterday", "yet", "yield", "yoga", "yogurt", "yoke", "yolk", "you", "young", "your",
+		"yours", "yourself", "youth", "yummy", "yacht", "yack", "yah", "yak", "yam", "yank",
+		"yap", "yarn", "yaw", "yawn", "yea", "yeah", "year", "yearn", "yeast", "yell",
+		"yellow", "yelp", "yen", "yes", "yesterday", "yet", "yield", "yip", "yoga", "yogurt",
+		"yoke", "yolk", "yonder", "you", "young", "your", "yours", "yourself", "youth", "yowl",
+		"yucca", "yuck", "yummy", "yacht", "yack", "yah", "yak", "yam", "yank", "yap",
+	},
+	["z"] = {
+		"zero", "zoo", "zone", "zebra", "zigzag", "zinc", "zip", "zodiac", "zombie", "zoom",
+		"zucchini", "zephyr", "zeppelin", "zeal", "zealous", "zest", "zesty", "zeta", "zeugma", "zibeth",
+		"zig", "zill", "zillion", "zinc", "zing", "zinnia", "zip", "zipper", "zircon", "zither",
+		"zodiac", "zombie", "zonal", "zone", "zonk", "zoo", "zoology", "zoom", "zoophyte", "zootomy",
+		"zori", "zoster", "zounds", "zucchini", "zwieback", "zydeco", "zygoma", "zygote", "zymase", "zymogen",
+		"zymology", "zymolysis", "zymometer", "zymosis", "zymotic", "zymurgy", "zythum", "zyzzyva", "zany", "zap",
+		"zazen", "zealot", "zealotry", "zebra", "zebu", "zed", "zeitgeist", "zen", "zenith", "zephyr",
+		"zeppelin", "zero", "zest", "zeta", "zeugma", "zibeth", "zig", "zigzag", "zill", "zillion",
+	},
+}
+
+-- دالة لتنظيف القائمة الحالية وعرض كلمات جديدة
+local function showWordsForLetter(letter)
+	-- مسح المحتوى القديم
+	for _, child in ipairs(listFrame:GetChildren()) do
+		if child:IsA("TextBox") then
+			child:Destroy()
 		end
-
-		removed = true
-		button.Text = "Restore"
-
-	else
-		
-		for _,v in pairs(saved) do
-			v.Parent = humanoid
-		end
-
-		saved = {}
-		removed = false
-		button.Text = "Remove"
-
 	end
 
+	if letter and letter ~= "" then
+		-- البحث في قاعدة البيانات
+		local words = wordDatabase[letter:lower()]
+		if words then
+			-- إضافة كل كلمة كـ TextBox غير قابل للتحرير (لتمكين النسخ)
+			for _, word in ipairs(words) do
+				local wordBox = Instance.new("TextBox")
+				wordBox.Size = UDim2.new(1, 0, 0, 25)
+				wordBox.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+				wordBox.BackgroundTransparency = 0.3
+				wordBox.TextColor3 = Color3.new(1, 1, 1)
+				wordBox.Text = word
+				wordBox.Font = Enum.Font.SourceSans
+				wordBox.TextSize = 18
+				wordBox.TextEditable = false  -- غير قابل للتحرير ولكن يمكن تحديده ونسخه
+				wordBox.ClearTextOnFocus = false
+				wordBox.Parent = listFrame
+			end
+		else
+			-- إذا لم يكن الحرف موجودًا في القاعدة (نظرياً لن يحدث لأننا غطينا جميع الأحرف)
+			local emptyBox = Instance.new("TextBox")
+			emptyBox.Size = UDim2.new(1, 0, 0, 30)
+			emptyBox.BackgroundTransparency = 1
+			emptyBox.TextColor3 = Color3.new(1, 0.5, 0.5)
+			emptyBox.Text = "لا توجد كلمات لهذا الحرف"
+			emptyBox.Font = Enum.Font.SourceSans
+			emptyBox.TextSize = 18
+			emptyBox.TextEditable = false
+			emptyBox.Parent = listFrame
+		end
+	end
+end
+
+-- ربط حدث تغيير النص في مربع الإدخال
+textBox.Changed:Connect(function(property)
+	if property == "Text" then
+		local text = textBox.Text
+		-- إذا كان النص فارغًا، نمسح القائمة
+		if text == "" then
+			showWordsForLetter(nil)
+			return
+		end
+		-- نأخذ الحرف الأول فقط
+		local firstChar = text:sub(1, 1):lower()
+		-- التحقق من أنه حرف إنجليزي
+		if firstChar:match("%a") then
+			showWordsForLetter(firstChar)
+		else
+			-- إذا لم يكن حرفًا، نظهر رسالة خطأ
+			showWordsForLetter(nil)
+			local errorBox = Instance.new("TextBox")
+			errorBox.Size = UDim2.new(1, 0, 0, 30)
+			errorBox.BackgroundTransparency = 1
+			errorBox.TextColor3 = Color3.new(1, 0.5, 0.5)
+			errorBox.Text = "يرجى كتابة حرف إنجليزي واحد فقط"
+			errorBox.Font = Enum.Font.SourceSans
+			errorBox.TextSize = 18
+			errorBox.TextEditable = false
+			errorBox.Parent = listFrame
+		end
+	end
 end)
+
+-- تهيئة أولية: نعرض رسالة ترحيب أو نترك القائمة فارغة
+showWordsForLetter(nil)
+
+-- إضافة بعض التجميلات
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = mainFrame
+
+local textBoxCorner = Instance.new("UICorner")
+textBoxCorner.CornerRadius = UDim.new(0, 5)
+textBoxCorner.Parent = textBox
+
+-- لجعل الكلمات قابلة للنسخ بشكل أفضل، يمكننا إضافة حدث نسخ عند النقر المزدوج (اختياري)
+-- ولكن بما أن TextBox يدعم التحديد والنسخ عبر Ctrl+C، فهذا كافٍ.
