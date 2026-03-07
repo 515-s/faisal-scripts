@@ -1,48 +1,46 @@
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
-local enabled = false
-local connection
+local char = player.Character or player.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
 
-local function setRootNoCollide(state)
-	local char = player.Character
-	if not char then return end
-	local root = char:FindFirstChild("HumanoidRootPart")
-	if not root then return end
+local saved = {}
+local removed = false
 
-	if state then
-		-- Keep CanCollide false every frame to override أي محاولة للقتل أو التصادم
-		connection = RunService.RenderStepped:Connect(function()
-			root.CanCollide = false
-			root.CanTouch = false
-		end)
-	else
-		if connection then
-			connection:Disconnect()
-		end
-		root.CanCollide = true
-		root.CanTouch = true
-	end
-end
-
--- GUI
-local gui = Instance.new("ScreenGui")
-gui.Parent = player:WaitForChild("PlayerGui")
+-- زر
+local screenGui = Instance.new("ScreenGui", player.PlayerGui)
 
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0,160,0,40)
+button.Size = UDim2.new(0,150,0,50)
 button.Position = UDim2.new(0,20,0,20)
-button.Text = "Root Ghost OFF"
-button.Parent = gui
+button.Text = "Toggle Humanoid"
+button.Parent = screenGui
 
 button.MouseButton1Click:Connect(function()
-	enabled = not enabled
-	if enabled then
-		setRootNoCollide(true)
-		button.Text = "Root Ghost ON"
+
+	if not removed then
+		
+		saved = {}
+
+		for _,v in pairs(humanoid:GetChildren()) do
+			local clone = v:Clone()
+			table.insert(saved, clone)
+			v:Destroy()
+		end
+
+		removed = true
+		button.Text = "Restore"
+
 	else
-		setRootNoCollide(false)
-		button.Text = "Root Ghost OFF"
+		
+		for _,v in pairs(saved) do
+			v.Parent = humanoid
+		end
+
+		saved = {}
+		removed = false
+		button.Text = "Remove"
+
 	end
+
 end)
