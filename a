@@ -1,7 +1,4 @@
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
-
-local models = {}
 
 local function isMoving(model)
 	for _,v in pairs(model:GetDescendants()) do
@@ -14,39 +11,28 @@ local function isMoving(model)
 	return false
 end
 
-local function disableTouch(model)
+local function disableModel(model)
 	for _,v in pairs(model:GetDescendants()) do
 		if v:IsA("BasePart") then
 			v.CanTouch = false
+			v.CanCollide = false
+			v.Anchored = true
+		elseif v:IsA("Script") or v:IsA("LocalScript") then
+			v:Destroy()
 		end
 	end
 end
 
-local function checkModel(model)
-	if model:IsA("Model") and #model.Name > 15 then
-		table.insert(models, model)
-	end
-end
-
--- فحص الموجود
-for _,v in pairs(Workspace:GetDescendants()) do
-	if v:IsA("Model") then
-		checkModel(v)
-	end
-end
-
--- فحص الجديد
-Workspace.DescendantAdded:Connect(function(v)
-	if v:IsA("Model") then
-		checkModel(v)
-	end
-end)
-
--- مراقبة الحركة
-RunService.Heartbeat:Connect(function()
-	for _,model in pairs(models) do
-		if model.Parent and isMoving(model) then
-			disableTouch(model)
+while true do
+	for _,v in pairs(Workspace:GetDescendants()) do
+		if v:IsA("Model") and #v.Name > 15 then
+			if isMoving(v) then
+				disableModel(v)
+				pcall(function()
+					v:Destroy()
+				end)
+			end
 		end
 	end
-end)
+	task.wait(1)
+end
