@@ -1,85 +1,198 @@
+-- Destroy-and-restore HumanoidRootPart (local, sync-safe)
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
-local fakeRoot
-local enabled = false
+local state = false -- false = normal, true = root destroyed (replaced)
+local saving = false
 
-local function getChar()
+local savedRootData = nil    -- table to keep original root properties
+local savedMotorData = nil   -- array of motor info
+
+local function getCharacter()
 	return player.Character or player.CharacterAdded:Wait()
 end
 
-local function removeRoot()
-
-	local char = getChar()
-	local root = char:FindFirstChild("HumanoidRootPart")
-	local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
-
-	if root and torso then
-
-		fakeRoot = Instance.new("Part")
-		fakeRoot.Size = Vector3.new(2,2,1)
-		fakeRoot.Transparency = 1
-		fakeRoot.Anchored = false
-		fakeRoot.CanCollide = false
-		fakeRoot.CFrame = root.CFrame
-		fakeRoot.Parent = char
-
-		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = torso
-		weld.Part1 = fakeRoot
-		weld.Parent = fakeRoot
-
-		root:Destroy()
+local function findMotor6DConnectedTo(root)
+	local list = {}
+	for _, obj in ipairs(getCharacter():GetDescendants()) do
+		if obj:IsA("Motor6D") then
+			-- record only motors that reference this root (either Part0 or Part1)
+			if obj.Part0 == root or obj.Part1 == root then
+				table.insert(list, {
+					Name = obj.Name,
+					Part0Name = obj.Part0 and obj.Part0.Name or nil,
+					Part1Name = obj.Part1 and obj.Part1.Name or nil,
+					C0 = obj.C0,
+					C1 = obj.C1,
+					ParentName = obj.Parent and obj.Parent.Name or nil
+				})
+			end
+		end
 	end
-
+	return list
 end
 
-local function restoreRoot()
-
-	local char = getChar()
-	local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
-
-	if torso and fakeRoot then
-
-		local root = Instance.new("Part")
-		root.Name = "HumanoidRootPart"
-		root.Size = Vector3.new(2,2,1)
-		root.Transparency = 1
-		root.CanCollide = false
-		root.CFrame = fakeRoot.CFrame
-		root.Parent = char
-
-		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = torso
-		weld.Part1 = root
-		weld.Parent = root
-
-		fakeRoot:Destroy()
-		fakeRoot = nil
-	end
-
+local function makeReplacementRoot(props)
+	local char = getCharacter()
+	local newRoot = Instance.new("Part")
+	newRoot.Name = "HumanoidRootPart"
+	newRoot.Size = props.Size or Vector3.new(2,2,1)
+	newRoot.CFrame = props.CFrame or char.PrimaryPart and char.PrimaryPart.CFrame or CFrame.new()
+	newRoot.Transparency = 1
+	newRoot.CanCollide = false
+	newRoot.Massless = true
+	newRoot.Parent = char
+	return newRoot
 end
 
--- GUI
+local function recreateMotors(motorTable, newRoot)
+	local char = getCharacter()
+	for _,m in ipairs(motorTable) do
+		-- try to find Part0 and Part1 by name in the current character
+		local part0 = char:FindFirstChild(m.Part0Name)
+		local part1 = char:FindFirstChild(m.Part1Name)
+		-- if one of them was the old root, replace with newRoot
+		if part0 == nil and m.Part0Name == "HumanoidRootPart" then part0 = newRoot end
+		if part1 == nil and m.Part1Name == "HumanoidRootPart" then part1 = newRoot end
+		-- if both parts found, create Motor6D
+		if part0 and part1 then
+			local motor = Instance.new("Motor6D")
+			motor.Name = m.Name or "Root"
+			motor.Part0 = part0
+			motor.Part1 = part1
+			if m.C0 then motor.C0 = m.C0 end
+			if m.C1 then motor.C1 = m.C1 end
+			-- parent motor to Part0 if possible (common practice)
+			motor.Parent = part0
+		end
+	end
+end
+
+local function destroyOriginalRootSafely()
+	if saving then return end
+	saving = true
+	local char = getCharacter()
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then
+		saving = false
+		return
+	end
+
+	-- gather motor6D info that reference hrp
+	local motors = findMotor6DConnectedTo(hrp)
+
+	-- save root properties
+	savedRootData = {
+		Size = hrp.Size,
+		CFrame = hrp.CFrame,
+		Velocity = hrp.AssemblyLinearVelocity
+	}
+	savedMotorData = motors
+
+	-- create replacement
+	local newRoot = makeReplacementRoot(savedRootData)
+
+	-- recreate motors pointing to newRoot
+	recreateMotors(motors, newRoot)
+
+	-- finally destroy original HRP (this removes the old part but motors now connected to newRoot)
+	pcall(function() hrp:Destroy() end)
+
+	saving = false
+end
+
+local function restoreOriginalRoot()
+	if saving then return end
+	saving = true
+	local char = getCharacter()
+	-- find current root (should be replacement)
+	local current = char:FindFirstChild("HumanoidRootPart")
+	-- create restored root from saved data
+	if savedRootData then
+		local restored = Instance.new("Part")
+		restored.Name = "HumanoidRootPart"
+		restored.Size = savedRootData.Size or Vector3.new(2,2,1)
+		restored.CFrame = (current and current.CFrame) or savedRootData.CFrame
+		restored.Transparency = 1
+		restored.CanCollide = false
+		restored.Massless = true
+		restored.Parent = char
+
+		-- remove any motors that reference current replacement (to avoid duplicate motors)
+		for _, obj in ipairs(char:GetDescendants()) do
+			if obj:IsA("Motor6D") then
+				-- If motor references the current part as Part1 or Part0, destroy it (we will recreate from saved data)
+				if current and (obj.Part0 == current or obj.Part1 == current) then
+					pcall(function() obj:Destroy() end)
+				end
+			end
+		end
+
+		-- recreate motors using saved data but point to restored root
+		if savedMotorData then
+			-- update savedMotorData.Part0Name/Part1Name may still reference "HumanoidRootPart" -> recreate will find restored part
+			recreateMotors(savedMotorData, restored)
+		end
+
+		-- destroy the temporary replacement
+		if current and current.Parent then
+			pcall(function() current:Destroy() end)
+		end
+
+		-- clear saved data (optional keep if you want multiple toggles)
+		-- savedRootData = nil
+		-- savedMotorData = nil
+	end
+	saving = false
+end
+
+-- GUI button
 local gui = Instance.new("ScreenGui")
+gui.Name = "RootToggleGUI"
+gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0,150,0,40)
-button.Position = UDim2.new(0,20,0,20)
-button.Text = "Destroy Root"
-button.Parent = gui
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(0,160,0,40)
+btn.Position = UDim2.new(0,18,0,18)
+btn.Text = "Destroy Root"
+btn.Parent = gui
 
-button.MouseButton1Click:Connect(function()
+local debounce = false
+btn.MouseButton1Click:Connect(function()
+	if debounce then return end
+	debounce = true
+	local char = getCharacter()
+	if not char then debounce = false return end
 
-	enabled = not enabled
-
-	if enabled then
-		removeRoot()
-		button.Text = "Restore Root"
+	if not state then
+		-- destroy (replace) root
+		destroyOriginalRootSafely()
+		btn.Text = "Restore Root"
+		state = true
 	else
-		restoreRoot()
-		button.Text = "Destroy Root"
+		-- restore
+		restoreOriginalRoot()
+		btn.Text = "Destroy Root"
+		state = false
 	end
 
+	wait(0.2)
+	debounce = false
+end)
+
+-- auto-attach to new characters
+player.CharacterAdded:Connect(function(char)
+	-- small wait for parts
+	task.wait(0.1)
+	-- if we were in destroyed state when character respawned, re-apply replacement automatically
+	if state then
+		-- clear any stale saved info and re-run replace to make sure motors are connected correctly
+		-- (attempt to be resilient to respawn)
+		task.spawn(function()
+			task.wait(0.05)
+			destroyOriginalRootSafely()
+		end)
+	end
 end)
