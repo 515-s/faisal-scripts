@@ -5,37 +5,25 @@ local player = Players.LocalPlayer
 local enabled = false
 local connection
 
-local function setNoClip(state)
-
+local function setRootNoCollide(state)
 	local char = player.Character
 	if not char then return end
+	local root = char:FindFirstChild("HumanoidRootPart")
+	if not root then return end
 
 	if state then
-
+		-- Keep CanCollide false every frame to override أي محاولة للقتل أو التصادم
 		connection = RunService.RenderStepped:Connect(function()
-
-			for _,v in pairs(char:GetDescendants()) do
-				if v:IsA("BasePart") then
-					v.CanCollide = false
-				end
-			end
-
+			root.CanCollide = false
+			root.CanTouch = false
 		end)
-
 	else
-
 		if connection then
 			connection:Disconnect()
 		end
-
-		for _,v in pairs(char:GetDescendants()) do
-			if v:IsA("BasePart") then
-				v.CanCollide = true
-			end
-		end
-
+		root.CanCollide = true
+		root.CanTouch = true
 	end
-
 end
 
 -- GUI
@@ -45,19 +33,16 @@ gui.Parent = player:WaitForChild("PlayerGui")
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0,160,0,40)
 button.Position = UDim2.new(0,20,0,20)
-button.Text = "Ghost OFF"
+button.Text = "Root Ghost OFF"
 button.Parent = gui
 
 button.MouseButton1Click:Connect(function()
-
 	enabled = not enabled
-
 	if enabled then
-		setNoClip(true)
-		button.Text = "Ghost ON"
+		setRootNoCollide(true)
+		button.Text = "Root Ghost ON"
 	else
-		setNoClip(false)
-		button.Text = "Ghost OFF"
+		setRootNoCollide(false)
+		button.Text = "Root Ghost OFF"
 	end
-
 end)
