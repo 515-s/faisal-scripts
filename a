@@ -1,7 +1,7 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
-local rootSaved = nil
+local fakeRoot
 local enabled = false
 
 local function getChar()
@@ -9,33 +9,55 @@ local function getChar()
 end
 
 local function removeRoot()
+
 	local char = getChar()
 	local root = char:FindFirstChild("HumanoidRootPart")
-	
-	if root then
-		rootSaved = {
-			CFrame = root.CFrame,
-			Size = root.Size
-		}
-		
+	local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+
+	if root and torso then
+
+		fakeRoot = Instance.new("Part")
+		fakeRoot.Size = Vector3.new(2,2,1)
+		fakeRoot.Transparency = 1
+		fakeRoot.Anchored = false
+		fakeRoot.CanCollide = false
+		fakeRoot.CFrame = root.CFrame
+		fakeRoot.Parent = char
+
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = torso
+		weld.Part1 = fakeRoot
+		weld.Parent = fakeRoot
+
 		root:Destroy()
 	end
+
 end
 
 local function restoreRoot()
+
 	local char = getChar()
-	if rootSaved then
-		
-		local newRoot = Instance.new("Part")
-		newRoot.Name = "HumanoidRootPart"
-		newRoot.Size = rootSaved.Size
-		newRoot.CFrame = rootSaved.CFrame
-		newRoot.Transparency = 1
-		newRoot.CanCollide = false
-		newRoot.Anchored = false
-		newRoot.Parent = char
-		
+	local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+
+	if torso and fakeRoot then
+
+		local root = Instance.new("Part")
+		root.Name = "HumanoidRootPart"
+		root.Size = Vector3.new(2,2,1)
+		root.Transparency = 1
+		root.CanCollide = false
+		root.CFrame = fakeRoot.CFrame
+		root.Parent = char
+
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = torso
+		weld.Part1 = root
+		weld.Parent = root
+
+		fakeRoot:Destroy()
+		fakeRoot = nil
 	end
+
 end
 
 -- GUI
