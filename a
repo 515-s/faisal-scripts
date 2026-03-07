@@ -1,34 +1,39 @@
 local Players = game:GetService("Players")
-local PhysicsService = game:GetService("PhysicsService")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local enabled = false
+local connection
 
-pcall(function()
-	PhysicsService:CreateCollisionGroup("NoHitbox")
-end)
-
-PhysicsService:CollisionGroupSetCollidable("NoHitbox","Default",false)
-
-local function setHitbox(state)
+local function setNoClip(state)
 
 	local char = player.Character
 	if not char then return end
 
-	for _,v in pairs(char:GetDescendants()) do
-		if v:IsA("BasePart") then
-			
-			if state then
-				PhysicsService:SetPartCollisionGroup(v,"NoHitbox")
-				v.CanTouch = false
-				v.CanCollide = false
-			else
-				PhysicsService:SetPartCollisionGroup(v,"Default")
-				v.CanTouch = true
-				v.CanCollide = true
+	if state then
+
+		connection = RunService.RenderStepped:Connect(function()
+
+			for _,v in pairs(char:GetDescendants()) do
+				if v:IsA("BasePart") then
+					v.CanCollide = false
+				end
 			end
 
+		end)
+
+	else
+
+		if connection then
+			connection:Disconnect()
 		end
+
+		for _,v in pairs(char:GetDescendants()) do
+			if v:IsA("BasePart") then
+				v.CanCollide = true
+			end
+		end
+
 	end
 
 end
@@ -38,9 +43,9 @@ local gui = Instance.new("ScreenGui")
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0,150,0,40)
+button.Size = UDim2.new(0,160,0,40)
 button.Position = UDim2.new(0,20,0,20)
-button.Text = "Hitbox OFF"
+button.Text = "Ghost OFF"
 button.Parent = gui
 
 button.MouseButton1Click:Connect(function()
@@ -48,11 +53,11 @@ button.MouseButton1Click:Connect(function()
 	enabled = not enabled
 
 	if enabled then
-		setHitbox(true)
-		button.Text = "Hitbox ON"
+		setNoClip(true)
+		button.Text = "Ghost ON"
 	else
-		setHitbox(false)
-		button.Text = "Hitbox OFF"
+		setNoClip(false)
+		button.Text = "Ghost OFF"
 	end
 
 end)
