@@ -1,207 +1,63 @@
--- LocalScript: حماية ذكية من موديلات اسمها >15 حرف وتتحرك
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-
 local player = Players.LocalPlayer
-local function getHRP()
-    if player.Character then
-        return player.Character:FindFirstChild("HumanoidRootPart")
-    end
-    return nil
+
+local rootSaved = nil
+local enabled = false
+
+local function getChar()
+	return player.Character or player.CharacterAdded:Wait()
 end
 
-local watched = {}       -- [model] = {lastAction = time, debris = true}
-local SHIELD_TAG = "LocalSafeShield_v1"
-
--- ثوابت ضبط
-local CHECK_DT = 0.07            -- تردد الفحص (خفة/سرعة)
-local DANGER_DIST = 12           -- المسافة التي نعتبرها مهددة (ستجدز تعديل)
-local MIN_VEL_THRESHOLD = 6      -- سرعة الموديل المطلوبة ليُعتبر خطر
-local PREDICT_SECS = 0.4         -- نتوقع موقعه بعد كم ثانية
-local SHIELD_LIFETIME = 2        -- وقت وجود الدرع بالثواني
-local ACTION_COOLDOWN = 1.0      -- لا نكرر الإجراء على نفس الموديل أسرع من هذا
-
--- دوال مساعدة
-local function firstBasePartOf(model)
-    for _, v in ipairs(model:GetDescendants()) do
-        if v:IsA("BasePart") then return v end
-    end
-    return nil
+local function removeRoot()
+	local char = getChar()
+	local root = char:FindFirstChild("HumanoidRootPart")
+	
+	if root then
+		rootSaved = {
+			CFrame = root.CFrame,
+			Size = root.Size
+		}
+		
+		root:Destroy()
+	end
 end
 
-local function disablePartsLocal(model)
-    for _, obj in ipairs(model:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            pcall(function()
-                obj.CanTouch = false
-                obj.CanCollide = false
-                -- اجعلها أقل وضوحاً محليًا
-                obj.LocalTransparencyModifier = 0.6
-            end)
-        end
-    end
+local function restoreRoot()
+	local char = getChar()
+	if rootSaved then
+		
+		local newRoot = Instance.new("Part")
+		newRoot.Name = "HumanoidRootPart"
+		newRoot.Size = rootSaved.Size
+		newRoot.CFrame = rootSaved.CFrame
+		newRoot.Transparency = 1
+		newRoot.CanCollide = false
+		newRoot.Anchored = false
+		newRoot.Parent = char
+		
+	end
 end
 
-local function createShieldAround(hrp)
-    if not hrp or not hrp.Parent then return end
-    local shields = {}
-    local baseCFrame = hrp.CFrame
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Parent = player:WaitForChild("PlayerGui")
 
-    local positions = {
-        CFrame.new(0, 1, -1.5), -- خلف
-        CFrame.new(0, 1, 1.5),  -- أمام
-        CFrame.new(-1.2, 1, 0), -- يسار
-        CFrame.new(1.2, 1, 0),  -- يمين
-        CFrame.new(0, 3, 0),    -- فوق
-    }
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0,150,0,40)
+button.Position = UDim2.new(0,20,0,20)
+button.Text = "Destroy Root"
+button.Parent = gui
 
-    for i, off in ipairs(positions) do
-        local p = Instance.new("Part")
-        p.Name = SHIELD_TAG
-        p.Size = Vector3.new(2.6, 2.6, 0.6)
-        p.Anchored = true
-        p.CanCollide = true
-        p.CanTouch = false
-        p.Transparency = 1      -- شفافية كامل (تُبقى مصداً دون رؤية)
-        p.CFrame = baseCFrame * off
-        p.Parent = Workspace
-        table.insert(shields, p)
-    end
+button.MouseButton1Click:Connect(function()
 
-    -- ربط حركة الدرع بحركة اللاعب (تحديث قصير)
-    local conn
-    local t0 = tick()
-    conn = RunService.RenderStepped:Connect(function()
-        if tick() - t0 > SHIELD_LIFETIME then
-            conn:Disconnect()
-            for _, s in ipairs(shields) do
-                pcall(function() s:Destroy() end)
-            end
-            return
-        end
-        if not hrp.Parent then
-            conn:Disconnect()
-            for _, s in ipairs(shields) do
-                pcall(function() s:Destroy() end)
-            end
-            return
-        end
-        for i, off in ipairs(positions) do
-            if shields[i] and shields[i].Parent then
-                shields[i].CFrame = hrp.CFrame * off
-            end
-        end
-    end)
-end
+	enabled = not enabled
 
-local function safeTeleport(hrp)
-    pcall(function()
-        if not hrp or not hrp.Parent then return end
-        -- ارفع اللاعب للخلف / أعلى بقفزة صغيرة
-        local newCFrame = hrp.CFrame * CFrame.new(0, 5, -2)
-        hrp.CFrame = newCFrame
-    end)
-end
+	if enabled then
+		removeRoot()
+		button.Text = "Restore Root"
+	else
+		restoreRoot()
+		button.Text = "Destroy Root"
+	end
 
-local function healLocal(humanoid)
-    pcall(function()
-        if humanoid and humanoid.Parent then
-            humanoid.Health = humanoid.MaxHealth
-        end
-    end)
-end
-
-local function isModelMovingTowardsPlayer(model, hrp)
-    local part = firstBasePartOf(model)
-    if not part or not hrp then return false end
-    local vel = part.AssemblyLinearVelocity
-    local speed = vel.Magnitude
-    if speed < MIN_VEL_THRESHOLD then return false end
-
-    local partPos = part.Position
-    local playerPos = hrp.Position
-    local rel = playerPos - partPos
-    local forward = vel
-    if forward.Magnitude < 0.001 then return false end
-
-    -- توقع النقطة الأقرب في المستقبل
-    local predict = partPos + forward * PREDICT_SECS
-    local distNow = (playerPos - partPos).Magnitude
-    local distPred = (playerPos - predict).Magnitude
-
-    -- إذا بعده في التوقع أقل بكثير أو ضمن حد الخطر
-    if distPred < DANGER_DIST or distNow < DANGER_DIST then
-        return true
-    end
-    return false
-end
-
--- عند اكتشاف نموذج مشبوه (اسم > 15) نضيفه للمراقبة
-local function watchModel(model)
-    if not model or not model:IsA("Model") then return end
-    if #model.Name <= 15 then return end
-    if watched[model] then return end
-    watched[model] = { lastAction = 0 }
-end
-
--- نراقب وجود موديلات جديدة
-Workspace.DescendantAdded:Connect(function(desc)
-    local m = desc
-    if not m:IsA("Model") then
-        m = desc:FindFirstAncestorOfClass("Model")
-    end
-    if m then watchModel(m) end
-end)
-
--- فحص المبدئي
-for _, m in ipairs(Workspace:GetDescendants()) do
-    if m:IsA("Model") and #m.Name > 15 then
-        watchModel(m)
-    end
-end
-
--- حلقة الفحص الذكية
-local acc = 0
-RunService.Heartbeat:Connect(function(dt)
-    acc = acc + dt
-    if acc < CHECK_DT then return end
-    acc = 0
-
-    local hrp = getHRP()
-    if not hrp then
-        -- ننتظر وجود الشخصية
-        if player.Character then
-            -- محاولة ربط الهومانويد فوراً
-            local hum = player.Character:FindFirstChildOfClass("Humanoid")
-            if hum then healLocal(hum) end
-        end
-        return
-    end
-
-    local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-
-    for model, info in pairs(watched) do
-        if not model.Parent then
-            watched[model] = nil
-        else
-            local now = tick()
-            if now - info.lastAction < ACTION_COOLDOWN then
-                -- تحقق من جديد على فاصل
-            else
-                if isModelMovingTowardsPlayer(model, hrp) then
-                    info.lastAction = now
-                    -- إجراء متعدد الطبقات:
-                    -- 1) تعطيل أجزاء الموديل محليًا
-                    disablePartsLocal(model)
-                    -- 2) إنشاء الدرع المحلي حول اللاعب
-                    createShieldAround(hrp)
-                    -- 3) محاولة تليبورت خفيف للخروج من الطريق
-                    safeTeleport(hrp)
-                    -- 4) استعادة الصحة محليًا
-                    if humanoid then healLocal(humanoid) end
-                end
-            end
-        end
-    end
 end)
