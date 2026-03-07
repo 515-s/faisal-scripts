@@ -1,255 +1,52 @@
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local models = {}
 
-local speed = 16
-local espEnabled = false
-
--- GUI
-local screen = Instance.new("ScreenGui")
-screen.Name = "LocalToolsGUI"
-screen.ResetOnSpawn = false
-screen.Parent = playerGui
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,260,0,190)
-frame.Position = UDim2.new(0,16,0,16)
-frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
-frame.BorderSizePixel = 0
-frame.Parent = screen
-Instance.new("UICorner",frame).CornerRadius = UDim.new(0,8)
-
--- Title
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(0,100,0,28)
-title.Position = UDim2.new(0,10,0,8)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBold
-title.TextSize = 16
-title.TextColor3 = Color3.fromRGB(230,230,230)
-title.Text = "Tools"
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = frame
-
--- Credits
-local credits = Instance.new("TextLabel")
-credits.Size = UDim2.new(0,120,0,28)
-credits.Position = UDim2.new(0.5,-60,0,8)
-credits.BackgroundTransparency = 1
-credits.Font = Enum.Font.GothamBold
-credits.TextSize = 14
-credits.TextColor3 = Color3.fromRGB(180,180,180)
-credits.Text = "faisal-script"
-credits.TextXAlignment = Enum.TextXAlignment.Center
-credits.Parent = frame
-
--- Toggle
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0,28,0,28)
-toggleBtn.Position = UDim2.new(1,-38,0,8)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(36,36,36)
-toggleBtn.BorderSizePixel = 0
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 18
-toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
-toggleBtn.Text = "▼"
-toggleBtn.Parent = frame
-Instance.new("UICorner",toggleBtn).CornerRadius = UDim.new(0,6)
-
--- No Void
-local noVoid = Instance.new("TextButton")
-noVoid.Size = UDim2.new(1,-20,0,32)
-noVoid.Position = UDim2.new(0,10,0,40)
-noVoid.BackgroundColor3 = Color3.fromRGB(36,36,36)
-noVoid.BorderSizePixel = 0
-noVoid.Font = Enum.Font.Gotham
-noVoid.TextSize = 14
-noVoid.TextColor3 = Color3.fromRGB(255,255,255)
-noVoid.Text = "No Void"
-noVoid.Parent = frame
-Instance.new("UICorner",noVoid)
-
--- ESP زر
-local espBtn = Instance.new("TextButton")
-espBtn.Size = UDim2.new(1,-20,0,32)
-espBtn.Position = UDim2.new(0,10,0,76)
-espBtn.BackgroundColor3 = Color3.fromRGB(36,36,36)
-espBtn.BorderSizePixel = 0
-espBtn.Font = Enum.Font.Gotham
-espBtn.TextSize = 14
-espBtn.TextColor3 = Color3.fromRGB(255,255,255)
-espBtn.Text = "ESP"
-espBtn.Parent = frame
-Instance.new("UICorner",espBtn)
-
--- Speed Label
-local speedLabel = Instance.new("TextLabel")
-speedLabel.Size = UDim2.new(1,-60,0,32)
-speedLabel.Position = UDim2.new(0,10,0,112)
-speedLabel.BackgroundColor3 = Color3.fromRGB(36,36,36)
-speedLabel.BorderSizePixel = 0
-speedLabel.Font = Enum.Font.Gotham
-speedLabel.TextSize = 14
-speedLabel.TextColor3 = Color3.fromRGB(255,255,255)
-speedLabel.Text = "Speed: 16"
-speedLabel.Parent = frame
-Instance.new("UICorner",speedLabel)
-
--- Speed Up
-local up = Instance.new("TextButton")
-up.Size = UDim2.new(0,36,0,14)
-up.Position = UDim2.new(1,-46,0,112)
-up.BackgroundColor3 = Color3.fromRGB(36,36,36)
-up.BorderSizePixel = 0
-up.Text = "▲"
-up.TextColor3 = Color3.new(1,1,1)
-up.Font = Enum.Font.GothamBold
-up.TextSize = 12
-up.Parent = frame
-Instance.new("UICorner",up)
-
--- Speed Down
-local down = Instance.new("TextButton")
-down.Size = UDim2.new(0,36,0,14)
-down.Position = UDim2.new(1,-46,0,130)
-down.BackgroundColor3 = Color3.fromRGB(36,36,36)
-down.BorderSizePixel = 0
-down.Text = "▼"
-down.TextColor3 = Color3.new(1,1,1)
-down.Font = Enum.Font.GothamBold
-down.TextSize = 12
-down.Parent = frame
-Instance.new("UICorner",down)
-
--- Collapse
-local opened = true
-toggleBtn.MouseButton1Click:Connect(function()
-
-	opened = not opened
-
-	noVoid.Visible = opened
-	espBtn.Visible = opened
-	speedLabel.Visible = opened
-	up.Visible = opened
-	down.Visible = opened
-
-	if opened then
-		frame.Size = UDim2.new(0,260,0,190)
-		toggleBtn.Text = "▼"
-	else
-		frame.Size = UDim2.new(0,260,0,40)
-		toggleBtn.Text = "▲"
-	end
-
-end)
-
--- Drag
-local dragging = false
-local dragStart
-local startPos
-
-frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
-	end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local delta = input.Position - dragStart
-		frame.Position = UDim2.new(startPos.X.Scale,startPos.X.Offset + delta.X,startPos.Y.Scale,startPos.Y.Offset + delta.Y)
-	end
-end)
-
--- Speed update
-local function updateSpeed()
-	local char = player.Character
-	if char and char:FindFirstChild("Humanoid") then
-		char.Humanoid.WalkSpeed = speed
-	end
-	speedLabel.Text = "Speed: "..speed
-end
-
-up.MouseButton1Click:Connect(function()
-	speed = math.clamp(speed + 10,0,100)
-	updateSpeed()
-end)
-
-down.MouseButton1Click:Connect(function()
-	speed = math.clamp(speed - 10,0,100)
-	updateSpeed()
-end)
-
--- تأكيد السرعة
-task.spawn(function()
-	while true do
-		task.wait(0.5)
-
-		local char = player.Character
-		if char and char:FindFirstChild("Humanoid") then
-			if char.Humanoid.WalkSpeed ~= speed then
-				char.Humanoid.WalkSpeed = speed
+local function isMoving(model)
+	for _,v in pairs(model:GetDescendants()) do
+		if v:IsA("BasePart") then
+			if v.AssemblyLinearVelocity.Magnitude > 0.1 then
+				return true
 			end
 		end
 	end
-end)
+	return false
+end
 
--- ESP function
-local function applyESP(plr)
-	if plr == player then return end
-	local char = plr.Character
-	if not char then return end
-
-	if not char:FindFirstChild("ESPHighlight") then
-		local highlight = Instance.new("Highlight")
-		highlight.Name = "ESPHighlight"
-		highlight.FillColor = Color3.fromRGB(255,0,0)
-		highlight.OutlineColor = Color3.fromRGB(255,0,0)
-		highlight.FillTransparency = 0.5
-		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-		highlight.Parent = char
+local function disableTouch(model)
+	for _,v in pairs(model:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.CanTouch = false
+		end
 	end
 end
 
--- ESP زر
-espBtn.MouseButton1Click:Connect(function()
-	espEnabled = not espEnabled
-end)
+local function checkModel(model)
+	if model:IsA("Model") and #model.Name > 15 then
+		table.insert(models, model)
+	end
+end
 
--- تأكيد ESP
-task.spawn(function()
-	while true do
-		task.wait(0.5)
+-- فحص الموجود
+for _,v in pairs(Workspace:GetDescendants()) do
+	if v:IsA("Model") then
+		checkModel(v)
+	end
+end
 
-		if espEnabled then
-			for _,plr in pairs(Players:GetPlayers()) do
-				applyESP(plr)
-			end
-		end
+-- فحص الجديد
+Workspace.DescendantAdded:Connect(function(v)
+	if v:IsA("Model") then
+		checkModel(v)
 	end
 end)
 
--- No Void
-noVoid.MouseButton1Click:Connect(function()
-
-	local char = player.Character or player.CharacterAdded:Wait()
-	local hrp = char:WaitForChild("HumanoidRootPart")
-
-	local part = Instance.new("Part")
-	part.Size = Vector3.new(1000,1,1000)
-	part.Position = hrp.Position - Vector3.new(0,4,0)
-	part.Anchored = true
-	part.Transparency = 1
-	part.Parent = workspace
-
+-- مراقبة الحركة
+RunService.Heartbeat:Connect(function()
+	for _,model in pairs(models) do
+		if model.Parent and isMoving(model) then
+			disableTouch(model)
+		end
+	end
 end)
