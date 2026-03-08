@@ -4,8 +4,8 @@
 	الوصف: مربع نص يدخل فيه المستخدم حرفاً واحداً أو حرفين، فتُعرض الكلمات التي تبدأ بتلك البادئة.
 	- إذا كتب حرفاً واحداً (مثلاً 'h') تظهر كل الكلمات التي تبدأ بذلك الحرف.
 	- إذا كتب حرفين (مثلاً 'ye') تظهر الكلمات التي تبدأ بذلك الثنائي (yellow, yes, ...).
-	- الكلمات قابلة للنسخ عبر زر Copy بجانب كل كلمة.
-	- الإطار قابل للسحب.
+	- كل كلمة لها زر "Copy" لنسخها إلى الحافظة.
+	- الإطار الرئيسي قابل للسحب (drag) بالضغط على أي مكان فيه وتحريك الماوس.
 --]]
 
 local player = game.Players.LocalPlayer
@@ -24,7 +24,7 @@ mainFrame.Active = true
 mainFrame.Parent = gui
 
 -- جعل الإطار قابلاً للسحب
-local dragToggle = nil
+local dragToggle = false
 local dragStart = nil
 local startPos = nil
 
@@ -44,7 +44,12 @@ end)
 mainFrame.InputChanged:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseMovement and dragToggle then
 		local delta = input.Position - dragStart
-		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		mainFrame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
 	end
 end)
 
@@ -90,7 +95,7 @@ layout.Parent = listFrame
 layout.SortOrder = Enum.SortOrder.Name
 layout.Padding = UDim.new(0, 2)
 
--- دالة نسخ النص إلى الحافظة
+-- دالة نسخ النص إلى الحافظة (تعمل في Roblox)
 local function copyToClipboard(text)
 	local success, errorMessage = pcall(function()
 		setclipboard(text)
@@ -101,7 +106,6 @@ local function copyToClipboard(text)
 end
 
 -- قاعدة بيانات الكلمات (50 كلمة شهيرة لكل حرف A-Z)
--- (كما هي من السابق، لم يتم تغييرها)
 local wordDatabase = {
 	["a"] = {
 		"about", "above", "across", "act", "add", "afraid", "after", "again", "against", "age",
@@ -293,12 +297,10 @@ local function getWordsByPrefix(prefix)
 	local firstChar = prefix:sub(1, 1):lower()
 	local words = wordDatabase[firstChar]
 	if not words then return nil end
-
+	
 	if #prefix == 1 then
-		-- حرف واحد: نعيد كل الكلمات
 		return words
 	else
-		-- حرفان: نعيد الكلمات التي تبدأ بالبادئة
 		local filtered = {}
 		local lowerPrefix = prefix:lower()
 		for _, word in ipairs(words) do
@@ -318,7 +320,7 @@ local function showWords(prefix)
 			child:Destroy()
 		end
 	end
-
+	
 	if prefix and prefix ~= "" then
 		local words = getWordsByPrefix(prefix)
 		if words and #words > 0 then
@@ -329,7 +331,7 @@ local function showWords(prefix)
 				wordFrame.Size = UDim2.new(1, 0, 0, 30)
 				wordFrame.BackgroundTransparency = 1
 				wordFrame.Parent = listFrame
-
+				
 				-- مربع نص الكلمة (غير قابل للتحرير) - يأخذ 70% من العرض
 				local wordBox = Instance.new("TextBox")
 				wordBox.Size = UDim2.new(0.7, -5, 1, 0)
@@ -342,7 +344,7 @@ local function showWords(prefix)
 				wordBox.TextEditable = false
 				wordBox.ClearTextOnFocus = false
 				wordBox.Parent = wordFrame
-
+				
 				-- زر النسخ - 30% من العرض، نفس لون الخلفية
 				local copyButton = Instance.new("TextButton")
 				copyButton.Size = UDim2.new(0.3, -5, 1, 0)
@@ -353,7 +355,7 @@ local function showWords(prefix)
 				copyButton.Font = Enum.Font.SourceSans
 				copyButton.TextSize = 14
 				copyButton.Parent = wordFrame
-
+				
 				-- تأثير hover
 				copyButton.MouseEnter:Connect(function()
 					copyButton.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
@@ -361,7 +363,7 @@ local function showWords(prefix)
 				copyButton.MouseLeave:Connect(function()
 					copyButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
 				end)
-
+				
 				-- حدث النسخ
 				local wordToCopy = word
 				copyButton.MouseButton1Click:Connect(function()
@@ -379,7 +381,7 @@ local function showWords(prefix)
 			emptyFrame.Size = UDim2.new(1, 0, 0, 30)
 			emptyFrame.BackgroundTransparency = 1
 			emptyFrame.Parent = listFrame
-
+			
 			local msgBox = Instance.new("TextBox")
 			msgBox.Size = UDim2.new(1, 0, 1, 0)
 			msgBox.BackgroundTransparency = 1
@@ -396,7 +398,7 @@ local function showWords(prefix)
 		welcomeFrame.Size = UDim2.new(1, 0, 0, 30)
 		welcomeFrame.BackgroundTransparency = 1
 		welcomeFrame.Parent = listFrame
-
+		
 		local welcomeBox = Instance.new("TextBox")
 		welcomeBox.Size = UDim2.new(1, 0, 1, 0)
 		welcomeBox.BackgroundTransparency = 1
@@ -429,7 +431,7 @@ textBox.Changed:Connect(function(property)
 				break
 			end
 		end
-
+		
 		if prefix == "" then
 			-- إذا لم يحتوي على أي حرف، نظهر رسالة خطأ
 			showWords(nil)
@@ -437,7 +439,7 @@ textBox.Changed:Connect(function(property)
 			errorFrame.Size = UDim2.new(1, 0, 0, 30)
 			errorFrame.BackgroundTransparency = 1
 			errorFrame.Parent = listFrame
-
+			
 			local errorBox = Instance.new("TextBox")
 			errorBox.Size = UDim2.new(1, 0, 1, 0)
 			errorBox.BackgroundTransparency = 1
@@ -464,3 +466,5 @@ corner.Parent = mainFrame
 local textBoxCorner = Instance.new("UICorner")
 textBoxCorner.CornerRadius = UDim.new(0, 5)
 textBoxCorner.Parent = textBox
+
+-- (اختياري) إضافة زوايا دائرية للأزرار - يمكن تطبيقها في حلقة عند إنشاء الأزرار إذا أردت
