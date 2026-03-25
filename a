@@ -1,54 +1,85 @@
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local GuiService = game:GetService("GuiService")
+-- ✅ Script Hub (LocalScript)
 
+local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
+-- 🔹 GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "MouseCoordsGui"
+gui.Name = "FaisalHub"
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
 gui.Parent = player:WaitForChild("PlayerGui")
 
-local label = Instance.new("TextLabel")
-label.Size = UDim2.fromOffset(140, 24)
-label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-label.BackgroundTransparency = 0.25
-label.TextColor3 = Color3.fromRGB(255, 255, 255)
-label.TextStrokeTransparency = 0
-label.Font = Enum.Font.SourceSansBold
-label.TextScaled = true
-label.Text = "X: 0 Y: 0"
-label.Parent = gui
+-- 🔹 Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 220, 0, 300)
+frame.Position = UDim2.new(0.05, 0, 0.2, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.Parent = gui
 
-local lastText = "X: 0 Y: 0"
+-- 🔹 Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "Faisal Hub 🔥"
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundTransparency = 1
+title.Parent = frame
 
-RunService.RenderStepped:Connect(function()
-	local pos = UserInputService:GetMouseLocation()
-	local inset = GuiService:GetGuiInset()
+-- 🔹 قائمة السكربتات
+local Scripts = {
+    {
+        Name = "VR7 Script",
+        Url = "https://raw.githubusercontent.com/VR7ss/OMK/refs/heads/main/VR7-ON-TOP"
+    },
+    {
+        Name = "Test Script",
+        Url = "https://pastebin.com/raw/xxxxx" -- غيره
+    }
+}
 
-	local x = math.floor(pos.X)
-	local y = math.floor(pos.Y)
+-- 🔹 منع التكرار
+local executed = {}
 
-	lastText = ("X: %d Y: %d"):format(x, y)
-	label.Text = lastText
-	label.Position = UDim2.fromOffset(x + 16 - inset.X, y + 12 - inset.Y)
-end)
+-- 🔹 إنشاء الأزرار
+for i, v in pairs(Scripts) do
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -10, 0, 40)
+    button.Position = UDim2.new(0, 5, 0, 40 + (i-1)*45)
+    button.Text = v.Name
+    button.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    button.TextColor3 = Color3.new(1,1,1)
+    button.Parent = frame
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
+    button.MouseButton1Click:Connect(function()
+        if executed[v.Url] then
+            warn("تم تشغيل السكربت مسبقًا")
+            return
+        end
 
-	if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.T then
-		if typeof(setclipboard) == "function" then
-			local ok, err = pcall(function()
-				setclipboard(tostring(lastText))
-			end)
-			if not ok then
-				warn("Clipboard failed:", err)
-			end
-		else
-			warn("setclipboard غير متوفر في هذا البيئة")
-		end
-	end
+        executed[v.Url] = true
+
+        task.spawn(function()
+            local success, err = pcall(function()
+                loadstring(game:HttpGet(v.Url))()
+            end)
+
+            if success then
+                print("تم تشغيل:", v.Name)
+            else
+                warn("خطأ:", err)
+            end
+        end)
+    end)
+end
+
+-- 🔹 زر إغلاق
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(1, 0, 0, 30)
+close.Position = UDim2.new(0, 0, 1, -30)
+close.Text = "Close"
+close.BackgroundColor3 = Color3.fromRGB(80,0,0)
+close.TextColor3 = Color3.new(1,1,1)
+close.Parent = frame
+
+close.MouseButton1Click:Connect(function()
+    gui:Destroy()
 end)
