@@ -1,19 +1,18 @@
--- ✅ Faisal Hub كامل + زر دائري متحرك
+-- LocalScript محدث
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
--- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalHub"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Main Frame
+-- Main Frame (معدل لليمين)
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 420, 0, 460)
-main.Position = UDim2.new(0.5, -210, 0.5, -230)
+main.Size = UDim2.new(0, 400, 0, 460) -- صغرنا شوي العرض
+main.Position = UDim2.new(0.5, -200, 0.5, -230) -- تحريك لليمين
 main.BackgroundColor3 = Color3.fromRGB(78, 32, 120) -- بنفسجي
 main.BorderSizePixel = 0
 main.Active = true
@@ -60,12 +59,12 @@ grid.CellPadding = UDim2.new(0, 10, 0, 10)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = scroll
 
--- زر دائري صغير متحرك
+-- زر دائري صغير (أسود + أكبر قليل)
 local toggle = Instance.new("TextButton")
 toggle.Name = "ToggleButton"
-toggle.Size = UDim2.new(0, 18, 0, 18)
+toggle.Size = UDim2.new(0, 26, 0, 26) -- أكبر قليل
 toggle.Position = UDim2.new(0, 14, 0, 14)
-toggle.BackgroundColor3 = Color3.fromRGB(255, 194, 224) -- وردي فاتح جدًا
+toggle.BackgroundColor3 = Color3.fromRGB(10, 10, 10) -- أسود
 toggle.Text = ""
 toggle.AutoButtonColor = false
 toggle.BorderSizePixel = 0
@@ -154,7 +153,7 @@ for i, item in ipairs(Scripts) do
 	local button = Instance.new("TextButton")
 	button.Name = item.Name
 	button.LayoutOrder = i
-	button.BackgroundColor3 = Color3.fromRGB(255, 214, 234) -- وردي فاتح جدًا
+	button.BackgroundColor3 = Color3.fromRGB(255, 214, 234)
 	button.TextColor3 = Color3.fromRGB(85, 25, 85)
 	button.Font = Enum.Font.GothamSemibold
 	button.TextSize = 15
