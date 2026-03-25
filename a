@@ -1,6 +1,7 @@
--- ✅ Faisal Hub كامل (LocalScript)
+-- ✅ Faisal Hub كامل + زر دائري متحرك
 
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
 -- GUI
@@ -9,7 +10,7 @@ gui.Name = "FaisalHub"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Frame رئيسي
+-- Main Frame
 local main = Instance.new("Frame")
 main.Size = UDim2.new(0, 420, 0, 460)
 main.Position = UDim2.new(0.5, -210, 0.5, -230)
@@ -19,19 +20,19 @@ main.Active = true
 main.Draggable = true
 main.Parent = gui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 18)
-corner.Parent = main
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 18)
+mainCorner.Parent = main
 
-local stroke = Instance.new("UIStroke")
-stroke.Thickness = 1
-stroke.Color = Color3.fromRGB(180, 130, 220)
-stroke.Transparency = 0.25
-stroke.Parent = main
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Thickness = 1
+mainStroke.Color = Color3.fromRGB(180, 130, 220)
+mainStroke.Transparency = 0.25
+mainStroke.Parent = main
 
 -- Title
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -60, 0, 50)
+title.Size = UDim2.new(1, -24, 0, 50)
 title.Position = UDim2.new(0, 18, 0, 8)
 title.BackgroundTransparency = 1
 title.Text = "Faisal Hub 🔥"
@@ -41,25 +42,6 @@ title.TextSize = 22
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = main
 
--- زر إغلاق
-local close = Instance.new("TextButton")
-close.Size = UDim2.new(0, 36, 0, 36)
-close.Position = UDim2.new(1, -48, 0, 10)
-close.BackgroundColor3 = Color3.fromRGB(255, 194, 224) -- وردي فاتح جدًا
-close.Text = "X"
-close.TextColor3 = Color3.fromRGB(70, 20, 70)
-close.Font = Enum.Font.GothamBold
-close.TextSize = 18
-close.Parent = main
-
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 10)
-closeCorner.Parent = close
-
-close.MouseButton1Click:Connect(function()
-	gui:Destroy()
-end)
-
 -- Scroll Frame
 local scroll = Instance.new("ScrollingFrame")
 scroll.Size = UDim2.new(1, -24, 1, -76)
@@ -68,43 +50,103 @@ scroll.BackgroundTransparency = 1
 scroll.BorderSizePixel = 0
 scroll.ScrollBarThickness = 6
 scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 210, 235)
-scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 scroll.Parent = main
 
--- Grid Layout
 local grid = Instance.new("UIGridLayout")
 grid.CellSize = UDim2.new(0, 180, 0, 56)
 grid.CellPadding = UDim2.new(0, 10, 0, 10)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = scroll
 
+-- زر دائري صغير متحرك
+local toggle = Instance.new("TextButton")
+toggle.Name = "ToggleButton"
+toggle.Size = UDim2.new(0, 18, 0, 18)
+toggle.Position = UDim2.new(0, 14, 0, 14)
+toggle.BackgroundColor3 = Color3.fromRGB(255, 194, 224) -- وردي فاتح جدًا
+toggle.Text = ""
+toggle.AutoButtonColor = false
+toggle.BorderSizePixel = 0
+toggle.ZIndex = 50
+toggle.Parent = gui
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(1, 0)
+toggleCorner.Parent = toggle
+
+local toggleStroke = Instance.new("UIStroke")
+toggleStroke.Thickness = 1
+toggleStroke.Color = Color3.fromRGB(255, 240, 248)
+toggleStroke.Transparency = 0.2
+toggleStroke.Parent = toggle
+
+-- سحب الزر الدائري
+local dragging = false
+local dragInput, dragStart, startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	toggle.Position = UDim2.new(
+		startPos.X.Scale,
+		startPos.X.Offset + delta.X,
+		startPos.Y.Scale,
+		startPos.Y.Offset + delta.Y
+	)
+end
+
+toggle.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = toggle.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+toggle.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+-- إظهار/إخفاء القائمة
+local open = true
+local function setOpen(state)
+	open = state
+	main.Visible = state
+end
+
+toggle.MouseButton1Click:Connect(function()
+	setOpen(not open)
+end)
+
 -- قائمة السكربتات
 local Scripts = {
-    {
-        Name = "VR7",
-        Run = function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/VR7ss/OMK/refs/heads/main/VR7-ON-TOP"))()
-        end
-    },
-    {
-        Name = "SkyWars [SEASON 3!] ✨",
-        Run = function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/SkyWars%20[SEASON%203!]"))()
-        end
-    },
-    {
-        Name = "Mouse Coords",
-        Run = function()
-            loadstring(game:HttpGet("https://pastebin.com/raw/xxxxxxxx"))()
-        end
-    },
-    {
-        Name = "Camera Script",
-        Run = function()
-            loadstring(game:HttpGet("https://pastebin.com/raw/yyyyyyyy"))()
-        end
-    }
+	{
+		Name = "VR7",
+		Run = function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/VR7ss/OMK/refs/heads/main/VR7-ON-TOP"))()
+		end
+	},
+	{
+		Name = "SkyWars [SEASON 3!] ✨",
+		Run = function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/SkyWars%20[SEASON%203!]"))()
+		end
+	}
 }
 
 -- إنشاء الأزرار
