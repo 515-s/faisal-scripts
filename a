@@ -1,107 +1,147 @@
--- ✅ Faisal Hub V2 (LocalScript)
+-- ✅ Faisal Hub كامل (LocalScript)
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- 🔹 GUI
+-- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalHub"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- 🔹 Frame رئيسي
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 350, 0, 400)
-frame.Position = UDim2.new(0.3, 0, 0.2, 0)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.Active = true
-frame.Draggable = true
-frame.Parent = gui
+-- Frame رئيسي
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 420, 0, 460)
+main.Position = UDim2.new(0.5, -210, 0.5, -230)
+main.BackgroundColor3 = Color3.fromRGB(78, 32, 120) -- بنفسجي
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+main.Parent = gui
 
--- 🔹 Title
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 18)
+corner.Parent = main
+
+local stroke = Instance.new("UIStroke")
+stroke.Thickness = 1
+stroke.Color = Color3.fromRGB(180, 130, 220)
+stroke.Transparency = 0.25
+stroke.Parent = main
+
+-- Title
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Text = "Faisal Hub 🔥"
-title.TextColor3 = Color3.new(1,1,1)
+title.Size = UDim2.new(1, -60, 0, 50)
+title.Position = UDim2.new(0, 18, 0, 8)
 title.BackgroundTransparency = 1
+title.Text = "Faisal Hub 🔥"
+title.TextColor3 = Color3.fromRGB(255, 240, 255)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 18
-title.Parent = frame
+title.TextSize = 22
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = main
 
--- 🔹 Scroll Frame
+-- زر إغلاق
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0, 36, 0, 36)
+close.Position = UDim2.new(1, -48, 0, 10)
+close.BackgroundColor3 = Color3.fromRGB(255, 194, 224) -- وردي فاتح جدًا
+close.Text = "X"
+close.TextColor3 = Color3.fromRGB(70, 20, 70)
+close.Font = Enum.Font.GothamBold
+close.TextSize = 18
+close.Parent = main
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 10)
+closeCorner.Parent = close
+
+close.MouseButton1Click:Connect(function()
+	gui:Destroy()
+end)
+
+-- Scroll Frame
 local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1, -10, 1, -80)
-scroll.Position = UDim2.new(0, 5, 0, 45)
-scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-scroll.ScrollBarThickness = 6
+scroll.Size = UDim2.new(1, -24, 1, -76)
+scroll.Position = UDim2.new(0, 12, 0, 60)
 scroll.BackgroundTransparency = 1
-scroll.Parent = frame
+scroll.BorderSizePixel = 0
+scroll.ScrollBarThickness = 6
+scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 210, 235)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scroll.Parent = main
 
--- 🔹 Grid Layout (شبكة)
+-- Grid Layout
 local grid = Instance.new("UIGridLayout")
-grid.CellSize = UDim2.new(0, 150, 0, 50)
+grid.CellSize = UDim2.new(0, 180, 0, 56)
 grid.CellPadding = UDim2.new(0, 10, 0, 10)
+grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = scroll
 
--- 🔹 قائمة السكربتات
+-- قائمة السكربتات
 local Scripts = {
     {
         Name = "VR7 Script",
-        Url = "https://raw.githubusercontent.com/VR7ss/OMK/refs/heads/main/VR7-ON-TOP"
+        Run = function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/VR7ss/OMK/refs/heads/main/VR7-ON-TOP"))()
+        end
     },
     {
-        Name = "Test 1",
-        Url = "https://pastebin.com/raw/xxxxx"
+        Name = "SkyWars",
+        Run = function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/SkyWars%20[SEASON%203!]"))()
+        end
     },
     {
-        Name = "Test 2",
-        Url = "https://pastebin.com/raw/xxxxx"
+        Name = "Mouse Coords",
+        Run = function()
+            loadstring(game:HttpGet("https://pastebin.com/raw/xxxxxxxx"))()
+        end
     },
     {
-        Name = "Test 3",
-        Url = "https://pastebin.com/raw/xxxxx"
+        Name = "Camera Script",
+        Run = function()
+            loadstring(game:HttpGet("https://pastebin.com/raw/yyyyyyyy"))()
+        end
     }
 }
 
-local executed = {}
+-- إنشاء الأزرار
+for i, item in ipairs(Scripts) do
+	local button = Instance.new("TextButton")
+	button.Name = item.Name
+	button.LayoutOrder = i
+	button.BackgroundColor3 = Color3.fromRGB(255, 214, 234) -- وردي فاتح جدًا
+	button.TextColor3 = Color3.fromRGB(85, 25, 85)
+	button.Font = Enum.Font.GothamSemibold
+	button.TextSize = 15
+	button.Text = item.Name
+	button.AutoButtonColor = false
+	button.Parent = scroll
 
--- 🔹 إنشاء الأزرار
-for _, v in pairs(Scripts) do
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0, 150, 0, 50)
-    button.Text = v.Name
-    button.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    button.TextColor3 = Color3.new(1,1,1)
-    button.Font = Enum.Font.Gotham
-    button.TextSize = 14
-    button.Parent = scroll
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 14)
+	btnCorner.Parent = button
 
-    button.MouseButton1Click:Connect(function()
-        if executed[v.Url] then return end
-        executed[v.Url] = true
+	local btnStroke = Instance.new("UIStroke")
+	btnStroke.Thickness = 1
+	btnStroke.Color = Color3.fromRGB(255, 240, 248)
+	btnStroke.Transparency = 0.25
+	btnStroke.Parent = button
 
-        task.spawn(function()
-            pcall(function()
-                loadstring(game:HttpGet(v.Url))()
-            end)
-        end)
-    end)
+	button.MouseEnter:Connect(function()
+		button.BackgroundColor3 = Color3.fromRGB(255, 228, 240)
+	end)
+
+	button.MouseLeave:Connect(function()
+		button.BackgroundColor3 = Color3.fromRGB(255, 214, 234)
+	end)
+
+	button.MouseButton1Click:Connect(function()
+		local ok, err = pcall(item.Run)
+		if not ok then
+			warn("Button error:", item.Name, err)
+		end
+	end)
 end
-
--- 🔹 تحديث حجم السكرول تلقائي
-task.wait()
-scroll.CanvasSize = UDim2.new(0, 0, 0, grid.AbsoluteContentSize.Y + 10)
-
--- 🔹 زر إغلاق
-local close = Instance.new("TextButton")
-close.Size = UDim2.new(1, 0, 0, 30)
-close.Position = UDim2.new(0, 0, 1, -30)
-close.Text = "Close"
-close.BackgroundColor3 = Color3.fromRGB(80,0,0)
-close.TextColor3 = Color3.new(1,1,1)
-close.Font = Enum.Font.GothamBold
-close.Parent = frame
-
-close.MouseButton1Click:Connect(function()
-    gui:Destroy()
-end)
