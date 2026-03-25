@@ -82,13 +82,13 @@ grid.Parent = scroll
 -- قائمة السكربتات
 local Scripts = {
     {
-        Name = "VR7 Script",
+        Name = "VR7",
         Run = function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/VR7ss/OMK/refs/heads/main/VR7-ON-TOP"))()
         end
     },
     {
-        Name = "SkyWars",
+        Name = "SkyWars [SEASON 3!] ✨",
         Run = function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/SkyWars%20[SEASON%203!]"))()
         end
