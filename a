@@ -1,74 +1,23 @@
--- LocalScript Faisal Hub v3
+-- LocalScript
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
--- GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "FaisalHub"
+gui.Name = "HubUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Main Frame (أصغر وعُدل موقعه لليمين)
-local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 380, 0, 460) -- أصغر
-main.Position = UDim2.new(0.5, -160, 0.5, -230) -- تحريك لليمين
-main.BackgroundColor3 = Color3.fromRGB(78, 32, 120)
-main.BorderSizePixel = 0
-main.Active = true
-main.Draggable = true
-main.Parent = gui
-
-local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 18)
-mainCorner.Parent = main
-
-local mainStroke = Instance.new("UIStroke")
-mainStroke.Thickness = 1
-mainStroke.Color = Color3.fromRGB(180, 130, 220)
-mainStroke.Transparency = 0.25
-mainStroke.Parent = main
-
--- Title
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -24, 0, 50)
-title.Position = UDim2.new(0, 18, 0, 8)
-title.BackgroundTransparency = 1
-title.Text = "Faisal Hub 🔥"
-title.TextColor3 = Color3.fromRGB(255, 240, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 22
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = main
-
--- Scroll Frame
-local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1, -24, 1, -76)
-scroll.Position = UDim2.new(0, 12, 0, 60)
-scroll.BackgroundTransparency = 1
-scroll.BorderSizePixel = 0
-scroll.ScrollBarThickness = 6
-scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 210, 235)
-scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-scroll.Parent = main
-
-local grid = Instance.new("UIGridLayout")
-grid.CellSize = UDim2.new(0, 180, 0, 56)
-grid.CellPadding = UDim2.new(0, 10, 0, 10)
-grid.SortOrder = Enum.SortOrder.LayoutOrder
-grid.Parent = scroll
-
--- زر دائري كبير واضح أسود
+-- زر الفتح/الإغلاق الصغير
 local toggle = Instance.new("TextButton")
 toggle.Name = "ToggleButton"
-toggle.Size = UDim2.new(0, 40, 0, 40) -- أكبر بكثير
-toggle.Position = UDim2.new(0, 10, 0, 10)
-toggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- أسود واضح
+toggle.Size = UDim2.new(0, 40, 0, 40)
+toggle.Position = UDim2.new(0, 12, 0, 12)
+toggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 toggle.Text = ""
 toggle.AutoButtonColor = false
 toggle.BorderSizePixel = 0
-toggle.ZIndex = 50
 toggle.Parent = gui
 
 local toggleCorner = Instance.new("UICorner")
@@ -77,78 +26,133 @@ toggleCorner.Parent = toggle
 
 local toggleStroke = Instance.new("UIStroke")
 toggleStroke.Thickness = 1
-toggleStroke.Color = Color3.fromRGB(255, 240, 248)
-toggleStroke.Transparency = 0.2
+toggleStroke.Color = Color3.fromRGB(255, 255, 255)
+toggleStroke.Transparency = 0.25
 toggleStroke.Parent = toggle
 
--- Drag الزر
-local dragging = false
-local dragInput, dragStart, startPos
+-- الواجهة الرئيسية
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.new(0, 420, 0, 270)
+main.Position = UDim2.new(0.5, -210, 0.5, -135)
+main.BackgroundColor3 = Color3.fromRGB(78, 32, 120)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+main.ClipsDescendants = true
+main.Parent = gui
 
-local function update(input)
-	local delta = input.Position - dragStart
-	toggle.Position = UDim2.new(
-		startPos.X.Scale,
-		startPos.X.Offset + delta.X,
-		startPos.Y.Scale,
-		startPos.Y.Offset + delta.Y
-	)
-end
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 18)
+mainCorner.Parent = main
 
-toggle.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = toggle.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Thickness = 1
+mainStroke.Color = Color3.fromRGB(255, 255, 255)
+mainStroke.Transparency = 0.75
+mainStroke.Parent = main
 
-toggle.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		dragInput = input
-	end
-end)
+-- شريط البحث
+local searchBar = Instance.new("Frame")
+searchBar.Name = "SearchBar"
+searchBar.Size = UDim2.new(1, -24, 0, 46)
+searchBar.Position = UDim2.new(0, 12, 0, 12)
+searchBar.BackgroundColor3 = Color3.fromRGB(78, 32, 120)
+searchBar.BorderSizePixel = 0
+searchBar.Parent = main
 
-UserInputService.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		update(input)
-	end
-end)
+local searchCorner = Instance.new("UICorner")
+searchCorner.CornerRadius = UDim.new(1, 0)
+searchCorner.Parent = searchBar
 
--- إظهار/إخفاء القائمة
-local open = true
-local function setOpen(state)
-	open = state
-	main.Visible = state
-end
+local searchStroke = Instance.new("UIStroke")
+searchStroke.Thickness = 1
+searchStroke.Color = Color3.fromRGB(255, 255, 255)
+searchStroke.Transparency = 0.15
+searchStroke.Parent = searchBar
 
-toggle.MouseButton1Click:Connect(function()
-	setOpen(not open)
-end)
+local dots = Instance.new("TextButton")
+dots.Name = "Dots"
+dots.Size = UDim2.new(0, 34, 0, 34)
+dots.Position = UDim2.new(1, -42, 0, 6)
+dots.BackgroundTransparency = 1
+dots.Text = "⋯"
+dots.TextColor3 = Color3.fromRGB(255, 255, 255)
+dots.Font = Enum.Font.GothamBold
+dots.TextSize = 20
+dots.AutoButtonColor = false
+dots.Parent = searchBar
 
--- السكربتات
-local Scripts = {
+local searchIcon = Instance.new("TextLabel")
+searchIcon.Name = "SearchIcon"
+searchIcon.Size = UDim2.new(0, 26, 0, 26)
+searchIcon.Position = UDim2.new(0, 14, 0.5, -13)
+searchIcon.BackgroundTransparency = 1
+searchIcon.Text = "🔍"
+searchIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+searchIcon.Font = Enum.Font.Gotham
+searchIcon.TextSize = 18
+searchIcon.Parent = searchBar
+
+local searchText = Instance.new("TextBox")
+searchText.Name = "SearchText"
+searchText.Size = UDim2.new(1, -90, 1, 0)
+searchText.Position = UDim2.new(0, 42, 0, 0)
+searchText.BackgroundTransparency = 1
+searchText.Text = ""
+searchText.PlaceholderText = "Search"
+searchText.PlaceholderColor3 = Color3.fromRGB(235, 220, 245)
+searchText.TextColor3 = Color3.fromRGB(255, 255, 255)
+searchText.Font = Enum.Font.Gotham
+searchText.TextSize = 16
+searchText.ClearTextOnFocus = false
+searchText.TextXAlignment = Enum.TextXAlignment.Left
+searchText.Parent = searchBar
+
+-- منطقة الأزرار بدون سكرول
+local buttonsFrame = Instance.new("Frame")
+buttonsFrame.Name = "ButtonsFrame"
+buttonsFrame.Size = UDim2.new(1, -24, 1, -70)
+buttonsFrame.Position = UDim2.new(0, 12, 0, 64)
+buttonsFrame.BackgroundTransparency = 1
+buttonsFrame.Parent = main
+
+local grid = Instance.new("UIGridLayout")
+grid.CellSize = UDim2.new(0, 180, 0, 56)
+grid.CellPadding = UDim2.new(0, 10, 0, 10)
+grid.SortOrder = Enum.SortOrder.LayoutOrder
+grid.Parent = buttonsFrame
+
+local scripts = {
 	{
 		Name = "VR7",
 		Run = function()
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/VR7ss/OMK/refs/heads/main/VR7-ON-TOP"))()
+			print("VR7 button pressed")
 		end
 	},
 	{
 		Name = "SkyWars [SEASON 3!] ✨",
 		Run = function()
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/SkyWars%20[SEASON%203!]"))()
+			print("SkyWars button pressed")
 		end
-	}
+	},
+	{
+		Name = "Test 3",
+		Run = function()
+			print("Test 3 button pressed")
+		end
+	},
+	{
+		Name = "Test 4",
+		Run = function()
+			print("Test 4 button pressed")
+		end
+	},
 }
 
--- إنشاء الأزرار
-for i, item in ipairs(Scripts) do
+local buttons = {}
+
+for i, item in ipairs(scripts) do
 	local button = Instance.new("TextButton")
 	button.Name = item.Name
 	button.LayoutOrder = i
@@ -158,21 +162,22 @@ for i, item in ipairs(Scripts) do
 	button.TextSize = 15
 	button.Text = item.Name
 	button.AutoButtonColor = false
-	button.Parent = scroll
+	button.Parent = buttonsFrame
 
-	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 14)
-	btnCorner.Parent = button
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 14)
+	corner.Parent = button
 
-	local btnStroke = Instance.new("UIStroke")
-	btnStroke.Thickness = 1
-	btnStroke.Color = Color3.fromRGB(255, 240, 248)
-	btnStroke.Transparency = 0.25
-	btnStroke.Parent = button
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 1
+	stroke.Color = Color3.fromRGB(255, 240, 248)
+	stroke.Transparency = 0.25
+	stroke.Parent = button
 
 	button.MouseEnter:Connect(function()
 		button.BackgroundColor3 = Color3.fromRGB(255, 228, 240)
 	end)
+
 	button.MouseLeave:Connect(function()
 		button.BackgroundColor3 = Color3.fromRGB(255, 214, 234)
 	end)
@@ -183,4 +188,31 @@ for i, item in ipairs(Scripts) do
 			warn("Button error:", item.Name, err)
 		end
 	end)
+
+	buttons[#buttons + 1] = {
+		Object = button,
+		Name = item.Name
+	}
 end
+
+-- فلترة البحث
+local function applyFilter()
+	local query = string.lower(searchText.Text or "")
+	for _, info in ipairs(buttons) do
+		local visible = (query == "") or string.find(string.lower(info.Name), query, 1, true) ~= nil
+		info.Object.Visible = visible
+	end
+end
+
+searchText:GetPropertyChangedSignal("Text"):Connect(applyFilter)
+
+-- فتح/إغلاق القائمة
+local open = true
+local function setOpen(state)
+	open = state
+	main.Visible = state
+end
+
+toggle.MouseButton1Click:Connect(function()
+	setOpen(not open)
+end)
