@@ -1,470 +1,54 @@
---[[
-	اسم السكربت: WordListGUI
-	المكان: StarterGui (أو أي LocalScript داخل واجهة)
-	الوصف: مربع نص يدخل فيه المستخدم حرفاً واحداً أو حرفين، فتُعرض الكلمات التي تبدأ بتلك البادئة.
-	- إذا كتب حرفاً واحداً (مثلاً 'h') تظهر كل الكلمات التي تبدأ بذلك الحرف.
-	- إذا كتب حرفين (مثلاً 'ye') تظهر الكلمات التي تبدأ بذلك الثنائي (yellow, yes, ...).
-	- كل كلمة لها زر "Copy" لنسخها إلى الحافظة.
-	- الإطار الرئيسي قابل للسحب (drag) بالضغط على أي مكان فيه وتحريك الماوس.
---]]
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
 
-local player = game.Players.LocalPlayer
+local player = Players.LocalPlayer
+
 local gui = Instance.new("ScreenGui")
-gui.Name = "WordListGUI"
+gui.Name = "MouseCoordsGui"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- إطار الخلفية (قابل للسحب) - أسود غير شفاف
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 350, 0, 450)
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
-mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
-mainFrame.BackgroundTransparency = 0
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Parent = gui
+local label = Instance.new("TextLabel")
+label.Size = UDim2.fromOffset(140, 24)
+label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+label.BackgroundTransparency = 0.25
+label.TextColor3 = Color3.fromRGB(255, 255, 255)
+label.TextStrokeTransparency = 0
+label.Font = Enum.Font.SourceSansBold
+label.TextScaled = true
+label.Text = "X: 0 Y: 0"
+label.Parent = gui
 
--- جعل الإطار قابلاً للسحب
-local dragToggle = false
-local dragStart = nil
-local startPos = nil
+local lastText = "X: 0 Y: 0"
 
-mainFrame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragToggle = true
-		dragStart = input.Position
-		startPos = mainFrame.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragToggle = false
-			end
-		end)
-	end
+RunService.RenderStepped:Connect(function()
+	local pos = UserInputService:GetMouseLocation()
+	local inset = GuiService:GetGuiInset()
+
+	local x = math.floor(pos.X)
+	local y = math.floor(pos.Y)
+
+	lastText = ("X: %d Y: %d"):format(x, y)
+	label.Text = lastText
+	label.Position = UDim2.fromOffset(x + 16 - inset.X, y + 12 - inset.Y)
 end)
 
-mainFrame.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement and dragToggle then
-		local delta = input.Position - dragStart
-		mainFrame.Position = UDim2.new(
-			startPos.X.Scale,
-			startPos.X.Offset + delta.X,
-			startPos.Y.Scale,
-			startPos.Y.Offset + delta.Y
-		)
-	end
-end)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
 
--- عنوان
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Text = "Type 1 or 2 letters (e.g., h or ye)"
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 20
-title.Parent = mainFrame
-
--- مربع الإدخال
-local textBox = Instance.new("TextBox")
-textBox.Size = UDim2.new(1, -20, 0, 40)
-textBox.Position = UDim2.new(0, 10, 0, 40)
-textBox.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-textBox.TextColor3 = Color3.new(1, 1, 1)
-textBox.PlaceholderText = "e.g., h  or  ye"
-textBox.PlaceholderColor3 = Color3.new(0.7, 0.7, 0.7)
-textBox.Font = Enum.Font.SourceSans
-textBox.TextSize = 24
-textBox.ClearTextOnFocus = false
-textBox.Parent = mainFrame
-
--- إطار القائمة (ScrollingFrame) - خلفية سوداء غير شفافة
-local listFrame = Instance.new("ScrollingFrame")
-listFrame.Size = UDim2.new(1, -20, 1, -100)
-listFrame.Position = UDim2.new(0, 10, 0, 90)
-listFrame.BackgroundColor3 = Color3.new(0, 0, 0)
-listFrame.BackgroundTransparency = 0
-listFrame.BorderSizePixel = 0
-listFrame.ScrollBarThickness = 8
-listFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-listFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-listFrame.Parent = mainFrame
-
--- تخطيط عمودي للكلمات (مع الأزرار)
-local layout = Instance.new("UIListLayout")
-layout.Parent = listFrame
-layout.SortOrder = Enum.SortOrder.Name
-layout.Padding = UDim.new(0, 2)
-
--- دالة نسخ النص إلى الحافظة (تعمل في Roblox)
-local function copyToClipboard(text)
-	local success, errorMessage = pcall(function()
-		setclipboard(text)
-	end)
-	if not success then
-		warn("Copy failed: " .. errorMessage)
-	end
-end
-
--- قاعدة بيانات الكلمات (50 كلمة شهيرة لكل حرف A-Z)
-local wordDatabase = {
-	["a"] = {
-		"about", "above", "across", "act", "add", "afraid", "after", "again", "against", "age",
-		"ago", "agree", "air", "all", "allow", "also", "always", "am", "among", "and",
-		"anger", "animal", "annoy", "answer", "ant", "any", "apart", "apple", "area", "argue",
-		"arm", "army", "around", "arrive", "art", "as", "ask", "at", "attack", "aunt",
-		"autumn", "away", "awful", "baby", "back", "bad", "bag", "bake", "ball", "banana",
-	},
-	["b"] = {
-		"baby", "back", "bad", "bag", "bake", "ball", "banana", "band", "bank", "bar",
-		"base", "basket", "bath", "be", "bean", "bear", "beautiful", "bed", "bee", "beer",
-		"before", "beg", "begin", "behave", "behind", "believe", "bell", "below", "beside", "best",
-		"better", "between", "big", "bill", "bird", "birthday", "bit", "bite", "black", "blame",
-		"blank", "blind", "block", "blood", "blow", "blue", "board", "boat", "body", "boil",
-	},
-	["c"] = {
-		"cake", "call", "camera", "camp", "can", "candle", "candy", "cap", "car", "card",
-		"care", "careful", "carry", "cart", "cat", "catch", "cattle", "cause", "cave", "cent",
-		"center", "cereal", "certain", "chain", "chair", "chalk", "chance", "change", "charge", "cheap",
-		"cheese", "chicken", "child", "children", "chocolate", "choice", "choose", "circle", "city", "class",
-		"clean", "clear", "clever", "climb", "clock", "close", "cloth", "clothes", "cloud", "club",
-	},
-	["d"] = {
-		"dad", "dance", "danger", "dark", "date", "daughter", "day", "dead", "deal", "dear",
-		"death", "decide", "declare", "deep", "deer", "degree", "delay", "depend", "describe", "desert",
-		"design", "desk", "destroy", "detail", "develop", "die", "difference", "different", "difficult", "dig",
-		"dinner", "direct", "direction", "dirt", "dirty", "discover", "discuss", "disease", "dish", "divide",
-		"do", "doctor", "dog", "dollar", "door", "double", "doubt", "down", "draw", "dream",
-	},
-	["e"] = {
-		"each", "ear", "early", "earth", "east", "easy", "eat", "edge", "egg", "eight",
-		"either", "electric", "elephant", "else", "empty", "end", "enemy", "energy", "engine", "enjoy",
-		"enough", "enter", "entire", "equal", "escape", "even", "evening", "event", "ever", "every",
-		"exact", "except", "excite", "excuse", "exercise", "exist", "expect", "expensive", "experience", "explain",
-		"extra", "eye", "face", "fact", "fail", "fall", "false", "family", "famous", "far",
-	},
-	["f"] = {
-		"face", "fact", "fail", "fall", "family", "famous", "far", "farm", "fast", "fat",
-		"father", "fault", "fear", "feed", "feel", "female", "few", "field", "fight", "figure",
-		"file", "fill", "film", "final", "find", "fine", "finger", "finish", "fire", "firm",
-		"first", "fish", "fit", "five", "fix", "flag", "flat", "floor", "flour", "flower",
-		"fly", "fold", "food", "fool", "foot", "for", "force", "forest", "forget", "fork",
-	},
-	["g"] = {
-		"game", "garden", "gas", "gate", "gather", "general", "gentle", "get", "gift", "girl",
-		"give", "glad", "glass", "go", "goal", "god", "gold", "good", "govern", "grand",
-		"grass", "gray", "great", "green", "ground", "group", "grow", "guess", "guide", "gun",
-		"hair", "half", "hall", "hand", "hang", "happen", "happy", "hard", "harm", "hat",
-		"hate", "have", "he", "head", "healthy", "hear", "heart", "heat", "heavy", "hello",
-	},
-	["h"] = {
-		"hair", "half", "hall", "hand", "hang", "happen", "happy", "hard", "harm", "hat",
-		"hate", "have", "he", "head", "healthy", "hear", "heart", "heat", "heavy", "hello",
-		"help", "her", "here", "hide", "high", "hill", "him", "history", "hit", "hold",
-		"hole", "holiday", "home", "hope", "horse", "hospital", "hot", "hotel", "hour", "house",
-		"how", "huge", "human", "hungry", "hurry", "hurt", "husband", "ice", "idea", "if",
-	},
-	["i"] = {
-		"ice", "idea", "if", "ill", "important", "in", "inch", "include", "inside", "instead",
-		"instrument", "interest", "into", "invent", "iron", "island", "job", "join", "juice", "jump",
-		"just", "keep", "key", "kick", "kid", "kill", "kind", "king", "kiss", "kitchen",
-		"knee", "knife", "knock", "know", "lab", "lack", "lady", "lake", "land", "language",
-		"large", "last", "late", "laugh", "law", "lay", "lead", "learn", "leave", "left",
-	},
-	["j"] = {
-		"job", "join", "juice", "jump", "just", "jacket", "jar", "jaw", "jazz", "jealous",
-		"jeans", "jelly", "jewel", "job", "join", "joke", "journey", "joy", "judge", "juice",
-		"jump", "just", "kick", "kid", "kill", "kind", "king", "kiss", "kitchen", "knee",
-		"knife", "knock", "know", "lab", "lack", "lady", "lake", "land", "language", "large",
-		"last", "late", "laugh", "law", "lay", "lead", "learn", "leave", "left", "leg",
-	},
-	["k"] = {
-		"keep", "key", "kick", "kid", "kill", "kind", "king", "kiss", "kitchen", "knee",
-		"knife", "knock", "know", "knowledge", "lab", "lack", "lady", "lake", "land", "language",
-		"large", "last", "late", "laugh", "law", "lay", "lead", "learn", "leave", "left",
-		"leg", "legal", "lend", "length", "less", "lesson", "let", "letter", "level", "lie",
-		"life", "lift", "light", "like", "limit", "line", "link", "lip", "list", "listen",
-	},
-	["l"] = {
-		"lab", "lack", "lady", "lake", "land", "language", "large", "last", "late", "laugh",
-		"law", "lay", "lead", "learn", "leave", "left", "leg", "legal", "lend", "length",
-		"less", "lesson", "let", "letter", "level", "lie", "life", "lift", "light", "like",
-		"limit", "line", "link", "lip", "list", "listen", "little", "live", "load", "local",
-		"lock", "long", "look", "lord", "lose", "loss", "lot", "love", "low", "luck",
-	},
-	["m"] = {
-		"machine", "magazine", "magic", "mail", "main", "make", "male", "man", "many", "map",
-		"mark", "market", "marry", "match", "matter", "may", "maybe", "me", "meal", "mean",
-		"measure", "meat", "meet", "member", "memory", "men", "mention", "middle", "might", "mile",
-		"milk", "mind", "mine", "minute", "miss", "model", "moment", "money", "month", "more",
-		"morning", "most", "mother", "mountain", "mouth", "move", "movie", "much", "music", "must",
-	},
-	["n"] = {
-		"name", "narrow", "nation", "nature", "near", "nearly", "neck", "need", "needle", "neighbor",
-		"neither", "net", "never", "new", "news", "newspaper", "next", "nice", "night", "nine",
-		"no", "noble", "noise", "none", "nor", "north", "nose", "not", "note", "nothing",
-		"notice", "now", "number", "obey", "object", "occur", "ocean", "odd", "of", "off",
-		"offer", "office", "often", "oil", "old", "on", "once", "one", "only", "open",
-	},
-	["o"] = {
-		"obey", "object", "occur", "ocean", "odd", "of", "off", "offer", "office", "often",
-		"oil", "old", "on", "once", "one", "only", "open", "operate", "opinion", "opposite",
-		"or", "orange", "order", "other", "ought", "our", "out", "outside", "over", "own",
-		"page", "pain", "paint", "paper", "parallel", "parcel", "part", "past", "paste", "pay",
-		"peace", "pen", "pencil", "people", "pepper", "per", "perhaps", "period", "permit", "person",
-	},
-	["p"] = {
-		"page", "pain", "paint", "paper", "parallel", "parcel", "part", "past", "paste", "pay",
-		"peace", "pen", "pencil", "people", "pepper", "per", "perhaps", "period", "permit", "person",
-		"photograph", "piano", "pick", "picture", "piece", "pipe", "place", "plain", "plane", "plant",
-		"plate", "play", "please", "pleasure", "plenty", "pocket", "point", "poison", "polish", "political",
-		"poor", "porter", "position", "possible", "potato", "powder", "power", "present", "price", "prince",
-	},
-	["q"] = {
-		"quality", "quantity", "quarter", "queen", "question", "quick", "quiet", "quite", "quote", "rabbit",
-		"race", "radio", "rail", "rain", "raise", "range", "rate", "rather", "reach", "read",
-		"ready", "real", "reason", "receive", "recent", "recognize", "record", "red", "regret", "regular",
-		"relation", "remember", "remove", "repair", "repeat", "replace", "reply", "report", "republic", "request",
-		"respect", "rest", "result", "return", "rice", "rich", "ride", "right", "ring", "ripe",
-	},
-	["r"] = {
-		"rabbit", "race", "radio", "rail", "rain", "raise", "range", "rate", "rather", "reach",
-		"read", "ready", "real", "reason", "receive", "recent", "recognize", "record", "red", "regret",
-		"regular", "relation", "remember", "remove", "repair", "repeat", "replace", "reply", "report", "republic",
-		"request", "respect", "rest", "result", "return", "rice", "rich", "ride", "right", "ring",
-		"ripe", "rise", "risk", "river", "road", "rock", "roll", "roof", "room", "root",
-	},
-	["s"] = {
-		"sad", "safe", "sail", "salt", "same", "sand", "save", "say", "scale", "school",
-		"science", "scissors", "screen", "sea", "search", "season", "seat", "second", "secret", "section",
-		"secure", "see", "seed", "seek", "sell", "send", "sense", "sentence", "separate", "serve",
-		"service", "set", "settle", "seven", "sex", "shade", "shake", "shall", "shape", "share",
-		"sharp", "she", "sheep", "sheet", "shelf", "shine", "ship", "shirt", "shock", "shoe",
-	},
-	["t"] = {
-		"table", "tail", "take", "talk", "tall", "taste", "tax", "tea", "teach", "team",
-		"tear", "telephone", "television", "tell", "ten", "tend", "term", "terrible", "test", "than",
-		"thank", "that", "the", "their", "them", "then", "there", "therefore", "these", "they",
-		"thick", "thin", "thing", "think", "third", "this", "those", "though", "thought", "thousand",
-		"thread", "three", "throat", "through", "throw", "thus", "ticket", "tie", "tight", "till",
-	},
-	["u"] = {
-		"ugly", "umbrella", "uncle", "under", "understand", "unit", "universe", "university", "unless", "until",
-		"up", "upon", "upper", "upward", "us", "use", "usual", "vegetable", "vehicle", "very",
-		"victory", "view", "village", "violin", "visit", "voice", "wait", "walk", "wall", "want",
-		"war", "warm", "was", "wash", "waste", "watch", "water", "wave", "way", "we",
-		"weak", "wear", "week", "weight", "welcome", "well", "west", "wet", "what", "wheel",
-	},
-	["v"] = {
-		"valley", "valuable", "value", "vegetable", "vehicle", "very", "victory", "view", "village", "violin",
-		"visit", "voice", "wait", "walk", "wall", "want", "war", "warm", "was", "wash",
-		"waste", "watch", "water", "wave", "way", "we", "weak", "wear", "week", "weight",
-		"welcome", "well", "west", "wet", "what", "wheel", "when", "where", "which", "while",
-		"white", "who", "why", "wide", "wife", "wild", "will", "win", "wind", "window",
-	},
-	["w"] = {
-		"wait", "walk", "wall", "want", "war", "warm", "was", "wash", "waste", "watch",
-		"water", "wave", "way", "we", "weak", "wear", "week", "weight", "welcome", "well",
-		"west", "wet", "what", "wheel", "when", "where", "which", "while", "white", "who",
-		"why", "wide", "wife", "wild", "will", "win", "wind", "window", "wine", "wing",
-		"winter", "wire", "wise", "wish", "with", "within", "without", "woman", "wonder", "wood",
-	},
-	["x"] = {
-		"x-ray", "xenon", "xerox", "xylophone", "xenophobia", "xylem", "xanthic", "xeric", "xerophyte", "xenial",
-		"xenon", "xyloid", "xylograph", "xyst", "xenodochy", "xenomania", "xenophile", "xenophobe", "xerarch", "xerasia",
-		"xeriscape", "xeroderma", "xerophile", "xerophily", "xerophthalmia", "xerophyte", "xerostomia", "xiphoid", "xiphosuran", "xylocarp",
-		"xylograph", "xyloid", "xylophagous", "xylophone", "xylose", "xylyl", "xyster", "xystus", "xenopus", "xenurine",
-		"xenyl", "xerafin", "xeric", "xerocopy", "xerogel", "xerography", "xeroma", "xerophagia", "xerophilous", "xerophytic",
-	},
-	["y"] = {
-		"yard", "year", "yellow", "yes", "yesterday", "yet", "you", "young", "your", "yacht",
-		"yank", "yap", "yard", "yarn", "yawn", "yeah", "year", "yell", "yellow", "yes",
-		"yesterday", "yet", "yield", "yoga", "yogurt", "yoke", "yolk", "you", "young", "your",
-		"yours", "yourself", "youth", "yummy", "yacht", "yack", "yah", "yak", "yam", "yank",
-		"yap", "yarn", "yaw", "yawn", "yea", "yeah", "year", "yearn", "yeast", "yell",
-	},
-	["z"] = {
-		"zero", "zoo", "zone", "zebra", "zigzag", "zinc", "zip", "zodiac", "zombie", "zoom",
-		"zucchini", "zephyr", "zeppelin", "zeal", "zealous", "zest", "zesty", "zeta", "zeugma", "zibeth",
-		"zig", "zill", "zillion", "zinc", "zing", "zinnia", "zip", "zipper", "zircon", "zither",
-		"zodiac", "zombie", "zonal", "zone", "zonk", "zoo", "zoology", "zoom", "zoophyte", "zootomy",
-		"zori", "zoster", "zounds", "zucchini", "zwieback", "zydeco", "zygoma", "zygote", "zymase", "zymogen",
-	},
-}
-
--- دالة لجلب الكلمات حسب البادئة (prefix)
-local function getWordsByPrefix(prefix)
-	if not prefix or prefix == "" then return nil end
-	local firstChar = prefix:sub(1, 1):lower()
-	local words = wordDatabase[firstChar]
-	if not words then return nil end
-	
-	if #prefix == 1 then
-		return words
-	else
-		local filtered = {}
-		local lowerPrefix = prefix:lower()
-		for _, word in ipairs(words) do
-			if word:sub(1, #lowerPrefix):lower() == lowerPrefix then
-				table.insert(filtered, word)
-			end
-		end
-		return filtered
-	end
-end
-
--- دالة لتنظيف القائمة الحالية وعرض كلمات جديدة مع أزرار النسخ
-local function showWords(prefix)
-	-- مسح المحتوى القديم
-	for _, child in ipairs(listFrame:GetChildren()) do
-		if child:IsA("Frame") then
-			child:Destroy()
-		end
-	end
-	
-	if prefix and prefix ~= "" then
-		local words = getWordsByPrefix(prefix)
-		if words and #words > 0 then
-			-- إضافة كل كلمة كـ Frame يحتوي على TextBox (للكلمة) وزر Copy
-			for _, word in ipairs(words) do
-				-- إطار أفقي للكلمة والزر
-				local wordFrame = Instance.new("Frame")
-				wordFrame.Size = UDim2.new(1, 0, 0, 30)
-				wordFrame.BackgroundTransparency = 1
-				wordFrame.Parent = listFrame
-				
-				-- مربع نص الكلمة (غير قابل للتحرير) - يأخذ 70% من العرض
-				local wordBox = Instance.new("TextBox")
-				wordBox.Size = UDim2.new(0.7, -5, 1, 0)
-				wordBox.Position = UDim2.new(0, 0, 0, 0)
-				wordBox.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-				wordBox.TextColor3 = Color3.new(1, 1, 1)
-				wordBox.Text = word
-				wordBox.Font = Enum.Font.SourceSans
-				wordBox.TextSize = 18
-				wordBox.TextEditable = false
-				wordBox.ClearTextOnFocus = false
-				wordBox.Parent = wordFrame
-				
-				-- زر النسخ - 30% من العرض، نفس لون الخلفية
-				local copyButton = Instance.new("TextButton")
-				copyButton.Size = UDim2.new(0.3, -5, 1, 0)
-				copyButton.Position = UDim2.new(0.7, 5, 0, 0)
-				copyButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-				copyButton.TextColor3 = Color3.new(1, 1, 1)
-				copyButton.Text = "Copy"
-				copyButton.Font = Enum.Font.SourceSans
-				copyButton.TextSize = 14
-				copyButton.Parent = wordFrame
-				
-				-- تأثير hover
-				copyButton.MouseEnter:Connect(function()
-					copyButton.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
-				end)
-				copyButton.MouseLeave:Connect(function()
-					copyButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-				end)
-				
-				-- حدث النسخ
-				local wordToCopy = word
-				copyButton.MouseButton1Click:Connect(function()
-					copyToClipboard(wordToCopy)
-					copyButton.BackgroundColor3 = Color3.new(0, 0.6, 0)
-					copyButton.Text = "Copied!"
-					task.wait(0.5)
-					copyButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-					copyButton.Text = "Copy"
-				end)
+	if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.T then
+		if typeof(setclipboard) == "function" then
+			local ok, err = pcall(function()
+				setclipboard(tostring(lastText))
+			end)
+			if not ok then
+				warn("Clipboard failed:", err)
 			end
 		else
-			-- لا توجد كلمات تطابق البادئة
-			local emptyFrame = Instance.new("Frame")
-			emptyFrame.Size = UDim2.new(1, 0, 0, 30)
-			emptyFrame.BackgroundTransparency = 1
-			emptyFrame.Parent = listFrame
-			
-			local msgBox = Instance.new("TextBox")
-			msgBox.Size = UDim2.new(1, 0, 1, 0)
-			msgBox.BackgroundTransparency = 1
-			msgBox.TextColor3 = Color3.new(1, 0.5, 0.5)
-			msgBox.Text = "No words for this prefix"
-			msgBox.Font = Enum.Font.SourceSans
-			msgBox.TextSize = 18
-			msgBox.TextEditable = false
-			msgBox.Parent = emptyFrame
-		end
-	else
-		-- إذا كان البادئة فارغة، نعرض رسالة ترحيب
-		local welcomeFrame = Instance.new("Frame")
-		welcomeFrame.Size = UDim2.new(1, 0, 0, 30)
-		welcomeFrame.BackgroundTransparency = 1
-		welcomeFrame.Parent = listFrame
-		
-		local welcomeBox = Instance.new("TextBox")
-		welcomeBox.Size = UDim2.new(1, 0, 1, 0)
-		welcomeBox.BackgroundTransparency = 1
-		welcomeBox.TextColor3 = Color3.new(0.8, 0.8, 0.8)
-		welcomeBox.Text = "Enter 1 or 2 letters"
-		welcomeBox.Font = Enum.Font.SourceSans
-		welcomeBox.TextSize = 18
-		welcomeBox.TextEditable = false
-		welcomeBox.Parent = welcomeFrame
-	end
-end
-
--- ربط حدث تغيير النص في مربع الإدخال
-textBox.Changed:Connect(function(property)
-	if property == "Text" then
-		local text = textBox.Text
-		-- نزيل المسافات ونحول إلى lowercase
-		local cleaned = text:gsub("%s+", ""):lower()
-		if cleaned == "" then
-			showWords(nil)
-			return
-		end
-		-- نأخذ أول 1 أو 2 حرف إذا كانت حروفاً إنجليزية
-		local prefix = ""
-		for i = 1, math.min(2, #cleaned) do
-			local char = cleaned:sub(i, i)
-			if char:match("%a") then
-				prefix = prefix .. char
-			else
-				break
-			end
-		end
-		
-		if prefix == "" then
-			-- إذا لم يحتوي على أي حرف، نظهر رسالة خطأ
-			showWords(nil)
-			local errorFrame = Instance.new("Frame")
-			errorFrame.Size = UDim2.new(1, 0, 0, 30)
-			errorFrame.BackgroundTransparency = 1
-			errorFrame.Parent = listFrame
-			
-			local errorBox = Instance.new("TextBox")
-			errorBox.Size = UDim2.new(1, 0, 1, 0)
-			errorBox.BackgroundTransparency = 1
-			errorBox.TextColor3 = Color3.new(1, 0.5, 0.5)
-			errorBox.Text = "Please type English letters only"
-			errorBox.Font = Enum.Font.SourceSans
-			errorBox.TextSize = 18
-			errorBox.TextEditable = false
-			errorBox.Parent = errorFrame
-		else
-			showWords(prefix)
+			warn("setclipboard غير متوفر في هذا البيئة")
 		end
 	end
 end)
-
--- تهيئة أولية
-showWords(nil)
-
--- إضافة زوايا دائرية
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 8)
-corner.Parent = mainFrame
-
-local textBoxCorner = Instance.new("UICorner")
-textBoxCorner.CornerRadius = UDim.new(0, 5)
-textBoxCorner.Parent = textBox
-
--- (اختياري) إضافة زوايا دائرية للأزرار - يمكن تطبيقها في حلقة عند إنشاء الأزرار إذا أردت
