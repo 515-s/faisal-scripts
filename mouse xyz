@@ -1,0 +1,54 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
+
+local player = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "MouseCoordsGui"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local label = Instance.new("TextLabel")
+label.Size = UDim2.fromOffset(140, 24)
+label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+label.BackgroundTransparency = 0.25
+label.TextColor3 = Color3.fromRGB(255, 255, 255)
+label.TextStrokeTransparency = 0
+label.Font = Enum.Font.SourceSansBold
+label.TextScaled = true
+label.Text = "X: 0 Y: 0"
+label.Parent = gui
+
+local lastText = "X: 0 Y: 0"
+
+RunService.RenderStepped:Connect(function()
+	local pos = UserInputService:GetMouseLocation()
+	local inset = GuiService:GetGuiInset()
+
+	local x = math.floor(pos.X)
+	local y = math.floor(pos.Y)
+
+	lastText = ("X: %d Y: %d"):format(x, y)
+	label.Text = lastText
+	label.Position = UDim2.fromOffset(x + 16 - inset.X, y + 12 - inset.Y)
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+
+	if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.T then
+		if typeof(setclipboard) == "function" then
+			local ok, err = pcall(function()
+				setclipboard(tostring(lastText))
+			end)
+			if not ok then
+				warn("Clipboard failed:", err)
+			end
+		else
+			warn("setclipboard غير متوفر في هذا البيئة")
+		end
+	end
+end)
