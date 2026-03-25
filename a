@@ -1,4 +1,4 @@
--- ✅ Script Hub (LocalScript)
+-- ✅ Faisal Hub V2 (LocalScript)
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -9,11 +9,13 @@ gui.Name = "FaisalHub"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- 🔹 Frame
+-- 🔹 Frame رئيسي
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 300)
-frame.Position = UDim2.new(0.05, 0, 0.2, 0)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.Size = UDim2.new(0, 350, 0, 400)
+frame.Position = UDim2.new(0.3, 0, 0.2, 0)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.Active = true
+frame.Draggable = true
 frame.Parent = gui
 
 -- 🔹 Title
@@ -22,7 +24,24 @@ title.Size = UDim2.new(1, 0, 0, 40)
 title.Text = "Faisal Hub 🔥"
 title.TextColor3 = Color3.new(1,1,1)
 title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
 title.Parent = frame
+
+-- 🔹 Scroll Frame
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, -10, 1, -80)
+scroll.Position = UDim2.new(0, 5, 0, 45)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.ScrollBarThickness = 6
+scroll.BackgroundTransparency = 1
+scroll.Parent = frame
+
+-- 🔹 Grid Layout (شبكة)
+local grid = Instance.new("UIGridLayout")
+grid.CellSize = UDim2.new(0, 150, 0, 50)
+grid.CellPadding = UDim2.new(0, 10, 0, 10)
+grid.Parent = scroll
 
 -- 🔹 قائمة السكربتات
 local Scripts = {
@@ -31,45 +50,47 @@ local Scripts = {
         Url = "https://raw.githubusercontent.com/VR7ss/OMK/refs/heads/main/VR7-ON-TOP"
     },
     {
-        Name = "Test Script",
-        Url = "https://pastebin.com/raw/xxxxx" -- غيره
+        Name = "Test 1",
+        Url = "https://pastebin.com/raw/xxxxx"
+    },
+    {
+        Name = "Test 2",
+        Url = "https://pastebin.com/raw/xxxxx"
+    },
+    {
+        Name = "Test 3",
+        Url = "https://pastebin.com/raw/xxxxx"
     }
 }
 
--- 🔹 منع التكرار
 local executed = {}
 
 -- 🔹 إنشاء الأزرار
-for i, v in pairs(Scripts) do
+for _, v in pairs(Scripts) do
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, -10, 0, 40)
-    button.Position = UDim2.new(0, 5, 0, 40 + (i-1)*45)
+    button.Size = UDim2.new(0, 150, 0, 50)
     button.Text = v.Name
-    button.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    button.BackgroundColor3 = Color3.fromRGB(35,35,35)
     button.TextColor3 = Color3.new(1,1,1)
-    button.Parent = frame
+    button.Font = Enum.Font.Gotham
+    button.TextSize = 14
+    button.Parent = scroll
 
     button.MouseButton1Click:Connect(function()
-        if executed[v.Url] then
-            warn("تم تشغيل السكربت مسبقًا")
-            return
-        end
-
+        if executed[v.Url] then return end
         executed[v.Url] = true
 
         task.spawn(function()
-            local success, err = pcall(function()
+            pcall(function()
                 loadstring(game:HttpGet(v.Url))()
             end)
-
-            if success then
-                print("تم تشغيل:", v.Name)
-            else
-                warn("خطأ:", err)
-            end
         end)
     end)
 end
+
+-- 🔹 تحديث حجم السكرول تلقائي
+task.wait()
+scroll.CanvasSize = UDim2.new(0, 0, 0, grid.AbsoluteContentSize.Y + 10)
 
 -- 🔹 زر إغلاق
 local close = Instance.new("TextButton")
@@ -78,6 +99,7 @@ close.Position = UDim2.new(0, 0, 1, -30)
 close.Text = "Close"
 close.BackgroundColor3 = Color3.fromRGB(80,0,0)
 close.TextColor3 = Color3.new(1,1,1)
+close.Font = Enum.Font.GothamBold
 close.Parent = frame
 
 close.MouseButton1Click:Connect(function()
