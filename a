@@ -1,19 +1,19 @@
--- LocalScript محدث
-
+-- LocalScript Faisal Hub v3
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
+-- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "FaisalHub"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Main Frame (معدل لليمين)
+-- Main Frame (أصغر وعُدل موقعه لليمين)
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 400, 0, 460) -- صغرنا شوي العرض
-main.Position = UDim2.new(0.5, -200, 0.5, -230) -- تحريك لليمين
-main.BackgroundColor3 = Color3.fromRGB(78, 32, 120) -- بنفسجي
+main.Size = UDim2.new(0, 380, 0, 460) -- أصغر
+main.Position = UDim2.new(0.5, -160, 0.5, -230) -- تحريك لليمين
+main.BackgroundColor3 = Color3.fromRGB(78, 32, 120)
 main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
@@ -59,12 +59,12 @@ grid.CellPadding = UDim2.new(0, 10, 0, 10)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = scroll
 
--- زر دائري صغير (أسود + أكبر قليل)
+-- زر دائري كبير واضح أسود
 local toggle = Instance.new("TextButton")
 toggle.Name = "ToggleButton"
-toggle.Size = UDim2.new(0, 26, 0, 26) -- أكبر قليل
-toggle.Position = UDim2.new(0, 14, 0, 14)
-toggle.BackgroundColor3 = Color3.fromRGB(10, 10, 10) -- أسود
+toggle.Size = UDim2.new(0, 40, 0, 40) -- أكبر بكثير
+toggle.Position = UDim2.new(0, 10, 0, 10)
+toggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- أسود واضح
 toggle.Text = ""
 toggle.AutoButtonColor = false
 toggle.BorderSizePixel = 0
@@ -81,7 +81,7 @@ toggleStroke.Color = Color3.fromRGB(255, 240, 248)
 toggleStroke.Transparency = 0.2
 toggleStroke.Parent = toggle
 
--- سحب الزر الدائري
+-- Drag الزر
 local dragging = false
 local dragInput, dragStart, startPos
 
@@ -100,7 +100,6 @@ toggle.InputBegan:Connect(function(input)
 		dragging = true
 		dragStart = input.Position
 		startPos = toggle.Position
-
 		input.Changed:Connect(function()
 			if input.UserInputState == Enum.UserInputState.End then
 				dragging = false
@@ -132,7 +131,7 @@ toggle.MouseButton1Click:Connect(function()
 	setOpen(not open)
 end)
 
--- قائمة السكربتات
+-- السكربتات
 local Scripts = {
 	{
 		Name = "VR7",
@@ -174,7 +173,6 @@ for i, item in ipairs(Scripts) do
 	button.MouseEnter:Connect(function()
 		button.BackgroundColor3 = Color3.fromRGB(255, 228, 240)
 	end)
-
 	button.MouseLeave:Connect(function()
 		button.BackgroundColor3 = Color3.fromRGB(255, 214, 234)
 	end)
