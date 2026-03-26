@@ -150,14 +150,14 @@ buttonsScrolling.CanvasSize = UDim2.new(0, 0, 0, 0)
 buttonsScrolling.ClipsDescendants = true
 buttonsScrolling.Parent = main
 
--- Grid layout (تم رفع ارتفاع الخلية ليتسع النص)
+-- Grid layout
 local grid = Instance.new("UIGridLayout")
-grid.CellSize = UDim2.new(0, 170, 0, 70)   -- زيادة الارتفاع
+grid.CellSize = UDim2.new(0, 170, 0, 70)
 grid.CellPadding = UDim2.new(0, 10, 0, 10)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = buttonsScrolling
 
--- تعريف الأزرار
+-- تعريف الأزرار (تم تعديل 4 و 5)
 local scripts = {
 	{
 		Name = "VR7",
@@ -178,15 +178,15 @@ local scripts = {
 		end
 	},
 	{
-		Name = "4",
+		Name = "BlockSpin PVP",
 		Run = function()
-			print("Button 4 pressed")
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/hermanos-dev/hermanos-hub/refs/heads/main/BlockSpin/blockspin-pvp.lua"))()
 		end
 	},
 	{
-		Name = "5",
+		Name = "BlockSpin FARM",
 		Run = function()
-			print("Button 5 pressed")
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/hermanos-dev/hermanos-hub/refs/heads/main/BlockSpin/blockspin-farm.lua"))()
 		end
 	},
 	{
@@ -206,10 +206,10 @@ for i, item in ipairs(scripts) do
 	button.BackgroundColor3 = Color3.fromRGB(255, 214, 234)
 	button.TextColor3 = Color3.fromRGB(85, 25, 85)
 	button.Font = Enum.Font.GothamSemibold
-	button.TextSize = 13                     -- تقليل الخط قليلاً
+	button.TextSize = 13
 	button.Text = item.Name
 	button.AutoButtonColor = false
-	button.TextWrapped = true                -- التفاف النص
+	button.TextWrapped = true
 	button.TextXAlignment = Enum.TextXAlignment.Center
 	button.TextYAlignment = Enum.TextYAlignment.Center
 	button.Parent = buttonsScrolling
