@@ -1,90 +1,72 @@
--- LocalScript (ضعه في StarterGui أو StarterPlayerScripts)
+-- LocalScript – ضعه في StarterGui (أهم شيء)
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
--- إعدادات
+-- إعداداتك
 local teleportPos = Vector3.new(-15798, 33, -645)
-local firstClick = Vector2.new(589, 300)   -- زر فتح الواجهة (عدلها إن لزم)
+local firstClick = Vector2.new(589, 300)   -- مكان زر فتح نافذة الإهداء
 local targetText = "scorv3150"
 
 local virtualInput = game:GetService("VirtualInputManager")
 
--- وظيفة الانتقال والتثبيت
-local function teleportAndFreeze()
-    rootPart.CFrame = CFrame.new(teleportPos)
-    humanoid.PlatformStand = true
-    repeat task.wait() until (rootPart.Position - teleportPos).Magnitude < 5
-    task.wait(0.5)
-    print("تم الانتقال والتثبيت")
-end
+-- 1. الانتقال والتثبيت
+rootPart.CFrame = CFrame.new(teleportPos)
+humanoid.PlatformStand = true
+repeat task.wait() until (rootPart.Position - teleportPos).Magnitude < 5
+task.wait(0.5)
+print("✅ تم الانتقال والتثبيت")
 
--- وظيفة النقر
-local function clickAt(x, y)
-    virtualInput:SendMouseButtonEvent(x, y, 0, true, game, 0)
-    task.wait(0.05)
-    virtualInput:SendMouseButtonEvent(x, y, 0, false, game, 0)
-    task.wait(0.2)
-end
+-- 2. النقر لفتح النافذة
+virtualInput:SendMouseButtonEvent(firstClick.X, firstClick.Y, 0, true, game, 0)
+task.wait(0.05)
+virtualInput:SendMouseButtonEvent(firstClick.X, firstClick.Y, 0, false, game, 0)
+task.wait(1.5)  -- انتظر ظهور النافذة
+print("✅ تم النقر لفتح النافذة")
 
--- وظيفة البحث عن حقل Username في جميع الواجهات
-local function findUsernameTextBox()
-    -- ابحث في كل ScreenGui يملكه اللاعب
-    for _, gui in ipairs(player.PlayerGui:GetChildren()) do
-        -- ابحث بشكل متكرر عن TextBox باسم "Username" أو يحتوي على "username"
-        local textBox = gui:FindFirstChild("Username", true)
-        if textBox and textBox:IsA("TextBox") then
-            return textBox
-        end
-        -- قد يكون الاسم مختلفاً (مثلاً "TextBox" أو "user")
-        local possibleBox = gui:FindFirstChildWhichIsA("TextBox", true)
-        if possibleBox then
-            -- يمكنك هنا إضافة شرط إضافي مثل: if possibleBox.PlaceholderText == "Username" then
-            return possibleBox
-        end
+-- 3. البحث عن صندوق النص (Username) بكل الطرق الممكنة
+local usernameBox = nil
+
+-- الطريقة الأولى: البحث عن كائن اسمه "Username"
+for _, gui in ipairs(player.PlayerGui:GetChildren()) do
+    local found = gui:FindFirstChild("Username", true)
+    if found and found:IsA("TextBox") then
+        usernameBox = found
+        break
     end
-    return nil
 end
 
--- وظيفة البحث عن زر Send
-local function findSendButton()
+-- الطريقة الثانية: البحث عن أول TextBox في النافذة التي ظهرت
+if not usernameBox then
     for _, gui in ipairs(player.PlayerGui:GetChildren()) do
-        local button = gui:FindFirstChild("Send", true)
-        if button and (button:IsA("TextButton") or button:IsA("ImageButton")) then
-            return button
+        -- ابحث في النافذة التي ظهرت حديثاً (آخر نافذة مضافة)
+        local textBoxes = gui:GetDescendants()
+        for _, obj in ipairs(textBoxes) do
+            if obj:IsA("TextBox") then
+                usernameBox = obj
+                break
+            end
         end
+        if usernameBox then break end
     end
-    return nil
 end
 
--- التنفيذ
-teleportAndFreeze()
-
--- فتح الواجهة
-clickAt(firstClick.X, firstClick.Y)
-task.wait(1.5)  -- انتظر ظهور الواجهة
-
--- البحث عن حقل Username
-local usernameBox = findUsernameTextBox()
+-- 4. إذا وجدناه، نضع النص مباشرة
 if usernameBox then
     usernameBox.Text = targetText
-    print("تم تعيين النص في حقل Username: " .. targetText)
+    print("✅ تم لصق النص في صندوق النص: " .. usernameBox.Name)
+    print("📝 النص الحالي في الصندوق: " .. usernameBox.Text)
 else
-    print("لم يتم العثور على حقل Username! تأكد من ظهور الواجهة.")
-end
-
--- (اختياري) البحث عن زر Send والضغط عليه
-task.wait(0.5)
-local sendButton = findSendButton()
-if sendButton then
-    -- محاكاة النقر على الزر
-    local absPos = sendButton.AbsolutePosition
-    local size = sendButton.AbsoluteSize
-    local clickX = absPos.X + size.X / 2
-    local clickY = absPos.Y + size.Y / 2
-    clickAt(clickX, clickY)
-    print("تم الضغط على زر Send")
-else
-    print("لم يتم العثور على زر Send")
+    print("❌ لم أجد أي صندوق نص! تأكد من ظهور النافذة.")
+    -- طباعة أسماء جميع الـ Gui لمساعدتك
+    print("--- قائمة الواجهات الموجودة ---")
+    for _, gui in ipairs(player.PlayerGui:GetChildren()) do
+        print("GUI:", gui.Name)
+        for _, obj in ipairs(gui:GetDescendants()) do
+            if obj:IsA("TextBox") then
+                print("  → TextBox:", obj.Name)
+            end
+        end
+    end
 end
