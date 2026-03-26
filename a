@@ -9,10 +9,10 @@ gui.Name = "HubUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- زر الفتح/الإغلاق
+-- زر الفتح/الإغلاق الصغير (20x20)
 local toggle = Instance.new("TextButton")
 toggle.Name = "ToggleButton"
-toggle.Size = UDim2.new(0, 40, 0, 40)
+toggle.Size = UDim2.new(0, 20, 0, 20)          -- Changed to 20x20
 toggle.Position = UDim2.new(0, 12, 0, 12)
 toggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 toggle.Text = ""
@@ -33,8 +33,8 @@ toggleStroke.Parent = toggle
 -- الواجهة الرئيسية
 local main = Instance.new("Frame")
 main.Name = "Main"
-main.Size = UDim2.new(0, 500, 0, 320)
-main.Position = UDim2.new(0.5, -250, 0.5, -160)
+main.Size = UDim2.new(0, 420, 0, 270)
+main.Position = UDim2.new(0.5, -210, 0.5, -135)
 main.BackgroundColor3 = Color3.fromRGB(78, 32, 120)
 main.BorderSizePixel = 0
 main.Active = true
@@ -55,8 +55,8 @@ mainStroke.Parent = main
 -- شريط البحث
 local searchBar = Instance.new("Frame")
 searchBar.Name = "SearchBar"
-searchBar.Size = UDim2.new(1, -26, 0, 46)
-searchBar.Position = UDim2.new(0, 13, 0, 12)
+searchBar.Size = UDim2.new(1, -24, 0, 46)
+searchBar.Position = UDim2.new(0, 12, 0, 12)
 searchBar.BackgroundColor3 = Color3.fromRGB(78, 32, 120)
 searchBar.BorderSizePixel = 0
 searchBar.Parent = main
@@ -109,68 +109,63 @@ searchText.ClearTextOnFocus = false
 searchText.TextXAlignment = Enum.TextXAlignment.Left
 searchText.Parent = searchBar
 
--- منطقة الأزرار مع سكرول
-local buttonsScroll = Instance.new("ScrollingFrame")
-buttonsScroll.Name = "ButtonsScroll"
-buttonsScroll.Size = UDim2.new(1, -36, 1, -70)
-buttonsScroll.Position = UDim2.new(0, 16, 0, 64)
-buttonsScroll.BackgroundTransparency = 1
-buttonsScroll.BorderSizePixel = 0
-buttonsScroll.ScrollBarThickness = 6
-buttonsScroll.ScrollBarImageColor3 = Color3.fromRGB(255, 210, 235)
-buttonsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-buttonsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-buttonsScroll.Parent = main
+-- منطقة الأزرار (ScrollingFrame)
+local buttonsScrolling = Instance.new("ScrollingFrame")
+buttonsScrolling.Name = "ButtonsFrame"
+buttonsScrolling.Size = UDim2.new(1, -24, 1, -70)   -- fills remaining space
+buttonsScrolling.Position = UDim2.new(0, 12, 0, 64)
+buttonsScrolling.BackgroundTransparency = 1
+buttonsScrolling.BorderSizePixel = 0
+buttonsScrolling.ScrollBarThickness = 8
+buttonsScrolling.ScrollBarImageTransparency = 0.5
+buttonsScrolling.AutomaticCanvasSize = Enum.AutomaticSize.Y   -- canvas grows with content
+buttonsScrolling.CanvasSize = UDim2.new(0, 0, 0, 0)           -- will be overridden
+buttonsScrolling.ClipsDescendants = true
+buttonsScrolling.Parent = main
 
-local padding = Instance.new("UIPadding")
-padding.PaddingLeft = UDim.new(0, 4)
-padding.PaddingRight = UDim.new(0, 18)
-padding.PaddingTop = UDim.new(0, 2)
-padding.PaddingBottom = UDim.new(0, 8)
-padding.Parent = buttonsScroll
-
+-- Grid layout inside scrolling frame
 local grid = Instance.new("UIGridLayout")
-grid.CellSize = UDim2.new(0, 215, 0, 56)
-grid.CellPadding = UDim2.new(0, 12, 0, 12)
+grid.CellSize = UDim2.new(0, 180, 0, 56)
+grid.CellPadding = UDim2.new(0, 10, 0, 10)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
-grid.Parent = buttonsScroll
+grid.Parent = buttonsScrolling
 
--- سكربتاتك
+-- تعريف الأزرار
 local scripts = {
 	{
 		Name = "VR7",
 		Run = function()
-			print("VR7 pressed")
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/VR7ss/OMK/refs/heads/main/VR7-ON-TOP"))()
 		end
 	},
 	{
 		Name = "SkyWars [SEASON 3!] ✨",
 		Run = function()
-			print("SkyWars pressed")
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/SkyWars%20%5BSEASON%203!%5D"))()
 		end
 	},
 	{
-		Name = "Test 3",
+		Name = "3",
 		Run = function()
-			print("Test 3 pressed")
+			print("Button 3 pressed")
 		end
 	},
 	{
-		Name = "Test 4",
+		Name = "4",
 		Run = function()
-			print("Test 4 pressed")
+			print("Button 4 pressed")
 		end
 	},
 	{
-		Name = "Test 5",
+		Name = "5",
 		Run = function()
-			print("Test 5 pressed")
+			print("Button 5 pressed")
 		end
 	},
 	{
-		Name = "Test 6",
+		Name = "6",
 		Run = function()
-			print("Test 6 pressed")
+			print("Button 6 pressed")
 		end
 	},
 }
@@ -187,7 +182,7 @@ for i, item in ipairs(scripts) do
 	button.TextSize = 15
 	button.Text = item.Name
 	button.AutoButtonColor = false
-	button.Parent = buttonsScroll
+	button.Parent = buttonsScrolling
 
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 14)
@@ -220,18 +215,19 @@ for i, item in ipairs(scripts) do
 	}
 end
 
--- فلترة البحث
+-- فلترة البحث (تعمل مع ScrollingFrame)
 local function applyFilter()
 	local query = string.lower(searchText.Text or "")
 	for _, info in ipairs(buttons) do
 		local visible = (query == "") or string.find(string.lower(info.Name), query, 1, true) ~= nil
 		info.Object.Visible = visible
 	end
+	-- بعد تغيير الرؤية، تحديث CanvasSize تلقائياً (AutomaticCanvasSize يتولى الأمر)
 end
 
 searchText:GetPropertyChangedSignal("Text"):Connect(applyFilter)
 
--- فتح / إغلاق القائمة
+-- فتح/إغلاق القائمة
 local open = true
 local function setOpen(state)
 	open = state
