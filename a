@@ -1,42 +1,67 @@
--- LocalScript (يضعه في StarterGui أو StarterPlayerScripts)
-
+-- LocalScript
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
--- 1. نقل اللاعب إلى الموقع المطلوب
-local targetPosition = Vector3.new(-15798, 33, -645)
-rootPart.CFrame = CFrame.new(targetPosition)
+-- إعدادات
+local teleportPos = Vector3.new(-15798, 33, -645)
+local firstClick = Vector2.new(589, 300)
+local secondClick = Vector2.new(940, 337)
+local textToPaste = "scorv3150"
 
--- 2. تثبيت اللاعب (منع الحركة)
-humanoid.PlatformStand = true
-
--- 3. انتظار حتى يصل اللاعب إلى الموقع
-local function waitForTeleport()
-    while true do
-        if (rootPart.Position - targetPosition).Magnitude < 5 then
-            break
-        end
-        task.wait(0.1)
-    end
-end
-
-waitForTeleport()
-
--- 4. محاكاة نقرة على الشاشة عند الإحداثيات المحددة
-task.wait(0.5) -- تأخير بسيط للتأكد
-
+-- خدمات
 local userInputService = game:GetService("UserInputService")
 local virtualInput = game:GetService("VirtualInputManager")
 
--- إحداثيات النقر
-local screenX = 589
-local screenY = 300
+-- 1. الانتقال إلى الموقع
+rootPart.CFrame = CFrame.new(teleportPos)
+humanoid.PlatformStand = true  -- تثبيت اللاعب
 
--- محاكاة النقر (إذا كان مدعوماً)
-virtualInput:SendMouseButtonEvent(screenX, screenY, 0, true, game, 0)
+-- 2. انتظار وصول اللاعب
+local function waitForTeleport()
+    while (rootPart.Position - teleportPos).Magnitude > 5 do
+        task.wait(0.1)
+    end
+end
+waitForTeleport()
+task.wait(0.5)
+
+-- 3. النقرة الأولى
+virtualInput:SendMouseButtonEvent(firstClick.X, firstClick.Y, 0, true, game, 0)
 task.wait(0.05)
-virtualInput:SendMouseButtonEvent(screenX, screenY, 0, false, game, 0)
+virtualInput:SendMouseButtonEvent(firstClick.X, firstClick.Y, 0, false, game, 0)
+print("تم النقر على الإحداثيات الأولى")
 
-print("تم الانتقال والنقر على الإحداثيات:", screenX, screenY)
+-- انتظار ظهور الواجهة (يمكن تعديل وقت الانتظار حسب الحاجة)
+task.wait(1)
+
+-- 4. النقرة الثانية (على صندوق النص)
+virtualInput:SendMouseButtonEvent(secondClick.X, secondClick.Y, 0, true, game, 0)
+task.wait(0.05)
+virtualInput:SendMouseButtonEvent(secondClick.X, secondClick.Y, 0, false, game, 0)
+print("تم النقر على صندوق النص")
+
+-- تأخير بسيط لضمان تركيز صندوق النص
+task.wait(0.3)
+
+-- 5. نسخ النص إلى الحافظة (إذا كانت الوظيفة متاحة)
+if setclipboard then
+    setclipboard(textToPaste)
+    print("تم نسخ النص إلى الحافظة: " .. textToPaste)
+else
+    warn("وظيفة setclipboard غير متوفرة في هذه البيئة")
+end
+
+-- 6. لصق النص (محاكاة Ctrl+V)
+-- ملاحظة: بعض الألعاب قد تمنع إرسال مفاتيح التحكم
+virtualInput:SendKeyEvent("LeftControl", true, game)
+task.wait(0.05)
+virtualInput:SendKeyEvent("v", true, game)
+task.wait(0.05)
+virtualInput:SendKeyEvent("v", false, game)
+virtualInput:SendKeyEvent("LeftControl", false, game)
+print("تم محاكاة اللصق (Ctrl+V)")
+
+-- بديل: إذا لم يعمل اللصق، يمكن كتابة النص مباشرة باستخدام SendString
+-- virtualInput:SendString(textToPaste)
