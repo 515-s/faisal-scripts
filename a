@@ -12,7 +12,7 @@ gui.Parent = player:WaitForChild("PlayerGui")
 -- زر الفتح/الإغلاق الصغير (قابل للسحب)
 local toggle = Instance.new("TextButton")
 toggle.Name = "ToggleButton"
-toggle.Size = UDim2.new(0, 30, 0, 30)
+toggle.Size = UDim2.new(0, 20, 0, 20)
 toggle.Position = UDim2.new(0, 12, 0, 12)
 toggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 toggle.Text = ""
@@ -57,10 +57,10 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- الواجهة الرئيسية (تم تصغير العرض)
+-- الواجهة الرئيسية
 local main = Instance.new("Frame")
 main.Name = "Main"
-main.Size = UDim2.new(0, 380, 0, 270)          -- عرض أقل من 420
+main.Size = UDim2.new(0, 380, 0, 270)
 main.Position = UDim2.new(0.5, -190, 0.5, -135)
 main.BackgroundColor3 = Color3.fromRGB(78, 32, 120)
 main.BorderSizePixel = 0
@@ -150,14 +150,14 @@ buttonsScrolling.CanvasSize = UDim2.new(0, 0, 0, 0)
 buttonsScrolling.ClipsDescendants = true
 buttonsScrolling.Parent = main
 
--- Grid layout (حجم الخلايا 170×56 بدلاً من 180)
+-- Grid layout
 local grid = Instance.new("UIGridLayout")
 grid.CellSize = UDim2.new(0, 170, 0, 56)
 grid.CellPadding = UDim2.new(0, 10, 0, 10)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = buttonsScrolling
 
--- تعريف الأزرار
+-- تعريف الأزرار (تم تعديل الزر الثالث)
 local scripts = {
 	{
 		Name = "VR7",
@@ -172,9 +172,9 @@ local scripts = {
 		end
 	},
 	{
-		Name = "3",
+		Name = "Escape Rising Lava For Brainrots!",
 		Run = function()
-			print("Button 3 pressed")
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/Escape%20Rising%20Lava%20For%20Brainrots"))()
 		end
 	},
 	{
