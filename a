@@ -1,4 +1,4 @@
--- LocalScript – ضعه في StarterGui (أهم شيء)
+-- LocalScript (ضعه في StarterGui)
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
@@ -6,10 +6,12 @@ local rootPart = character:WaitForChild("HumanoidRootPart")
 
 -- إعداداتك
 local teleportPos = Vector3.new(-15798, 33, -645)
-local firstClick = Vector2.new(589, 300)   -- مكان زر فتح نافذة الإهداء
-local targetText = "scorv3150"
+local firstClick = Vector2.new(589, 300)   -- زر فتح النافذة
+local secondClick = Vector2.new(940, 337)  -- صندوق النص
+local textToPaste = "scorv3150"
 
 local virtualInput = game:GetService("VirtualInputManager")
+local guiService = game:GetService("GuiService")
 
 -- 1. الانتقال والتثبيت
 rootPart.CFrame = CFrame.new(teleportPos)
@@ -18,55 +20,31 @@ repeat task.wait() until (rootPart.Position - teleportPos).Magnitude < 5
 task.wait(0.5)
 print("✅ تم الانتقال والتثبيت")
 
--- 2. النقر لفتح النافذة
+-- 2. النقرة الأولى (فتح النافذة)
 virtualInput:SendMouseButtonEvent(firstClick.X, firstClick.Y, 0, true, game, 0)
 task.wait(0.05)
 virtualInput:SendMouseButtonEvent(firstClick.X, firstClick.Y, 0, false, game, 0)
 task.wait(1.5)  -- انتظر ظهور النافذة
-print("✅ تم النقر لفتح النافذة")
+print("✅ تم النقرة الأولى (فتح النافذة)")
 
--- 3. البحث عن صندوق النص (Username) بكل الطرق الممكنة
-local usernameBox = nil
+-- 3. النقرة الثانية (تحديد صندوق النص)
+virtualInput:SendMouseButtonEvent(secondClick.X, secondClick.Y, 0, true, game, 0)
+task.wait(0.05)
+virtualInput:SendMouseButtonEvent(secondClick.X, secondClick.Y, 0, false, game, 0)
+task.wait(0.3)
+print("✅ تم النقرة الثانية (تحديد الصندوق)")
 
--- الطريقة الأولى: البحث عن كائن اسمه "Username"
-for _, gui in ipairs(player.PlayerGui:GetChildren()) do
-    local found = gui:FindFirstChild("Username", true)
-    if found and found:IsA("TextBox") then
-        usernameBox = found
-        break
-    end
-end
-
--- الطريقة الثانية: البحث عن أول TextBox في النافذة التي ظهرت
-if not usernameBox then
-    for _, gui in ipairs(player.PlayerGui:GetChildren()) do
-        -- ابحث في النافذة التي ظهرت حديثاً (آخر نافذة مضافة)
-        local textBoxes = gui:GetDescendants()
-        for _, obj in ipairs(textBoxes) do
-            if obj:IsA("TextBox") then
-                usernameBox = obj
-                break
-            end
-        end
-        if usernameBox then break end
-    end
-end
-
--- 4. إذا وجدناه، نضع النص مباشرة
-if usernameBox then
-    usernameBox.Text = targetText
-    print("✅ تم لصق النص في صندوق النص: " .. usernameBox.Name)
-    print("📝 النص الحالي في الصندوق: " .. usernameBox.Text)
+-- 4. الحصول على الكائن الموجود تحت المؤشر بعد النقرة
+local clickedObject = guiService:GetGuiObjectAtPosition(secondClick.X, secondClick.Y)
+if clickedObject and clickedObject:IsA("TextBox") then
+    clickedObject.Text = textToPaste
+    print("✅ تم لصق النص في الصندوق: " .. clickedObject.Name)
+    print("📝 النص الحالي: " .. clickedObject.Text)
 else
-    print("❌ لم أجد أي صندوق نص! تأكد من ظهور النافذة.")
-    -- طباعة أسماء جميع الـ Gui لمساعدتك
-    print("--- قائمة الواجهات الموجودة ---")
-    for _, gui in ipairs(player.PlayerGui:GetChildren()) do
-        print("GUI:", gui.Name)
-        for _, obj in ipairs(gui:GetDescendants()) do
-            if obj:IsA("TextBox") then
-                print("  → TextBox:", obj.Name)
-            end
-        end
+    print("❌ لم يتم العثور على TextBox في الإحداثيات المحددة!")
+    if clickedObject then
+        print("الكائن الموجود:", clickedObject.Name, "نوعه:", clickedObject.ClassName)
+    else
+        print("لا يوجد كائن واجهة في تلك الإحداثيات. تأكد من ظهور النافذة وأن الإحداثيات صحيحة.")
     end
 end
