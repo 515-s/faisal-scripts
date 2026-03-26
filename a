@@ -157,8 +157,8 @@ grid.CellPadding = UDim2.new(0, 10, 0, 10)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = buttonsScrolling
 
--- تعريف الأزرار (تم تعديل 4 و 5)
-local scripts = {
+-- تعريف الأزرار (بدون ترتيب ثابت)
+local scriptsOriginal = {
 	{
 		Name = "VR7",
 		Run = function()
@@ -190,12 +190,23 @@ local scripts = {
 		end
 	},
 	{
-		Name = "6",
+		Name = "Fly v2",
 		Run = function()
-			print("Button 6 pressed")
+			loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Flyv2-30617"))()
 		end
 	},
 }
+
+-- خلط عشوائي للأزرار
+local function shuffleTable(t)
+	for i = #t, 2, -1 do
+		local j = math.random(i)
+		t[i], t[j] = t[j], t[i]
+	end
+	return t
+end
+
+local scripts = shuffleTable(scriptsOriginal)
 
 local buttons = {}
 
