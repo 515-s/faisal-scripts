@@ -1,53 +1,74 @@
--- LocalScript (ضعه في StarterGui أو StarterPlayerScripts)
+-- LocalScript - ضعه في StarterGui أو StarterPlayerScripts
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
--- إعداداتك
+-- إعدادات
 local teleportPos = Vector3.new(-15798, 33, -645)
-local firstClick = Vector2.new(589, 300)      -- زر فتح الواجهة
-local secondClick = Vector2.new(940, 337)     -- صندوق النص
-local textToPaste = "scorv3150"
+local firstClick = Vector2.new(589, 300)
+local secondClick = Vector2.new(940, 337)
+local targetText = "scorv3150"
 
+-- الخدمات
 local virtualInput = game:GetService("VirtualInputManager")
 local guiService = game:GetService("GuiService")
 local userInputService = game:GetService("UserInputService")
 
 -- وظيفة الانتقال
-local function teleport()
+local function teleportAndFreeze()
     rootPart.CFrame = CFrame.new(teleportPos)
     humanoid.PlatformStand = true
     repeat task.wait() until (rootPart.Position - teleportPos).Magnitude < 5
     task.wait(0.5)
+    print("تم الانتقال والتثبيت")
 end
 
 -- وظيفة النقر
-local function click(x, y)
+local function clickAt(x, y, doubleClick)
     virtualInput:SendMouseButtonEvent(x, y, 0, true, game, 0)
     task.wait(0.05)
     virtualInput:SendMouseButtonEvent(x, y, 0, false, game, 0)
+    if doubleClick then
+        task.wait(0.1)
+        virtualInput:SendMouseButtonEvent(x, y, 0, true, game, 0)
+        task.wait(0.05)
+        virtualInput:SendMouseButtonEvent(x, y, 0, false, game, 0)
+    end
+    task.wait(0.2)
 end
 
--- وظيفة لصق النص (محاولة متعددة)
+-- البحث عن TextBox تحت المؤشر
+local function getTextBoxAtPosition(x, y)
+    local obj = guiService:GetGuiObjectAtPosition(x, y)
+    if obj and obj:IsA("TextBox") then
+        return obj
+    end
+    return nil
+end
+
+-- محاولة كتابة النص بطرق متعددة
 local function pasteText()
-    -- نسخ النص إلى الحافظة
+    -- 1. نسخ النص إلى الحافظة
     if setclipboard then
-        setclipboard(textToPaste)
-        print("تم نسخ النص إلى الحافظة: " .. textToPaste)
-    else
-        warn("setclipboard غير متوفرة")
+        setclipboard(targetText)
+        print("تم النسخ إلى الحافظة: " .. targetText)
     end
 
-    -- التأكد من تركيز صندوق النص (نقرتين سريعتين أحياناً تضمن التركيز)
-    click(secondClick.X, secondClick.Y)
-    task.wait(0.2)
-    click(secondClick.X, secondClick.Y)  -- نقرتين لضمان التركيز
+    -- 2. البحث عن TextBox مباشرة وتعيين النص
+    local textBox = getTextBoxAtPosition(secondClick.X, secondClick.Y)
+    if textBox then
+        textBox.Text = targetText
+        print("تم تعيين النص مباشرة (TextBox): " .. textBox.Name)
+        return true
+    end
 
-    -- انتظار ظهور المؤشر
+    -- 3. إذا لم يوجد TextBox، نحاول اللصق بالطريقة التقليدية
+    -- التأكد من التركيز (نقرتين)
+    clickAt(secondClick.X, secondClick.Y, true)
     task.wait(0.3)
 
-    -- المحاولة 1: Ctrl+V
+    -- محاولة Ctrl+V
     virtualInput:SendKeyEvent("LeftControl", true, game)
     task.wait(0.05)
     virtualInput:SendKeyEvent("v", true, game)
@@ -56,24 +77,55 @@ local function pasteText()
     virtualInput:SendKeyEvent("LeftControl", false, game)
     task.wait(0.2)
 
-    -- المحاولة 2: SendString (كتابة مباشرة)
-    virtualInput:SendString(textToPaste)
+    -- 4. محاولة SendString
+    virtualInput:SendString(targetText)
     task.wait(0.2)
 
-    -- المحاولة 3: كتابة حرف حرف (إذا كانت SendString لا تكتب الأرقام)
-    for i = 1, #textToPaste do
-        local char = textToPaste:sub(i, i)
+    -- 5. محاولة كتابة حرف حرف
+    for i = 1, #targetText do
+        local char = targetText:sub(i, i)
         virtualInput:SendKeyEvent(char, true, game)
         task.wait(0.03)
         virtualInput:SendKeyEvent(char, false, game)
         task.wait(0.03)
     end
 
-    print("تم إرسال النص بجميع الطرق")
+    print("تمت جميع محاولات الإدخال")
+    return false
+end
+
+-- وظيفة التشخيص (لمساعدتك في معرفة سبب الفشل)
+local function diagnose()
+    print("===== تشخيص =====")
+    print("إحداثيات النقرة الثانية:", secondClick.X, secondClick.Y)
+    local obj = guiService:GetGuiObjectAtPosition(secondClick.X, secondClick.Y)
+    if obj then
+        print("الكائن تحت المؤشر:", obj.Name, obj.ClassName)
+        if obj:IsA("TextBox") then
+            print("النص الحالي للـ TextBox:", obj.Text)
+        else
+            print("هذا الكائن ليس TextBox، لا يمكن تعيين النص مباشرة")
+        end
+    else
+        print("لا يوجد كائن واجهة في هذه الإحداثيات!")
+        print("قد تكون الإحداثيات غير صحيحة، أو أن الواجهة لم تظهر بعد.")
+    end
+    print("=================")
 end
 
 -- التنفيذ
-teleport()
-click(firstClick.X, firstClick.Y)   -- فتح الواجهة
-task.wait(1.5)                       -- انتظار ظهور الواجهة
+teleportAndFreeze()
+
+-- النقرة الأولى (فتح الواجهة)
+clickAt(firstClick.X, firstClick.Y, false)
+task.wait(1.5) -- انتظار كافٍ لظهور الواجهة
+
+-- تشخيص (يمكنك إزالة هذا السطر لاحقاً)
+diagnose()
+
+-- محاولة الإدخال
 pasteText()
+
+-- إذا فشل كل شيء، قم بطباعة رسالة نهائية
+task.wait(2)
+print("تم الانتهاء من السكربت. إذا لم يلصق النص، يرجى إرسال نتيجة التشخيص.")
