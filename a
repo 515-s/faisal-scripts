@@ -1,24 +1,21 @@
--- LocalScript
+-- LocalScript كامل مع محاولة تعيين النص مباشرة أولاً، ثم الكتابة كحل بديل
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
--- إعدادات
 local teleportPos = Vector3.new(-15798, 33, -645)
 local firstClick = Vector2.new(589, 300)
 local secondClick = Vector2.new(940, 337)
 local textToPaste = "scorv3150"
 
--- خدمات
-local userInputService = game:GetService("UserInputService")
 local virtualInput = game:GetService("VirtualInputManager")
+local guiService = game:GetService("GuiService")
 
--- 1. الانتقال إلى الموقع
+-- 1. الانتقال
 rootPart.CFrame = CFrame.new(teleportPos)
-humanoid.PlatformStand = true  -- تثبيت اللاعب
+humanoid.PlatformStand = true
 
--- 2. انتظار وصول اللاعب
 local function waitForTeleport()
     while (rootPart.Position - teleportPos).Magnitude > 5 do
         task.wait(0.1)
@@ -27,41 +24,25 @@ end
 waitForTeleport()
 task.wait(0.5)
 
--- 3. النقرة الأولى
+-- 2. النقرة الأولى
 virtualInput:SendMouseButtonEvent(firstClick.X, firstClick.Y, 0, true, game, 0)
 task.wait(0.05)
 virtualInput:SendMouseButtonEvent(firstClick.X, firstClick.Y, 0, false, game, 0)
-print("تم النقر على الإحداثيات الأولى")
-
--- انتظار ظهور الواجهة (يمكن تعديل وقت الانتظار حسب الحاجة)
 task.wait(1)
 
--- 4. النقرة الثانية (على صندوق النص)
+-- 3. النقرة الثانية
 virtualInput:SendMouseButtonEvent(secondClick.X, secondClick.Y, 0, true, game, 0)
 task.wait(0.05)
 virtualInput:SendMouseButtonEvent(secondClick.X, secondClick.Y, 0, false, game, 0)
-print("تم النقر على صندوق النص")
-
--- تأخير بسيط لضمان تركيز صندوق النص
 task.wait(0.3)
 
--- 5. نسخ النص إلى الحافظة (إذا كانت الوظيفة متاحة)
-if setclipboard then
-    setclipboard(textToPaste)
-    print("تم نسخ النص إلى الحافظة: " .. textToPaste)
+-- 4. محاولة الحصول على الكائن الذي تم النقر عليه (إذا كان TextBox)
+local clickedObject = guiService:GetGuiObjectAtPosition(secondClick.X, secondClick.Y)
+if clickedObject and clickedObject:IsA("TextBox") then
+    clickedObject.Text = textToPaste
+    print("تم تعيين النص مباشرة إلى TextBox: " .. clickedObject.Name)
 else
-    warn("وظيفة setclipboard غير متوفرة في هذه البيئة")
+    -- إذا لم يكن TextBox أو لم يتم العثور عليه، نكتب النص
+    virtualInput:SendString(textToPaste)
+    print("تمت الكتابة باستخدام SendString")
 end
-
--- 6. لصق النص (محاكاة Ctrl+V)
--- ملاحظة: بعض الألعاب قد تمنع إرسال مفاتيح التحكم
-virtualInput:SendKeyEvent("LeftControl", true, game)
-task.wait(0.05)
-virtualInput:SendKeyEvent("v", true, game)
-task.wait(0.05)
-virtualInput:SendKeyEvent("v", false, game)
-virtualInput:SendKeyEvent("LeftControl", false, game)
-print("تم محاكاة اللصق (Ctrl+V)")
-
--- بديل: إذا لم يعمل اللصق، يمكن كتابة النص مباشرة باستخدام SendString
--- virtualInput:SendString(textToPaste)
