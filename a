@@ -6,9 +6,8 @@ local rootPart = character:WaitForChild("HumanoidRootPart")
 
 -- إعدادات
 local teleportPos = Vector3.new(-15798, 33, -645)
-local firstClick = Vector2.new(589, 300)   -- زر فتح الواجهة
-local secondClick = Vector2.new(940, 337)  -- صندوق النص
-local textToType = "scorv3150"
+local firstClick = Vector2.new(589, 300)   -- زر فتح الواجهة (عدلها إن لزم)
+local targetText = "scorv3150"
 
 local virtualInput = game:GetService("VirtualInputManager")
 
@@ -22,43 +21,70 @@ local function teleportAndFreeze()
 end
 
 -- وظيفة النقر
-local function clickAt(x, y, double)
+local function clickAt(x, y)
     virtualInput:SendMouseButtonEvent(x, y, 0, true, game, 0)
     task.wait(0.05)
     virtualInput:SendMouseButtonEvent(x, y, 0, false, game, 0)
-    if double then
-        task.wait(0.1)
-        virtualInput:SendMouseButtonEvent(x, y, 0, true, game, 0)
-        task.wait(0.05)
-        virtualInput:SendMouseButtonEvent(x, y, 0, false, game, 0)
-    end
     task.wait(0.2)
 end
 
--- وظيفة كتابة النص حرفاً حرفاً
-local function typeText(text)
-    for i = 1, #text do
-        local char = text:sub(i, i)
-        -- محاكاة ضغط المفتاح
-        virtualInput:SendKeyEvent(char, true, game)
-        task.wait(0.05)  -- تأخير بين الضغط والرفع
-        virtualInput:SendKeyEvent(char, false, game)
-        task.wait(0.08)  -- تأخير بين الحروف
-        print("تم كتابة الحرف: " .. char)
+-- وظيفة البحث عن حقل Username في جميع الواجهات
+local function findUsernameTextBox()
+    -- ابحث في كل ScreenGui يملكه اللاعب
+    for _, gui in ipairs(player.PlayerGui:GetChildren()) do
+        -- ابحث بشكل متكرر عن TextBox باسم "Username" أو يحتوي على "username"
+        local textBox = gui:FindFirstChild("Username", true)
+        if textBox and textBox:IsA("TextBox") then
+            return textBox
+        end
+        -- قد يكون الاسم مختلفاً (مثلاً "TextBox" أو "user")
+        local possibleBox = gui:FindFirstChildWhichIsA("TextBox", true)
+        if possibleBox then
+            -- يمكنك هنا إضافة شرط إضافي مثل: if possibleBox.PlaceholderText == "Username" then
+            return possibleBox
+        end
     end
-    print("تم كتابة النص بالكامل: " .. text)
+    return nil
+end
+
+-- وظيفة البحث عن زر Send
+local function findSendButton()
+    for _, gui in ipairs(player.PlayerGui:GetChildren()) do
+        local button = gui:FindFirstChild("Send", true)
+        if button and (button:IsA("TextButton") or button:IsA("ImageButton")) then
+            return button
+        end
+    end
+    return nil
 end
 
 -- التنفيذ
 teleportAndFreeze()
 
--- النقرة الأولى لفتح الواجهة
-clickAt(firstClick.X, firstClick.Y, false)
+-- فتح الواجهة
+clickAt(firstClick.X, firstClick.Y)
 task.wait(1.5)  -- انتظر ظهور الواجهة
 
--- النقر على صندوق النص (نقرتين لضمان التركيز)
-clickAt(secondClick.X, secondClick.Y, true)
-task.wait(0.3)
+-- البحث عن حقل Username
+local usernameBox = findUsernameTextBox()
+if usernameBox then
+    usernameBox.Text = targetText
+    print("تم تعيين النص في حقل Username: " .. targetText)
+else
+    print("لم يتم العثور على حقل Username! تأكد من ظهور الواجهة.")
+end
 
--- كتابة النص
-typeText(textToType)
+-- (اختياري) البحث عن زر Send والضغط عليه
+task.wait(0.5)
+local sendButton = findSendButton()
+if sendButton then
+    -- محاكاة النقر على الزر
+    local absPos = sendButton.AbsolutePosition
+    local size = sendButton.AbsoluteSize
+    local clickX = absPos.X + size.X / 2
+    local clickY = absPos.Y + size.Y / 2
+    clickAt(clickX, clickY)
+    print("تم الضغط على زر Send")
+else
+    print("لم يتم العثور على زر Send")
+end
