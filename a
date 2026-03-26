@@ -1,4 +1,4 @@
--- LocalScript - ضعه في StarterGui أو StarterPlayerScripts
+-- LocalScript (ضعه في StarterGui أو StarterPlayerScripts)
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
@@ -6,16 +6,13 @@ local rootPart = character:WaitForChild("HumanoidRootPart")
 
 -- إعدادات
 local teleportPos = Vector3.new(-15798, 33, -645)
-local firstClick = Vector2.new(589, 300)
-local secondClick = Vector2.new(940, 337)
-local targetText = "scorv3150"
+local firstClick = Vector2.new(589, 300)   -- زر فتح الواجهة
+local secondClick = Vector2.new(940, 337)  -- صندوق النص
+local textToType = "scorv3150"
 
--- الخدمات
 local virtualInput = game:GetService("VirtualInputManager")
-local guiService = game:GetService("GuiService")
-local userInputService = game:GetService("UserInputService")
 
--- وظيفة الانتقال
+-- وظيفة الانتقال والتثبيت
 local function teleportAndFreeze()
     rootPart.CFrame = CFrame.new(teleportPos)
     humanoid.PlatformStand = true
@@ -25,11 +22,11 @@ local function teleportAndFreeze()
 end
 
 -- وظيفة النقر
-local function clickAt(x, y, doubleClick)
+local function clickAt(x, y, double)
     virtualInput:SendMouseButtonEvent(x, y, 0, true, game, 0)
     task.wait(0.05)
     virtualInput:SendMouseButtonEvent(x, y, 0, false, game, 0)
-    if doubleClick then
+    if double then
         task.wait(0.1)
         virtualInput:SendMouseButtonEvent(x, y, 0, true, game, 0)
         task.wait(0.05)
@@ -38,94 +35,30 @@ local function clickAt(x, y, doubleClick)
     task.wait(0.2)
 end
 
--- البحث عن TextBox تحت المؤشر
-local function getTextBoxAtPosition(x, y)
-    local obj = guiService:GetGuiObjectAtPosition(x, y)
-    if obj and obj:IsA("TextBox") then
-        return obj
-    end
-    return nil
-end
-
--- محاولة كتابة النص بطرق متعددة
-local function pasteText()
-    -- 1. نسخ النص إلى الحافظة
-    if setclipboard then
-        setclipboard(targetText)
-        print("تم النسخ إلى الحافظة: " .. targetText)
-    end
-
-    -- 2. البحث عن TextBox مباشرة وتعيين النص
-    local textBox = getTextBoxAtPosition(secondClick.X, secondClick.Y)
-    if textBox then
-        textBox.Text = targetText
-        print("تم تعيين النص مباشرة (TextBox): " .. textBox.Name)
-        return true
-    end
-
-    -- 3. إذا لم يوجد TextBox، نحاول اللصق بالطريقة التقليدية
-    -- التأكد من التركيز (نقرتين)
-    clickAt(secondClick.X, secondClick.Y, true)
-    task.wait(0.3)
-
-    -- محاولة Ctrl+V
-    virtualInput:SendKeyEvent("LeftControl", true, game)
-    task.wait(0.05)
-    virtualInput:SendKeyEvent("v", true, game)
-    task.wait(0.05)
-    virtualInput:SendKeyEvent("v", false, game)
-    virtualInput:SendKeyEvent("LeftControl", false, game)
-    task.wait(0.2)
-
-    -- 4. محاولة SendString
-    virtualInput:SendString(targetText)
-    task.wait(0.2)
-
-    -- 5. محاولة كتابة حرف حرف
-    for i = 1, #targetText do
-        local char = targetText:sub(i, i)
+-- وظيفة كتابة النص حرفاً حرفاً
+local function typeText(text)
+    for i = 1, #text do
+        local char = text:sub(i, i)
+        -- محاكاة ضغط المفتاح
         virtualInput:SendKeyEvent(char, true, game)
-        task.wait(0.03)
+        task.wait(0.05)  -- تأخير بين الضغط والرفع
         virtualInput:SendKeyEvent(char, false, game)
-        task.wait(0.03)
+        task.wait(0.08)  -- تأخير بين الحروف
+        print("تم كتابة الحرف: " .. char)
     end
-
-    print("تمت جميع محاولات الإدخال")
-    return false
-end
-
--- وظيفة التشخيص (لمساعدتك في معرفة سبب الفشل)
-local function diagnose()
-    print("===== تشخيص =====")
-    print("إحداثيات النقرة الثانية:", secondClick.X, secondClick.Y)
-    local obj = guiService:GetGuiObjectAtPosition(secondClick.X, secondClick.Y)
-    if obj then
-        print("الكائن تحت المؤشر:", obj.Name, obj.ClassName)
-        if obj:IsA("TextBox") then
-            print("النص الحالي للـ TextBox:", obj.Text)
-        else
-            print("هذا الكائن ليس TextBox، لا يمكن تعيين النص مباشرة")
-        end
-    else
-        print("لا يوجد كائن واجهة في هذه الإحداثيات!")
-        print("قد تكون الإحداثيات غير صحيحة، أو أن الواجهة لم تظهر بعد.")
-    end
-    print("=================")
+    print("تم كتابة النص بالكامل: " .. text)
 end
 
 -- التنفيذ
 teleportAndFreeze()
 
--- النقرة الأولى (فتح الواجهة)
+-- النقرة الأولى لفتح الواجهة
 clickAt(firstClick.X, firstClick.Y, false)
-task.wait(1.5) -- انتظار كافٍ لظهور الواجهة
+task.wait(1.5)  -- انتظر ظهور الواجهة
 
--- تشخيص (يمكنك إزالة هذا السطر لاحقاً)
-diagnose()
+-- النقر على صندوق النص (نقرتين لضمان التركيز)
+clickAt(secondClick.X, secondClick.Y, true)
+task.wait(0.3)
 
--- محاولة الإدخال
-pasteText()
-
--- إذا فشل كل شيء، قم بطباعة رسالة نهائية
-task.wait(2)
-print("تم الانتهاء من السكربت. إذا لم يلصق النص، يرجى إرسال نتيجة التشخيص.")
+-- كتابة النص
+typeText(textToType)
