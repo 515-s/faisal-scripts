@@ -1,81 +1,40 @@
--- LocalScript (ضعه في StarterGui)
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local rootPart = character:WaitForChild("HumanoidRootPart")
+local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local RunService = game:GetService("RunService")
 
--- إعداداتك
-local teleportPos = Vector3.new(-15798, 33, -645)
-local firstClick = Vector2.new(589, 300)   -- زر فتح النافذة
-local secondClick = Vector2.new(940, 337)  -- صندوق النص
-local textToPaste = "scorv3150"
+local player = Players.LocalPlayer
 
-local virtualInput = game:GetService("VirtualInputManager")
-local guiService = game:GetService("GuiService")
+-- الإحداثيات
+local checkPos = Vector3.new(1136, 110, -5703)
+local teleportPos = Vector3.new(1134, 117, -5444)
 
--- وظيفة الانتقال والتثبيت
-local function teleportAndFreeze()
-    rootPart.CFrame = CFrame.new(teleportPos)
-    humanoid.PlatformStand = true
-    repeat task.wait() until (rootPart.Position - teleportPos).Magnitude < 5
-    task.wait(0.5)
-    print("✅ تم الانتقال والتثبيت")
-end
+-- المسافة المسموح فيها (عشان ما يحتاج يكون نفس الرقم بالضبط)
+local tolerance = 5
 
--- وظيفة النقر
-local function clickAt(x, y, double)
-    virtualInput:SendMouseButtonEvent(x, y, 0, true, game, 0)
-    task.wait(0.05)
-    virtualInput:SendMouseButtonEvent(x, y, 0, false, game, 0)
-    if double then
-        task.wait(0.1)
-        virtualInput:SendMouseButtonEvent(x, y, 0, true, game, 0)
-        task.wait(0.05)
-        virtualInput:SendMouseButtonEvent(x, y, 0, false, game, 0)
-    end
-    task.wait(0.2)
-end
+local triggered = false
 
--- التنفيذ
-teleportAndFreeze()
-
--- 1. النقرة الأولى لفتح النافذة
-clickAt(firstClick.X, firstClick.Y, false)
-task.wait(1.5)  -- انتظر ظهور النافذة
-print("✅ تم فتح النافذة")
-
--- 2. النقرة الثانية (نقرتين لضمان التركيز)
-clickAt(secondClick.X, secondClick.Y, true)
-task.wait(0.3)
-print("✅ تم تحديد صندوق النص")
-
--- 3. الحصول على الكائن الموجود تحت المؤشر وتعيين النص
-local clickedObject = guiService:GetGuiObjectAtPosition(secondClick.X, secondClick.Y)
-if clickedObject and clickedObject:IsA("TextBox") then
-    clickedObject.Text = textToPaste
-    print("✅ تم لصق النص في صندوق النص: " .. clickedObject.Name)
-    print("📝 النص الحالي: " .. clickedObject.Text)
-else
-    print("❌ لم يتم العثور على TextBox في الإحداثيات المحددة!")
-    if clickedObject then
-        print("الكائن الموجود:", clickedObject.Name, "نوعه:", clickedObject.ClassName)
-    else
-        print("لا يوجد كائن واجهة في تلك الإحداثيات.")
-    end
-    
-    -- حل بديل: البحث عن أول TextBox في الواجهات
-    print("🔍 جاري البحث عن أي صندوق نص في واجهات اللاعب...")
-    local found = false
-    for _, gui in ipairs(player.PlayerGui:GetChildren()) do
-        local textBox = gui:FindFirstChildWhichIsA("TextBox", true)
-        if textBox then
-            textBox.Text = textToPaste
-            print("✅ تم تعيين النص عبر البحث: " .. textBox.Name)
-            found = true
-            break
-        end
-    end
-    if not found then
-        print("❌ لم يتم العثور على أي صندوق نص. تأكد من ظهور نافذة الإهداء بشكل كامل.")
-    end
-end
+RunService.RenderStepped:Connect(function()
+	if triggered then return end
+	
+	local character = player.Character
+	if not character then return end
+	
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+	
+	local distance = (hrp.Position - checkPos).Magnitude
+	
+	if distance <= tolerance then
+		triggered = true
+		
+		-- ينقلك
+		hrp.CFrame = CFrame.new(teleportPos)
+		
+		-- ينتظر 15 ثانية
+		task.wait(15)
+		
+		-- يسوي كليك على الشاشة
+		VirtualInputManager:SendMouseButtonEvent(267, 495, 0, true, game, 0)
+		VirtualInputManager:SendMouseButtonEvent(267, 495, 0, false, game, 0)
+	end
+end)
