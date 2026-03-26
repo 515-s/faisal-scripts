@@ -10,12 +10,8 @@ local firstClick = Vector2.new(589, 300)   -- زر فتح النافذة
 local secondClick = Vector2.new(940, 337)  -- صندوق النص
 local textToPaste = "scorv3150"
 
--- الخدمات
 local virtualInput = game:GetService("VirtualInputManager")
 local guiService = game:GetService("GuiService")
-local userInputService = game:GetService("UserInputService")
-
--- ==================== وظائف مساعدة ====================
 
 -- وظيفة الانتقال والتثبيت
 local function teleportAndFreeze()
@@ -26,7 +22,7 @@ local function teleportAndFreeze()
     print("✅ تم الانتقال والتثبيت")
 end
 
--- وظيفة النقر (تدعم النقر المزدوج)
+-- وظيفة النقر
 local function clickAt(x, y, double)
     virtualInput:SendMouseButtonEvent(x, y, 0, true, game, 0)
     task.wait(0.05)
@@ -40,165 +36,46 @@ local function clickAt(x, y, double)
     task.wait(0.2)
 end
 
--- وظيفة محاكاة الضغط على مفتاح (لـ UserInputService)
-local function pressKey(key)
-    userInputService:SetKeyDown(key)
-    task.wait(0.05)
-    userInputService:SetKeyUp(key)
-    task.wait(0.05)
-end
+-- التنفيذ
+teleportAndFreeze()
 
--- ==================== طرق اللصق ====================
+-- 1. النقرة الأولى لفتح النافذة
+clickAt(firstClick.X, firstClick.Y, false)
+task.wait(1.5)  -- انتظر ظهور النافذة
+print("✅ تم فتح النافذة")
 
--- الطريقة 1: تعيين النص مباشرة عبر GetGuiObjectAtPosition
-local function tryDirectAssignment()
-    local obj = guiService:GetGuiObjectAtPosition(secondClick.X, secondClick.Y)
-    if obj and obj:IsA("TextBox") then
-        obj.Text = textToPaste
-        print("✅ الطريقة 1 نجحت: تعيين النص مباشرة لـ " .. obj.Name)
-        return true
-    end
-    print("❌ الطريقة 1 فشلت: لم يتم العثور على TextBox في تلك الإحداثيات")
-    return false
-end
+-- 2. النقرة الثانية (نقرتين لضمان التركيز)
+clickAt(secondClick.X, secondClick.Y, true)
+task.wait(0.3)
+print("✅ تم تحديد صندوق النص")
 
--- الطريقة 2: نسخ النص إلى الحافظة + Ctrl+V
-local function tryClipboardAndCtrlV()
-    if setclipboard then
-        setclipboard(textToPaste)
-        print("📋 تم نسخ النص إلى الحافظة")
+-- 3. الحصول على الكائن الموجود تحت المؤشر وتعيين النص
+local clickedObject = guiService:GetGuiObjectAtPosition(secondClick.X, secondClick.Y)
+if clickedObject and clickedObject:IsA("TextBox") then
+    clickedObject.Text = textToPaste
+    print("✅ تم لصق النص في صندوق النص: " .. clickedObject.Name)
+    print("📝 النص الحالي: " .. clickedObject.Text)
+else
+    print("❌ لم يتم العثور على TextBox في الإحداثيات المحددة!")
+    if clickedObject then
+        print("الكائن الموجود:", clickedObject.Name, "نوعه:", clickedObject.ClassName)
     else
-        print("⚠️ setclipboard غير متوفرة")
+        print("لا يوجد كائن واجهة في تلك الإحداثيات.")
     end
-    -- التأكد من التركيز (نقرتين)
-    clickAt(secondClick.X, secondClick.Y, true)
-    task.wait(0.2)
-    -- محاكاة Ctrl+V
-    virtualInput:SendKeyEvent("LeftControl", true, game)
-    task.wait(0.05)
-    virtualInput:SendKeyEvent("v", true, game)
-    task.wait(0.05)
-    virtualInput:SendKeyEvent("v", false, game)
-    virtualInput:SendKeyEvent("LeftControl", false, game)
-    task.wait(0.3)
-    -- التحقق: نحاول قراءة النص من الكائن تحت المؤشر
-    local obj = guiService:GetGuiObjectAtPosition(secondClick.X, secondClick.Y)
-    if obj and obj:IsA("TextBox") and obj.Text == textToPaste then
-        print("✅ الطريقة 2 نجحت: Ctrl+V")
-        return true
-    end
-    print("❌ الطريقة 2 فشلت: Ctrl+V لم يلصق النص")
-    return false
-end
-
--- الطريقة 3: استخدام SendString
-local function trySendString()
-    clickAt(secondClick.X, secondClick.Y, true)
-    task.wait(0.2)
-    virtualInput:SendString(textToPaste)
-    task.wait(0.3)
-    local obj = guiService:GetGuiObjectAtPosition(secondClick.X, secondClick.Y)
-    if obj and obj:IsA("TextBox") and obj.Text == textToPaste then
-        print("✅ الطريقة 3 نجحت: SendString")
-        return true
-    end
-    print("❌ الطريقة 3 فشلت: SendString")
-    return false
-end
-
--- الطريقة 4: كتابة حرف حرف عبر VirtualInputManager
-local function tryTypeCharacterByCharacter()
-    clickAt(secondClick.X, secondClick.Y, true)
-    task.wait(0.2)
-    for i = 1, #textToPaste do
-        local char = textToPaste:sub(i, i)
-        virtualInput:SendKeyEvent(char, true, game)
-        task.wait(0.05)
-        virtualInput:SendKeyEvent(char, false, game)
-        task.wait(0.05)
-    end
-    task.wait(0.3)
-    local obj = guiService:GetGuiObjectAtPosition(secondClick.X, secondClick.Y)
-    if obj and obj:IsA("TextBox") and obj.Text == textToPaste then
-        print("✅ الطريقة 4 نجحت: كتابة حرف حرف (VirtualInputManager)")
-        return true
-    end
-    print("❌ الطريقة 4 فشلت: الكتابة حرف حرف")
-    return false
-end
-
--- الطريقة 5: البحث عن صندوق النص في PlayerGui وتعيين النص مباشرة
-local function tryFindTextBoxInGui()
-    local textBox = nil
-    -- ابحث عن أول TextBox في أي ScreenGui
+    
+    -- حل بديل: البحث عن أول TextBox في الواجهات
+    print("🔍 جاري البحث عن أي صندوق نص في واجهات اللاعب...")
+    local found = false
     for _, gui in ipairs(player.PlayerGui:GetChildren()) do
-        local tb = gui:FindFirstChildWhichIsA("TextBox", true)
-        if tb then
-            textBox = tb
+        local textBox = gui:FindFirstChildWhichIsA("TextBox", true)
+        if textBox then
+            textBox.Text = textToPaste
+            print("✅ تم تعيين النص عبر البحث: " .. textBox.Name)
+            found = true
             break
         end
     end
-    if textBox then
-        textBox.Text = textToPaste
-        print("✅ الطريقة 5 نجحت: تعيين النص عبر البحث في PlayerGui لـ " .. textBox.Name)
-        return true
+    if not found then
+        print("❌ لم يتم العثور على أي صندوق نص. تأكد من ظهور نافذة الإهداء بشكل كامل.")
     end
-    print("❌ الطريقة 5 فشلت: لم يتم العثور على TextBox في PlayerGui")
-    return false
 end
-
--- الطريقة 6: استخدام UserInputService لمحاكاة الكتابة (بديل لـ VirtualInputManager)
-local function tryUserInputServiceTyping()
-    clickAt(secondClick.X, secondClick.Y, true)
-    task.wait(0.2)
-    for i = 1, #textToPaste do
-        local char = textToPaste:sub(i, i)
-        pressKey(char)
-    end
-    task.wait(0.3)
-    local obj = guiService:GetGuiObjectAtPosition(secondClick.X, secondClick.Y)
-    if obj and obj:IsA("TextBox") and obj.Text == textToPaste then
-        print("✅ الطريقة 6 نجحت: UserInputService")
-        return true
-    end
-    print("❌ الطريقة 6 فشلت: UserInputService")
-    return false
-end
-
--- ==================== تنفيذ السكربت ====================
-
-teleportAndFreeze()
-
--- 1. فتح النافذة بالنقرة الأولى
-clickAt(firstClick.X, firstClick.Y, false)
-task.wait(1.5)  -- انتظر ظهور النافذة
-print("🚀 تم فتح النافذة، نبدأ محاولات اللصق...")
-
--- 2. النقرة الثانية لتحديد صندوق النص (نقرتين لضمان التركيز)
-clickAt(secondClick.X, secondClick.Y, true)
-task.wait(0.3)
-
--- 3. تجربة الطرق بالتسلسل
-local success = false
-
-success = tryDirectAssignment()
-if success then return end
-
-success = tryClipboardAndCtrlV()
-if success then return end
-
-success = trySendString()
-if success then return end
-
-success = tryTypeCharacterByCharacter()
-if success then return end
-
-success = tryFindTextBoxInGui()
-if success then return end
-
-success = tryUserInputServiceTyping()
-if success then return end
-
--- إذا فشل كل شيء
-print("❌ جميع طرق اللصق فشلت! قد تكون اللعبة تمنع الإدخال البرمجي تماماً.")
-print("🔧 الحل النهائي: استخدم برنامج خارجي مثل AutoHotkey للنقر واللصق.")
