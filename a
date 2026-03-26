@@ -9,10 +9,10 @@ gui.Name = "HubUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- زر الفتح/الإغلاق الصغير (20x20)
+-- زر الفتح/الإغلاق الصغير (قابل للسحب)
 local toggle = Instance.new("TextButton")
 toggle.Name = "ToggleButton"
-toggle.Size = UDim2.new(0, 20, 0, 20)          -- Changed to 20x20
+toggle.Size = UDim2.new(0, 20, 0, 20)
 toggle.Position = UDim2.new(0, 12, 0, 12)
 toggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 toggle.Text = ""
@@ -30,11 +30,38 @@ toggleStroke.Color = Color3.fromRGB(255, 255, 255)
 toggleStroke.Transparency = 0.25
 toggleStroke.Parent = toggle
 
--- الواجهة الرئيسية
+-- جعل الزر قابل للسحب
+local dragging = false
+local dragStartPos = nil
+local dragStartMouse = nil
+
+toggle.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStartPos = toggle.Position
+		dragStartMouse = input.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStartMouse
+		local newX = dragStartPos.X.Offset + delta.X
+		local newY = dragStartPos.Y.Offset + delta.Y
+		toggle.Position = UDim2.new(0, newX, 0, newY)
+	end
+end)
+
+-- الواجهة الرئيسية (تم تصغير العرض)
 local main = Instance.new("Frame")
 main.Name = "Main"
-main.Size = UDim2.new(0, 420, 0, 270)
-main.Position = UDim2.new(0.5, -210, 0.5, -135)
+main.Size = UDim2.new(0, 380, 0, 270)          -- عرض أقل من 420
+main.Position = UDim2.new(0.5, -190, 0.5, -135)
 main.BackgroundColor3 = Color3.fromRGB(78, 32, 120)
 main.BorderSizePixel = 0
 main.Active = true
@@ -112,20 +139,20 @@ searchText.Parent = searchBar
 -- منطقة الأزرار (ScrollingFrame)
 local buttonsScrolling = Instance.new("ScrollingFrame")
 buttonsScrolling.Name = "ButtonsFrame"
-buttonsScrolling.Size = UDim2.new(1, -24, 1, -70)   -- fills remaining space
+buttonsScrolling.Size = UDim2.new(1, -24, 1, -70)
 buttonsScrolling.Position = UDim2.new(0, 12, 0, 64)
 buttonsScrolling.BackgroundTransparency = 1
 buttonsScrolling.BorderSizePixel = 0
 buttonsScrolling.ScrollBarThickness = 8
 buttonsScrolling.ScrollBarImageTransparency = 0.5
-buttonsScrolling.AutomaticCanvasSize = Enum.AutomaticSize.Y   -- canvas grows with content
-buttonsScrolling.CanvasSize = UDim2.new(0, 0, 0, 0)           -- will be overridden
+buttonsScrolling.AutomaticCanvasSize = Enum.AutomaticSize.Y
+buttonsScrolling.CanvasSize = UDim2.new(0, 0, 0, 0)
 buttonsScrolling.ClipsDescendants = true
 buttonsScrolling.Parent = main
 
--- Grid layout inside scrolling frame
+-- Grid layout (حجم الخلايا 170×56 بدلاً من 180)
 local grid = Instance.new("UIGridLayout")
-grid.CellSize = UDim2.new(0, 180, 0, 56)
+grid.CellSize = UDim2.new(0, 170, 0, 56)
 grid.CellPadding = UDim2.new(0, 10, 0, 10)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = buttonsScrolling
@@ -215,14 +242,13 @@ for i, item in ipairs(scripts) do
 	}
 end
 
--- فلترة البحث (تعمل مع ScrollingFrame)
+-- فلترة البحث
 local function applyFilter()
 	local query = string.lower(searchText.Text or "")
 	for _, info in ipairs(buttons) do
 		local visible = (query == "") or string.find(string.lower(info.Name), query, 1, true) ~= nil
 		info.Object.Visible = visible
 	end
-	-- بعد تغيير الرؤية، تحديث CanvasSize تلقائياً (AutomaticCanvasSize يتولى الأمر)
 end
 
 searchText:GetPropertyChangedSignal("Text"):Connect(applyFilter)
