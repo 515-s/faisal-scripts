@@ -1,279 +1,42 @@
--- LocalScript
+-- LocalScript (يضعه في StarterGui أو StarterPlayerScripts)
 
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local player = Players.LocalPlayer
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "HubUI"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+-- 1. نقل اللاعب إلى الموقع المطلوب
+local targetPosition = Vector3.new(-15798, 33, -645)
+rootPart.CFrame = CFrame.new(targetPosition)
 
--- زر الفتح/الإغلاق الصغير (قابل للسحب)
-local toggle = Instance.new("TextButton")
-toggle.Name = "ToggleButton"
-toggle.Size = UDim2.new(0, 20, 0, 20)
-toggle.Position = UDim2.new(0, 12, 0, 12)
-toggle.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-toggle.Text = ""
-toggle.AutoButtonColor = false
-toggle.BorderSizePixel = 0
-toggle.Parent = gui
+-- 2. تثبيت اللاعب (منع الحركة)
+humanoid.PlatformStand = true
 
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(1, 0)
-toggleCorner.Parent = toggle
-
-local toggleStroke = Instance.new("UIStroke")
-toggleStroke.Thickness = 1
-toggleStroke.Color = Color3.fromRGB(255, 255, 255)
-toggleStroke.Transparency = 0.25
-toggleStroke.Parent = toggle
-
--- جعل الزر قابل للسحب
-local dragging = false
-local dragStartPos = nil
-local dragStartMouse = nil
-
-toggle.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStartPos = toggle.Position
-		dragStartMouse = input.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local delta = input.Position - dragStartMouse
-		local newX = dragStartPos.X.Offset + delta.X
-		local newY = dragStartPos.Y.Offset + delta.Y
-		toggle.Position = UDim2.new(0, newX, 0, newY)
-	end
-end)
-
--- الواجهة الرئيسية
-local main = Instance.new("Frame")
-main.Name = "Main"
-main.Size = UDim2.new(0, 380, 0, 270)
-main.Position = UDim2.new(0.5, -190, 0.5, -135)
-main.BackgroundColor3 = Color3.fromRGB(78, 32, 120)
-main.BorderSizePixel = 0
-main.Active = true
-main.Draggable = true
-main.ClipsDescendants = true
-main.Parent = gui
-
-local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 18)
-mainCorner.Parent = main
-
-local mainStroke = Instance.new("UIStroke")
-mainStroke.Thickness = 1
-mainStroke.Color = Color3.fromRGB(255, 255, 255)
-mainStroke.Transparency = 0.75
-mainStroke.Parent = main
-
--- شريط البحث
-local searchBar = Instance.new("Frame")
-searchBar.Name = "SearchBar"
-searchBar.Size = UDim2.new(1, -24, 0, 46)
-searchBar.Position = UDim2.new(0, 12, 0, 12)
-searchBar.BackgroundColor3 = Color3.fromRGB(78, 32, 120)
-searchBar.BorderSizePixel = 0
-searchBar.Parent = main
-
-local searchCorner = Instance.new("UICorner")
-searchCorner.CornerRadius = UDim.new(1, 0)
-searchCorner.Parent = searchBar
-
-local searchStroke = Instance.new("UIStroke")
-searchStroke.Thickness = 1
-searchStroke.Color = Color3.fromRGB(255, 255, 255)
-searchStroke.Transparency = 0.15
-searchStroke.Parent = searchBar
-
-local dots = Instance.new("TextButton")
-dots.Name = "Dots"
-dots.Size = UDim2.new(0, 34, 0, 34)
-dots.Position = UDim2.new(1, -42, 0, 6)
-dots.BackgroundTransparency = 1
-dots.Text = "⋯"
-dots.TextColor3 = Color3.fromRGB(255, 255, 255)
-dots.Font = Enum.Font.GothamBold
-dots.TextSize = 20
-dots.AutoButtonColor = false
-dots.Parent = searchBar
-
-local searchIcon = Instance.new("TextLabel")
-searchIcon.Name = "SearchIcon"
-searchIcon.Size = UDim2.new(0, 26, 0, 26)
-searchIcon.Position = UDim2.new(0, 14, 0.5, -13)
-searchIcon.BackgroundTransparency = 1
-searchIcon.Text = "🔍"
-searchIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
-searchIcon.Font = Enum.Font.Gotham
-searchIcon.TextSize = 18
-searchIcon.Parent = searchBar
-
-local searchText = Instance.new("TextBox")
-searchText.Name = "SearchText"
-searchText.Size = UDim2.new(1, -90, 1, 0)
-searchText.Position = UDim2.new(0, 42, 0, 0)
-searchText.BackgroundTransparency = 1
-searchText.Text = ""
-searchText.PlaceholderText = "Search"
-searchText.PlaceholderColor3 = Color3.fromRGB(235, 220, 245)
-searchText.TextColor3 = Color3.fromRGB(255, 255, 255)
-searchText.Font = Enum.Font.Gotham
-searchText.TextSize = 16
-searchText.ClearTextOnFocus = false
-searchText.TextXAlignment = Enum.TextXAlignment.Left
-searchText.Parent = searchBar
-
--- منطقة الأزرار (ScrollingFrame)
-local buttonsScrolling = Instance.new("ScrollingFrame")
-buttonsScrolling.Name = "ButtonsFrame"
-buttonsScrolling.Size = UDim2.new(1, -24, 1, -70)
-buttonsScrolling.Position = UDim2.new(0, 12, 0, 64)
-buttonsScrolling.BackgroundTransparency = 1
-buttonsScrolling.BorderSizePixel = 0
-buttonsScrolling.ScrollBarThickness = 8
-buttonsScrolling.ScrollBarImageTransparency = 0.5
-buttonsScrolling.AutomaticCanvasSize = Enum.AutomaticSize.Y
-buttonsScrolling.CanvasSize = UDim2.new(0, 0, 0, 0)
-buttonsScrolling.ClipsDescendants = true
-buttonsScrolling.Parent = main
-
--- Grid layout
-local grid = Instance.new("UIGridLayout")
-grid.CellSize = UDim2.new(0, 170, 0, 70)
-grid.CellPadding = UDim2.new(0, 10, 0, 10)
-grid.SortOrder = Enum.SortOrder.LayoutOrder
-grid.Parent = buttonsScrolling
-
--- تعريف الأزرار (بدون ترتيب ثابت)
-local scriptsOriginal = {
-	{
-		Name = "VR7",
-		Run = function()
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/VR7ss/OMK/refs/heads/main/VR7-ON-TOP"))()
-		end
-	},
-	{
-		Name = "SkyWars [SEASON 3!] ✨",
-		Run = function()
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/SkyWars%20%5BSEASON%203!%5D"))()
-		end
-	},
-	{
-		Name = "Escape Rising Lava For Brainrots!",
-		Run = function()
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/Escape%20Rising%20Lava%20For%20Brainrots"))()
-		end
-	},
-	{
-		Name = "BlockSpin PVP",
-		Run = function()
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/hermanos-dev/hermanos-hub/refs/heads/main/BlockSpin/blockspin-pvp.lua"))()
-		end
-	},
-	{
-		Name = "BlockSpin FARM",
-		Run = function()
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/hermanos-dev/hermanos-hub/refs/heads/main/BlockSpin/blockspin-farm.lua"))()
-		end
-	},
-	{
-		Name = "Fly v2",
-		Run = function()
-			loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Flyv2-30617"))()
-		end
-	},
-}
-
--- خلط عشوائي للأزرار
-local function shuffleTable(t)
-	for i = #t, 2, -1 do
-		local j = math.random(i)
-		t[i], t[j] = t[j], t[i]
-	end
-	return t
+-- 3. انتظار حتى يصل اللاعب إلى الموقع
+local function waitForTeleport()
+    while true do
+        if (rootPart.Position - targetPosition).Magnitude < 5 then
+            break
+        end
+        task.wait(0.1)
+    end
 end
 
-local scripts = shuffleTable(scriptsOriginal)
+waitForTeleport()
 
-local buttons = {}
+-- 4. محاكاة نقرة على الشاشة عند الإحداثيات المحددة
+task.wait(0.5) -- تأخير بسيط للتأكد
 
-for i, item in ipairs(scripts) do
-	local button = Instance.new("TextButton")
-	button.Name = item.Name
-	button.LayoutOrder = i
-	button.BackgroundColor3 = Color3.fromRGB(255, 214, 234)
-	button.TextColor3 = Color3.fromRGB(85, 25, 85)
-	button.Font = Enum.Font.GothamSemibold
-	button.TextSize = 13
-	button.Text = item.Name
-	button.AutoButtonColor = false
-	button.TextWrapped = true
-	button.TextXAlignment = Enum.TextXAlignment.Center
-	button.TextYAlignment = Enum.TextYAlignment.Center
-	button.Parent = buttonsScrolling
+local userInputService = game:GetService("UserInputService")
+local virtualInput = game:GetService("VirtualInputManager")
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 14)
-	corner.Parent = button
+-- إحداثيات النقر
+local screenX = 589
+local screenY = 300
 
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 1
-	stroke.Color = Color3.fromRGB(255, 240, 248)
-	stroke.Transparency = 0.25
-	stroke.Parent = button
+-- محاكاة النقر (إذا كان مدعوماً)
+virtualInput:SendMouseButtonEvent(screenX, screenY, 0, true, game, 0)
+task.wait(0.05)
+virtualInput:SendMouseButtonEvent(screenX, screenY, 0, false, game, 0)
 
-	button.MouseEnter:Connect(function()
-		button.BackgroundColor3 = Color3.fromRGB(255, 228, 240)
-	end)
-
-	button.MouseLeave:Connect(function()
-		button.BackgroundColor3 = Color3.fromRGB(255, 214, 234)
-	end)
-
-	button.MouseButton1Click:Connect(function()
-		local ok, err = pcall(item.Run)
-		if not ok then
-			warn("Button error:", item.Name, err)
-		end
-	end)
-
-	buttons[#buttons + 1] = {
-		Object = button,
-		Name = item.Name
-	}
-end
-
--- فلترة البحث
-local function applyFilter()
-	local query = string.lower(searchText.Text or "")
-	for _, info in ipairs(buttons) do
-		local visible = (query == "") or string.find(string.lower(info.Name), query, 1, true) ~= nil
-		info.Object.Visible = visible
-	end
-end
-
-searchText:GetPropertyChangedSignal("Text"):Connect(applyFilter)
-
--- فتح/إغلاق القائمة
-local open = true
-local function setOpen(state)
-	open = state
-	main.Visible = state
-end
-
-toggle.MouseButton1Click:Connect(function()
-	setOpen(not open)
-end)
+print("تم الانتقال والنقر على الإحداثيات:", screenX, screenY)
