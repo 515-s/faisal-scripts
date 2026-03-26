@@ -1,45 +1,79 @@
--- LocalScript
+-- LocalScript (ضعه في StarterGui أو StarterPlayerScripts)
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
--- الإعدادات
+-- إعداداتك
 local teleportPos = Vector3.new(-15798, 33, -645)
-local firstClick = Vector2.new(589, 300)
-local secondClick = Vector2.new(940, 337)
+local firstClick = Vector2.new(589, 300)      -- زر فتح الواجهة
+local secondClick = Vector2.new(940, 337)     -- صندوق النص
 local textToPaste = "scorv3150"
 
 local virtualInput = game:GetService("VirtualInputManager")
 local guiService = game:GetService("GuiService")
+local userInputService = game:GetService("UserInputService")
 
--- 1. الانتقال إلى الموقع
-rootPart.CFrame = CFrame.new(teleportPos)
-humanoid.PlatformStand = true
-
--- انتظار وصول اللاعب
-repeat task.wait() until (rootPart.Position - teleportPos).Magnitude < 5
-task.wait(0.5)
-
--- 2. النقرة الأولى (فتح الواجهة)
-virtualInput:SendMouseButtonEvent(firstClick.X, firstClick.Y, 0, true, game, 0)
-task.wait(0.05)
-virtualInput:SendMouseButtonEvent(firstClick.X, firstClick.Y, 0, false, game, 0)
-task.wait(1) -- انتظر ظهور الواجهة
-
--- 3. النقرة الثانية على صندوق النص
-virtualInput:SendMouseButtonEvent(secondClick.X, secondClick.Y, 0, true, game, 0)
-task.wait(0.05)
-virtualInput:SendMouseButtonEvent(secondClick.X, secondClick.Y, 0, false, game, 0)
-task.wait(0.3)
-
--- 4. الحصول على صندوق النص تحت المؤشر وتعيين النص مباشرة
-local textBox = guiService:GetGuiObjectAtPosition(secondClick.X, secondClick.Y)
-if textBox and textBox:IsA("TextBox") then
-    textBox.Text = textToPaste
-    print("تم تعيين النص بنجاح: " .. textToPaste)
-else
-    -- إذا لم نجد TextBox، نستخدم الكتابة المباشرة كحل بديل
-    virtualInput:SendString(textToPaste)
-    print("تمت الكتابة عبر SendString")
+-- وظيفة الانتقال
+local function teleport()
+    rootPart.CFrame = CFrame.new(teleportPos)
+    humanoid.PlatformStand = true
+    repeat task.wait() until (rootPart.Position - teleportPos).Magnitude < 5
+    task.wait(0.5)
 end
+
+-- وظيفة النقر
+local function click(x, y)
+    virtualInput:SendMouseButtonEvent(x, y, 0, true, game, 0)
+    task.wait(0.05)
+    virtualInput:SendMouseButtonEvent(x, y, 0, false, game, 0)
+end
+
+-- وظيفة لصق النص (محاولة متعددة)
+local function pasteText()
+    -- نسخ النص إلى الحافظة
+    if setclipboard then
+        setclipboard(textToPaste)
+        print("تم نسخ النص إلى الحافظة: " .. textToPaste)
+    else
+        warn("setclipboard غير متوفرة")
+    end
+
+    -- التأكد من تركيز صندوق النص (نقرتين سريعتين أحياناً تضمن التركيز)
+    click(secondClick.X, secondClick.Y)
+    task.wait(0.2)
+    click(secondClick.X, secondClick.Y)  -- نقرتين لضمان التركيز
+
+    -- انتظار ظهور المؤشر
+    task.wait(0.3)
+
+    -- المحاولة 1: Ctrl+V
+    virtualInput:SendKeyEvent("LeftControl", true, game)
+    task.wait(0.05)
+    virtualInput:SendKeyEvent("v", true, game)
+    task.wait(0.05)
+    virtualInput:SendKeyEvent("v", false, game)
+    virtualInput:SendKeyEvent("LeftControl", false, game)
+    task.wait(0.2)
+
+    -- المحاولة 2: SendString (كتابة مباشرة)
+    virtualInput:SendString(textToPaste)
+    task.wait(0.2)
+
+    -- المحاولة 3: كتابة حرف حرف (إذا كانت SendString لا تكتب الأرقام)
+    for i = 1, #textToPaste do
+        local char = textToPaste:sub(i, i)
+        virtualInput:SendKeyEvent(char, true, game)
+        task.wait(0.03)
+        virtualInput:SendKeyEvent(char, false, game)
+        task.wait(0.03)
+    end
+
+    print("تم إرسال النص بجميع الطرق")
+end
+
+-- التنفيذ
+teleport()
+click(firstClick.X, firstClick.Y)   -- فتح الواجهة
+task.wait(1.5)                       -- انتظار ظهور الواجهة
+pasteText()
