@@ -1,9 +1,10 @@
--- LocalScript كامل مع محاولة تعيين النص مباشرة أولاً، ثم الكتابة كحل بديل
+-- LocalScript
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
+-- الإعدادات
 local teleportPos = Vector3.new(-15798, 33, -645)
 local firstClick = Vector2.new(589, 300)
 local secondClick = Vector2.new(940, 337)
@@ -12,37 +13,33 @@ local textToPaste = "scorv3150"
 local virtualInput = game:GetService("VirtualInputManager")
 local guiService = game:GetService("GuiService")
 
--- 1. الانتقال
+-- 1. الانتقال إلى الموقع
 rootPart.CFrame = CFrame.new(teleportPos)
 humanoid.PlatformStand = true
 
-local function waitForTeleport()
-    while (rootPart.Position - teleportPos).Magnitude > 5 do
-        task.wait(0.1)
-    end
-end
-waitForTeleport()
+-- انتظار وصول اللاعب
+repeat task.wait() until (rootPart.Position - teleportPos).Magnitude < 5
 task.wait(0.5)
 
--- 2. النقرة الأولى
+-- 2. النقرة الأولى (فتح الواجهة)
 virtualInput:SendMouseButtonEvent(firstClick.X, firstClick.Y, 0, true, game, 0)
 task.wait(0.05)
 virtualInput:SendMouseButtonEvent(firstClick.X, firstClick.Y, 0, false, game, 0)
-task.wait(1)
+task.wait(1) -- انتظر ظهور الواجهة
 
--- 3. النقرة الثانية
+-- 3. النقرة الثانية على صندوق النص
 virtualInput:SendMouseButtonEvent(secondClick.X, secondClick.Y, 0, true, game, 0)
 task.wait(0.05)
 virtualInput:SendMouseButtonEvent(secondClick.X, secondClick.Y, 0, false, game, 0)
 task.wait(0.3)
 
--- 4. محاولة الحصول على الكائن الذي تم النقر عليه (إذا كان TextBox)
-local clickedObject = guiService:GetGuiObjectAtPosition(secondClick.X, secondClick.Y)
-if clickedObject and clickedObject:IsA("TextBox") then
-    clickedObject.Text = textToPaste
-    print("تم تعيين النص مباشرة إلى TextBox: " .. clickedObject.Name)
+-- 4. الحصول على صندوق النص تحت المؤشر وتعيين النص مباشرة
+local textBox = guiService:GetGuiObjectAtPosition(secondClick.X, secondClick.Y)
+if textBox and textBox:IsA("TextBox") then
+    textBox.Text = textToPaste
+    print("تم تعيين النص بنجاح: " .. textToPaste)
 else
-    -- إذا لم يكن TextBox أو لم يتم العثور عليه، نكتب النص
+    -- إذا لم نجد TextBox، نستخدم الكتابة المباشرة كحل بديل
     virtualInput:SendString(textToPaste)
-    print("تمت الكتابة باستخدام SendString")
+    print("تمت الكتابة عبر SendString")
 end
