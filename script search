@@ -157,7 +157,7 @@ grid.CellPadding = UDim2.new(0, 10, 0, 10)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = buttonsScrolling
 
--- تعريف الأزرار (بدون ترتيب ثابت)
+-- تعريف الأزرار (مع الزرين 7 و 8)
 local scriptsOriginal = {
 	{
 		Name = "VR7",
@@ -193,6 +193,18 @@ local scriptsOriginal = {
 		Name = "Fly v2",
 		Run = function()
 			loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Flyv2-30617"))()
+		end
+	},
+	{
+		Name = "🍀 Pet Simulator 99! 🍀",
+		Run = function()
+			loadstring(game:HttpGet("https://zaphub.xyz/Exec"))()
+		end
+	},
+	{
+		Name = "Fling Things and People",
+		Run = function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/212happybirthday-debug/Noobhub/refs/heads/main/Noob%20hub%20Free%20ENG.lua"))()
 		end
 	},
 }
