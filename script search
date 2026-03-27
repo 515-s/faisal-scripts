@@ -157,54 +157,93 @@ grid.CellPadding = UDim2.new(0, 10, 0, 10)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = buttonsScrolling
 
--- تعريف الأزرار (مع الزرين 7 و 8)
+-- تعريف الأزرار (جميع الأزرار من 1 إلى 12)
 local scriptsOriginal = {
+	-- 1
 	{
 		Name = "VR7",
 		Run = function()
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/VR7ss/OMK/refs/heads/main/VR7-ON-TOP"))()
 		end
 	},
+	-- 2
 	{
 		Name = "SkyWars [SEASON 3!] ✨",
 		Run = function()
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/SkyWars%20%5BSEASON%203!%5D"))()
 		end
 	},
+	-- 3
 	{
 		Name = "Escape Rising Lava For Brainrots!",
 		Run = function()
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/Escape%20Rising%20Lava%20For%20Brainrots"))()
 		end
 	},
+	-- 4
 	{
 		Name = "BlockSpin PVP",
 		Run = function()
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/hermanos-dev/hermanos-hub/refs/heads/main/BlockSpin/blockspin-pvp.lua"))()
 		end
 	},
+	-- 5
 	{
 		Name = "BlockSpin FARM",
 		Run = function()
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/hermanos-dev/hermanos-hub/refs/heads/main/BlockSpin/blockspin-farm.lua"))()
 		end
 	},
+	-- 6
 	{
 		Name = "Fly v2",
 		Run = function()
 			loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Flyv2-30617"))()
 		end
 	},
+	-- 7
 	{
 		Name = "🍀 Pet Simulator 99! 🍀",
 		Run = function()
-			loadstring(game:HttpGet("https://zaphub.xyz/Exec"))()
+			loadstring(game:HttpGet("https://rawscripts.net/raw/18h-Pet-Simulator-99!-ZapHub-The-BEST-Auto-Farm-and-MORE-10049"))()
 		end
 	},
+	-- 8
 	{
 		Name = "Fling Things and People",
 		Run = function()
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/212happybirthday-debug/Noobhub/refs/heads/main/Noob%20hub%20Free%20ENG.lua"))()
+			loadstring(game:HttpGet("https://rawscripts.net/raw/Fling-Things-and-People-Noobhub-FTAP-ENG-Scripts-130766"))()
+		end
+	},
+	-- 9
+	{
+		Name = "Color Block",
+		Run = function()
+			-- Note: This script directly executes a remote event; pcall protects it.
+			pcall(function()
+				game:GetService("ReplicatedStorage").Events.Gold.GoldBuyRF:InvokeServer(-999999999999999999)
+			end)
+		end
+	},
+	-- 10
+	{
+		Name = "Forge Hub | 15+ Games, OP Features & Auto Farms",
+		Run = function()
+			loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Forge-Hub-41461"))()
+		end
+	},
+	-- 11
+	{
+		Name = "Moondiety Script | 9+ supported Games",
+		Run = function()
+			loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Moondiety-Scripts-Hub-45712"))()
+		end
+	},
+	-- 12
+	{
+		Name = "Atherhub | Blox Fruits | 99 Nights | Rivals | And More!",
+		Run = function()
+			loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Atherhub-41929"))()
 		end
 	},
 }
