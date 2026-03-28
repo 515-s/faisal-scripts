@@ -1,41 +1,29 @@
 --!strict
--- Explorer-style hierarchy viewer for your own Roblox place
--- Put this LocalScript in StarterPlayerScripts or StarterGui
+-- Advanced Explorer Viewer + Anti-Protection (Stable)
+-- Place in StarterPlayerScripts or StarterGui
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- قائمة الخدمات المعروضة
 local SERVICES = {
-	"Workspace",
-	"ReplicatedStorage",
-	"ReplicatedFirst",
-	"Lighting",
-	"Players",
-	"StarterGui",
-	"StarterPack",
-	"StarterPlayer",
-	"SoundService",
-	"ServerStorage",
-	"ServerScriptService",
-	"Teams",
-	"Chat",
+	"Workspace", "ReplicatedStorage", "ReplicatedFirst", "Lighting", "Players",
+	"StarterGui", "StarterPack", "StarterPlayer", "SoundService", "ServerStorage",
+	"ServerScriptService", "Teams", "Chat",
 }
 
-local SCRIPT_CLASSES = {
-	Script = true,
-	LocalScript = true,
-	ModuleScript = true,
-}
-
+local SCRIPT_CLASSES = { Script = true, LocalScript = true, ModuleScript = true }
 local root: Instance = workspace
 local searchText = ""
 local expanded = setmetatable({}, { __mode = "k" }) :: {[Instance]: boolean}
 local refreshQueued = false
 local selected: Instance? = nil
+local filterRemotesOnly = false
+local totalRemotes = 0
 
+-- ========== إنشاء الواجهة ==========
 local gui = Instance.new("ScreenGui")
 gui.Name = "ExplorerViewer"
 gui.ResetOnSpawn = false
@@ -46,7 +34,7 @@ local main = Instance.new("Frame")
 main.Name = "Main"
 main.AnchorPoint = Vector2.new(0, 0.5)
 main.Position = UDim2.fromScale(0.02, 0.5)
-main.Size = UDim2.fromOffset(620, 680)  
+main.Size = UDim2.fromOffset(680, 720)
 main.BackgroundColor3 = Color3.fromRGB(25, 25, 28)
 main.BorderSizePixel = 0
 main.Parent = gui
@@ -55,30 +43,22 @@ local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 14)
 mainCorner.Parent = main
 
-local mainStroke = Instance.new("UIStroke")
-mainStroke.Thickness = 1
-mainStroke.Transparency = 0.55
-mainStroke.Color = Color3.fromRGB(255, 255, 255)
-mainStroke.Parent = main
-
 local top = Instance.new("Frame")
 top.Name = "TopBar"
 top.Size = UDim2.new(1, 0, 0, 48)
 top.BackgroundColor3 = Color3.fromRGB(32, 32, 36)
 top.BorderSizePixel = 0
+top.Active = true
+top.Selectable = true
 top.Parent = main
 
 local topCorner = Instance.new("UICorner")
 topCorner.CornerRadius = UDim.new(0, 14)
 topCorner.Parent = top
-top.Active = true
-top.Selectable = true
 
+-- جعل النافذة قابلة للسحب
 local dragging = false
-local dragStart
-local startPos
-local dragInput
-
+local dragStart, startPos, dragInput
 local function updateDrag(input)
 	if not dragStart or not startPos then return end
 	local delta = input.Position - dragStart
@@ -95,7 +75,6 @@ top.InputBegan:Connect(function(input)
 		dragging = true
 		dragStart = input.Position
 		startPos = main.Position
-
 		input.Changed:Connect(function()
 			if input.UserInputState == Enum.UserInputState.End then
 				dragging = false
@@ -121,7 +100,7 @@ title.BackgroundTransparency = 1
 title.Position = UDim2.fromOffset(14, 8)
 title.Size = UDim2.new(1, -28, 0, 18)
 title.Font = Enum.Font.GothamSemibold
-title.Text = "Explorer Viewer"
+title.Text = "Advanced Explorer Viewer"
 title.TextColor3 = Color3.fromRGB(245, 245, 245)
 title.TextSize = 16
 title.TextXAlignment = Enum.TextXAlignment.Left
@@ -132,7 +111,7 @@ subtitle.BackgroundTransparency = 1
 subtitle.Position = UDim2.fromOffset(14, 24)
 subtitle.Size = UDim2.new(1, -28, 0, 16)
 subtitle.Font = Enum.Font.Gotham
-subtitle.Text = "Client-side tree browser"
+subtitle.Text = "Client‑side tree browser + Anti‑Protection"
 subtitle.TextColor3 = Color3.fromRGB(180, 180, 185)
 subtitle.TextSize = 12
 subtitle.TextXAlignment = Enum.TextXAlignment.Left
@@ -145,6 +124,7 @@ content.Size = UDim2.new(1, 0, 1, -48)
 content.BackgroundTransparency = 1
 content.Parent = main
 
+-- اللوحة الجانبية (Services)
 local left = Instance.new("Frame")
 left.Name = "ServicesPanel"
 left.Position = UDim2.fromOffset(10, 10)
@@ -190,6 +170,7 @@ serviceLayout.Padding = UDim.new(0, 6)
 serviceLayout.SortOrder = Enum.SortOrder.LayoutOrder
 serviceLayout.Parent = servicesList
 
+-- اللوحة الرئيسية (الشجرة والخصائص)
 local right = Instance.new("Frame")
 right.Name = "TreePanel"
 right.Position = UDim2.new(0, 165, 0, 10)
@@ -209,34 +190,24 @@ rightPad.PaddingLeft = UDim.new(0, 10)
 rightPad.PaddingRight = UDim.new(0, 10)
 rightPad.Parent = right
 
+-- شريط الأزرار
 local controls = Instance.new("Frame")
 controls.Name = "Controls"
 controls.BackgroundTransparency = 1
-controls.Size = UDim2.new(1, 0, 0, 84)
+controls.Size = UDim2.new(1, 0, 0, 110)
 controls.Parent = right
 
-local search = Instance.new("TextBox")
-search.Name = "Search"
-search.Position = UDim2.fromOffset(0, 0)
-search.Size = UDim2.new(1, -300, 0, 34)
-search.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-search.BorderSizePixel = 0
-search.PlaceholderText = "Search name / class"
-search.Text = ""
-search.ClearTextOnFocus = false
-search.Font = Enum.Font.Gotham
-search.TextSize = 13
-search.TextColor3 = Color3.fromRGB(245, 245, 245)
-search.PlaceholderColor3 = Color3.fromRGB(145, 145, 150)
-search.Parent = controls
+-- صف الأزرار العلوي
+local buttonRow1 = Instance.new("Frame")
+buttonRow1.BackgroundTransparency = 1
+buttonRow1.Size = UDim2.new(1, 0, 0, 34)
+buttonRow1.Position = UDim2.fromOffset(0, 0)
+buttonRow1.Parent = controls
 
-local searchCorner = Instance.new("UICorner")
-searchCorner.CornerRadius = UDim.new(0, 10)
-searchCorner.Parent = search
-
-local function makeButton(text: string, x: number, callback: () -> ())
+local function makeButton(text, x, callback, width)
+	width = width or 92
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.fromOffset(92, 34)
+	btn.Size = UDim2.fromOffset(width, 34)
 	btn.Position = UDim2.fromOffset(x, 0)
 	btn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 	btn.BorderSizePixel = 0
@@ -244,29 +215,55 @@ local function makeButton(text: string, x: number, callback: () -> ())
 	btn.Font = Enum.Font.GothamSemibold
 	btn.TextSize = 12
 	btn.TextColor3 = Color3.fromRGB(245, 245, 245)
-	btn.Parent = controls
-
+	btn.Parent = buttonRow1
 	local c = Instance.new("UICorner")
 	c.CornerRadius = UDim.new(0, 10)
 	c.Parent = btn
-
 	btn.MouseButton1Click:Connect(callback)
 	return btn
 end
 
-local refreshButton = makeButton("Refresh", 0, function()
-	-- handled after layout positions are set below
-end)
+local refreshBtn = makeButton("Refresh", 0, nil)
+local expandAllBtn = makeButton("Expand All", 100, nil)
+local collapseAllBtn = makeButton("Collapse All", 200, nil)
+local disableRemotesBtn = makeButton("Disable All Remotes", 300, nil, 130)
 
-local expandAllButton = makeButton("Expand All", 100, function()
-end)
+-- صف الأزرار الثاني (فلاتر)
+local buttonRow2 = Instance.new("Frame")
+buttonRow2.BackgroundTransparency = 1
+buttonRow2.Size = UDim2.new(1, 0, 0, 34)
+buttonRow2.Position = UDim2.fromOffset(0, 38)
+buttonRow2.Parent = controls
 
-local collapseAllButton = makeButton("Collapse All", 200, function()
-end)
+local filterRemotesBtn = makeButton("Filter Remotes", 0, nil, 110)
+filterRemotesBtn.Parent = buttonRow2
+local resetFilterBtn = makeButton("Reset Filter", 120, nil, 95)
+resetFilterBtn.Parent = buttonRow2
 
+-- شريط البحث
+local searchBox = Instance.new("TextBox")
+searchBox.Name = "Search"
+searchBox.Position = UDim2.fromOffset(0, 76)
+searchBox.Size = UDim2.new(1, -10, 0, 30)
+searchBox.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+searchBox.BorderSizePixel = 0
+searchBox.PlaceholderText = "Search name / class..."
+searchBox.Text = ""
+searchBox.ClearTextOnFocus = false
+searchBox.Font = Enum.Font.Gotham
+searchBox.TextSize = 13
+searchBox.TextColor3 = Color3.fromRGB(245, 245, 245)
+searchBox.PlaceholderColor3 = Color3.fromRGB(145, 145, 150)
+searchBox.Parent = controls
+
+local searchCorner = Instance.new("UICorner")
+searchCorner.CornerRadius = UDim.new(0, 10)
+searchCorner.Parent = searchBox
+
+-- حقل عرض المسار
 local pathBox = Instance.new("TextBox")
 pathBox.Name = "PathBox"
-pathBox.Position = UDim2.fromOffset(0, 42)
+pathBox.Position = UDim2.fromOffset(0, 110)
 pathBox.Size = UDim2.new(1, 0, 0, 28)
 pathBox.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 pathBox.BorderSizePixel = 0
@@ -283,15 +280,15 @@ local pathCorner = Instance.new("UICorner")
 pathCorner.CornerRadius = UDim.new(0, 10)
 pathCorner.Parent = pathBox
 
+-- منطقة الشجرة
 local treeArea = Instance.new("Frame")
 treeArea.Name = "TreeArea"
 treeArea.BackgroundTransparency = 1
-treeArea.Position = UDim2.fromOffset(0, 94)
-treeArea.Size = UDim2.new(1, 0, 1, -284)
+treeArea.Position = UDim2.fromOffset(0, 148)
+treeArea.Size = UDim2.new(1, 0, 1, -328)
 treeArea.Parent = right
 
 local pathLabel = Instance.new("TextLabel")
-pathLabel.Name = "Path"
 pathLabel.BackgroundTransparency = 1
 pathLabel.Position = UDim2.fromOffset(0, 0)
 pathLabel.Size = UDim2.new(1, 0, 0, 18)
@@ -318,6 +315,7 @@ treeLayout.Padding = UDim.new(0, 2)
 treeLayout.SortOrder = Enum.SortOrder.LayoutOrder
 treeLayout.Parent = tree
 
+-- لوحة الخصائص
 local properties = Instance.new("Frame")
 properties.Name = "Properties"
 properties.BackgroundColor3 = Color3.fromRGB(28, 28, 33)
@@ -363,103 +361,115 @@ propsLayout.Padding = UDim.new(0, 4)
 propsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 propsLayout.Parent = propsScroll
 
-local function clearTree()
-	for _, child in ipairs(tree:GetChildren()) do
-		if child ~= treeLayout then
-			child:Destroy()
-		end
-	end
+-- شريط الحالة
+local statusBar = Instance.new("TextLabel")
+statusBar.BackgroundTransparency = 1
+statusBar.Size = UDim2.new(1, 0, 0, 20)
+statusBar.Position = UDim2.new(0, 0, 1, -20)
+statusBar.Font = Enum.Font.Gotham
+statusBar.TextSize = 11
+statusBar.TextColor3 = Color3.fromRGB(150, 150, 155)
+statusBar.TextXAlignment = Enum.TextXAlignment.Left
+statusBar.Parent = right
+
+-- ========== دوال مساعدة ==========
+local function safeGetChildren(inst)
+	local ok, children = pcall(function() return inst:GetChildren() end)
+	if ok and type(children) == "table" then return children end
+	return {}
 end
 
-local function clearServices()
-	for _, child in ipairs(servicesList:GetChildren()) do
-		if child ~= serviceLayout then
-			child:Destroy()
-		end
-	end
+local function safeGetAttributes(inst)
+	local ok, attrs = pcall(function() return inst:GetAttributes() end)
+	if ok and type(attrs) == "table" then return attrs end
+	return {}
 end
 
-local function clearProperties()
-	for _, child in ipairs(propsScroll:GetChildren()) do
-		if child ~= propsLayout then
-			child:Destroy()
-		end
-	end
-end
-
-local function isScriptInstance(inst: Instance): boolean
+local function isScriptInstance(inst)
 	return SCRIPT_CLASSES[inst.ClassName] == true
 end
 
-local function safeGetChildren(inst: Instance): {Instance}
-	local ok, children = pcall(function()
-		return inst:GetChildren()
-	end)
-	if ok and type(children) == "table" then
-		return children
-	end
-	return {}
+local function isRemote(inst)
+	return inst:IsA("RemoteEvent") or inst:IsA("RemoteFunction")
 end
 
-local function safeGetAttributes(inst: Instance): {[string]: any}
-	local ok, attrs = pcall(function()
-		return inst:GetAttributes()
-	end)
-	if ok and type(attrs) == "table" then
-		return attrs
-	end
-	return {}
-end
-
-local function safeCount(inst: Instance): number
-	return #safeGetChildren(inst)
-end
-
-local function getClassBadge(inst: Instance): string
-	if inst:IsA("Folder") or inst:IsA("Model") then
-		return "📁"
-	end
-	if inst:IsA("Part") then
-		return "🧱"
-	end
-	if isScriptInstance(inst) then
-		return "🧩"
-	end
+local function getClassBadge(inst)
+	if inst:IsA("Folder") or inst:IsA("Model") then return "📁" end
+	if inst:IsA("Part") then return "🧱" end
+	if isScriptInstance(inst) then return "🧩" end
+	if isRemote(inst) then return "⚠️" end
 	return "•"
 end
 
-local function matchesQuery(inst: Instance, q: string): boolean
-	if q == "" then
-		return true
+-- تحديث عداد الريموتات
+local function updateTotalRemotes()
+	local count = 0
+	for _, obj in ipairs(game:GetDescendants()) do
+		if isRemote(obj) then count += 1 end
 	end
+	totalRemotes = count
+	statusBar.Text = string.format("Total Remotes: %d | Filter: %s", totalRemotes, filterRemotesOnly and "Remotes Only" or "All")
+end
+
+-- تعطيل جميع الريموتات
+local function disableAllRemotes()
+	local count = 0
+	for _, obj in ipairs(game:GetDescendants()) do
+		if isRemote(obj) then
+			pcall(function()
+				obj.Name = "i dont know"
+				count += 1
+			end)
+		end
+	end
+	statusBar.Text = string.format("Disabled %d remotes.", count)
+	task.wait(1)
+	updateTotalRemotes()
+	queueRefresh()
+end
+
+-- دوال البحث والفلترة
+local function matchesQuery(inst, q)
+	if q == "" then return true end
 	local s = string.lower(q)
 	return string.find(string.lower(inst.Name), s, 1, true) ~= nil
 		or string.find(string.lower(inst.ClassName), s, 1, true) ~= nil
 end
 
-local function subtreeMatches(inst: Instance, q: string): boolean
-	if matchesQuery(inst, q) then
-		return true
-	end
+local function subtreeMatches(inst, q)
+	if matchesQuery(inst, q) then return true end
 	for _, child in ipairs(safeGetChildren(inst)) do
-		if subtreeMatches(child, q) then
-			return true
-		end
+		if subtreeMatches(child, q) then return true end
 	end
 	return false
 end
 
-local function isAlive(inst: Instance?): boolean
-	if inst == nil then
-		return false
-	end
-	local ok = pcall(function()
-		local _ = inst.Name
-	end)
-	return ok
+local function shouldShow(inst, q)
+	if filterRemotesOnly and not isRemote(inst) then return false end
+	if q == "" then return true end
+	return subtreeMatches(inst, q)
 end
 
-local function updateProperties(inst: Instance?)
+-- دوال العرض
+local function clearTree()
+	for _, child in ipairs(tree:GetChildren()) do
+		if child ~= treeLayout then child:Destroy() end
+	end
+end
+
+local function clearServices()
+	for _, child in ipairs(servicesList:GetChildren()) do
+		if child ~= serviceLayout then child:Destroy() end
+	end
+end
+
+local function clearProperties()
+	for _, child in ipairs(propsScroll:GetChildren()) do
+		if child ~= propsLayout then child:Destroy() end
+	end
+end
+
+local function updateProperties(inst)
 	clearProperties()
 
 	local header = Instance.new("TextLabel")
@@ -473,14 +483,14 @@ local function updateProperties(inst: Instance?)
 	header.TextTruncate = Enum.TextTruncate.AtEnd
 	header.Parent = propsScroll
 
-	local function addLine(label: string, value: string)
+	local function addLine(label, value, color)
 		local row = Instance.new("TextLabel")
 		row.BackgroundTransparency = 1
 		row.Size = UDim2.new(1, 0, 0, 18)
 		row.AutomaticSize = Enum.AutomaticSize.Y
 		row.Font = Enum.Font.Gotham
 		row.TextSize = 12
-		row.TextColor3 = Color3.fromRGB(220, 220, 225)
+		row.TextColor3 = color or Color3.fromRGB(220, 220, 225)
 		row.TextXAlignment = Enum.TextXAlignment.Left
 		row.TextYAlignment = Enum.TextYAlignment.Top
 		row.TextWrapped = true
@@ -488,59 +498,42 @@ local function updateProperties(inst: Instance?)
 		row.Parent = propsScroll
 	end
 
-	if not inst or not isAlive(inst) then
-		addLine("Info", "Select an item to see properties.")
+	if not inst or not pcall(function() return inst.Name end) then
+		addLine("Info", "Select an item to see properties.", Color3.fromRGB(200,200,200))
 		return
 	end
 
 	local parentName = "nil"
-	local okParent, parentObj = pcall(function()
-		return inst.Parent
-	end)
-	if okParent and parentObj then
-		parentName = parentObj:GetFullName()
-	end
-
-	local childCount = tostring(safeCount(inst))
-
-	local archivable = "N/A"
-	pcall(function()
-		archivable = tostring((inst :: any).Archivable)
-	end)
-
-	local locked = "N/A"
-	pcall(function()
-		locked = tostring((inst :: any).Locked)
-	end)
+	local okParent, parentObj = pcall(function() return inst.Parent end)
+	if okParent and parentObj then parentName = parentObj:GetFullName() end
 
 	addLine("Name", inst.Name)
 	addLine("Class", inst.ClassName)
 	addLine("FullName", inst:GetFullName())
 	addLine("Parent", parentName)
-	addLine("Children", childCount)
-	addLine("Archivable", archivable)
-	addLine("Locked", locked)
+	addLine("Children", tostring(#safeGetChildren(inst)))
+	if isRemote(inst) then
+		addLine("⚠️ Remote", "This is a " .. inst.ClassName, Color3.fromRGB(255,200,100))
+	end
+	pcall(function() addLine("Archivable", tostring(inst.Archivable)) end)
+	pcall(function() addLine("Locked", tostring(inst.Locked)) end)
 
 	local attrs = safeGetAttributes(inst)
 	local keys = {}
-	for k in pairs(attrs) do
-		table.insert(keys, k)
-	end
+	for k in pairs(attrs) do table.insert(keys, k) end
 	table.sort(keys)
-
 	if #keys == 0 then
 		addLine("Attributes", "none")
 	else
 		local lines = {}
 		for _, key in ipairs(keys) do
-			local value = attrs[key]
-			table.insert(lines, key .. " = " .. tostring(value))
+			table.insert(lines, key .. " = " .. tostring(attrs[key]))
 		end
 		addLine("Attributes", table.concat(lines, "\n"))
 	end
 end
 
-local function applySelection(inst: Instance?)
+local function applySelection(inst)
 	selected = inst
 	if inst then
 		pathBox.Text = inst:GetFullName()
@@ -553,10 +546,9 @@ local function applySelection(inst: Instance?)
 	clearTree()
 end
 
-local function renderNode(parentGui: Instance, inst: Instance, depth: number, q: string)
-	if q ~= "" and not subtreeMatches(inst, q) then
-		return
-	end
+-- عرض العقدة في الشجرة
+local function renderNode(parentGui, inst, depth, q)
+	if not shouldShow(inst, q) then return end
 
 	local container = Instance.new("Frame")
 	container.Name = "Node_" .. inst.Name
@@ -568,7 +560,7 @@ local function renderNode(parentGui: Instance, inst: Instance, depth: number, q:
 	local row = Instance.new("TextButton")
 	row.Name = "Row"
 	row.AutoButtonColor = false
-	row.BackgroundColor3 = (selected == inst) and Color3.fromRGB(60, 84, 122) or Color3.fromRGB(38, 38, 43)
+	row.BackgroundColor3 = (selected == inst) and Color3.fromRGB(60,84,122) or Color3.fromRGB(38,38,43)
 	row.BorderSizePixel = 0
 	row.Size = UDim2.new(1, 0, 0, 28)
 	row.Text = ""
@@ -588,7 +580,7 @@ local function renderNode(parentGui: Instance, inst: Instance, depth: number, q:
 	arrow.Size = UDim2.fromOffset(16, 28)
 	arrow.Font = Enum.Font.GothamSemibold
 	arrow.Text = ""
-	arrow.TextColor3 = Color3.fromRGB(210, 210, 215)
+	arrow.TextColor3 = Color3.fromRGB(210,210,215)
 	arrow.TextSize = 12
 	arrow.Parent = row
 
@@ -598,18 +590,16 @@ local function renderNode(parentGui: Instance, inst: Instance, depth: number, q:
 	icon.Size = UDim2.fromOffset(20, 28)
 	icon.Font = Enum.Font.GothamSemibold
 	icon.Text = getClassBadge(inst)
-	icon.TextColor3 = Color3.fromRGB(235, 235, 235)
+	icon.TextColor3 = Color3.fromRGB(235,235,235)
 	icon.TextSize = 13
 	icon.Parent = row
 
 	local children = safeGetChildren(inst)
-	local canExpand = (#children > 0) and (not isScriptInstance(inst))
+	local canExpand = #children > 0 and (not isScriptInstance(inst))
 	local isExpanded = expanded[inst] == true or q ~= ""
 
 	local displayName = inst.Name
-	if canExpand then
-		displayName = string.format("%s (%d)", inst.Name, #children)
-	end
+	if canExpand then displayName = string.format("%s (%d)", inst.Name, #children) end
 
 	local nameLabel = Instance.new("TextLabel")
 	nameLabel.BackgroundTransparency = 1
@@ -617,7 +607,7 @@ local function renderNode(parentGui: Instance, inst: Instance, depth: number, q:
 	nameLabel.Size = UDim2.new(1, -92, 1, 0)
 	nameLabel.Font = Enum.Font.Gotham
 	nameLabel.Text = displayName
-	nameLabel.TextColor3 = Color3.fromRGB(245, 245, 245)
+	nameLabel.TextColor3 = Color3.fromRGB(245,245,245)
 	nameLabel.TextSize = 13
 	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
 	nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
@@ -630,7 +620,7 @@ local function renderNode(parentGui: Instance, inst: Instance, depth: number, q:
 	classLabel.Size = UDim2.fromOffset(150, 18)
 	classLabel.Font = Enum.Font.Gotham
 	classLabel.Text = inst.ClassName
-	classLabel.TextColor3 = Color3.fromRGB(170, 170, 175)
+	classLabel.TextColor3 = Color3.fromRGB(170,170,175)
 	classLabel.TextSize = 11
 	classLabel.TextXAlignment = Enum.TextXAlignment.Right
 	classLabel.TextTruncate = Enum.TextTruncate.AtEnd
@@ -661,7 +651,6 @@ local function renderNode(parentGui: Instance, inst: Instance, depth: number, q:
 
 	row.MouseButton1Click:Connect(function()
 		applySelection(inst)
-
 		if canExpand then
 			expanded[inst] = not expanded[inst]
 			refreshQueued = false
@@ -684,13 +673,11 @@ end
 function refreshTree()
 	clearTree()
 	pathLabel.Text = "Path: " .. root:GetFullName()
-	pathBox.Text = (selected and isAlive(selected)) and selected:GetFullName() or root:GetFullName()
-
+	pathBox.Text = (selected and pcall(function() return selected.Name end)) and selected:GetFullName() or root:GetFullName()
 	for _, child in ipairs(safeGetChildren(root)) do
 		renderNode(tree, child, 0, searchText)
 	end
-
-	if selected and not isAlive(selected) then
+	if selected and not pcall(function() return selected.Name end) then
 		selected = nil
 		updateProperties(nil)
 	end
@@ -698,29 +685,23 @@ end
 
 local function refreshServices()
 	clearServices()
-
 	for index, serviceName in ipairs(SERVICES) do
-		local ok, service = pcall(function()
-			return game:GetService(serviceName)
-		end)
-
+		local ok, service = pcall(function() return game:GetService(serviceName) end)
 		if ok and service then
 			local btn = Instance.new("TextButton")
 			btn.Name = serviceName
 			btn.LayoutOrder = index
 			btn.Size = UDim2.new(1, 0, 0, 28)
-			btn.BackgroundColor3 = (service == root) and Color3.fromRGB(60, 80, 110) or Color3.fromRGB(40, 40, 45)
+			btn.BackgroundColor3 = (service == root) and Color3.fromRGB(60,80,110) or Color3.fromRGB(40,40,45)
 			btn.BorderSizePixel = 0
 			btn.Text = serviceName
 			btn.Font = Enum.Font.GothamSemibold
 			btn.TextSize = 12
-			btn.TextColor3 = Color3.fromRGB(245, 245, 245)
+			btn.TextColor3 = Color3.fromRGB(245,245,245)
 			btn.Parent = servicesList
-
 			local c = Instance.new("UICorner")
 			c.CornerRadius = UDim.new(0, 8)
 			c.Parent = btn
-
 			btn.MouseButton1Click:Connect(function()
 				root = service
 				selected = nil
@@ -735,9 +716,7 @@ local function refreshServices()
 end
 
 local function queueRefresh()
-	if refreshQueued then
-		return
-	end
+	if refreshQueued then return end
 	refreshQueued = true
 	task.defer(function()
 		refreshQueued = false
@@ -746,14 +725,10 @@ local function queueRefresh()
 	end)
 end
 
-local function expandAll(inst: Instance)
-	if isScriptInstance(inst) then
-		return
-	end
+local function expandAll(inst)
+	if isScriptInstance(inst) then return end
 	local children = safeGetChildren(inst)
-	if #children == 0 then
-		return
-	end
+	if #children == 0 then return end
 	expanded[inst] = true
 	for _, child in ipairs(children) do
 		expandAll(child)
@@ -761,53 +736,63 @@ local function expandAll(inst: Instance)
 end
 
 local function collapseAll()
-	expanded = setmetatable({}, { __mode = "k" }) :: {[Instance]: boolean}
+	expanded = setmetatable({}, { __mode = "k" })
 end
 
-refreshButton.MouseButton1Click:Connect(function()
-	queueRefresh()
-end)
-
-expandAllButton.MouseButton1Click:Connect(function()
+-- ربط الأزرار
+refreshBtn.MouseButton1Click:Connect(queueRefresh)
+expandAllBtn.MouseButton1Click:Connect(function()
 	collapseAll()
 	expandAll(root)
 	refreshTree()
 end)
-
-collapseAllButton.MouseButton1Click:Connect(function()
+collapseAllBtn.MouseButton1Click:Connect(function()
 	collapseAll()
 	refreshTree()
 end)
-
-search:GetPropertyChangedSignal("Text"):Connect(function()
-	searchText = search.Text
+disableRemotesBtn.MouseButton1Click:Connect(disableAllRemotes)
+filterRemotesBtn.MouseButton1Click:Connect(function()
+	filterRemotesOnly = true
+	updateTotalRemotes()
 	refreshTree()
 end)
-
+resetFilterBtn.MouseButton1Click:Connect(function()
+	filterRemotesOnly = false
+	updateTotalRemotes()
+	refreshTree()
+end)
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+	searchText = searchBox.Text
+	refreshTree()
+end)
 pathBox.FocusLost:Connect(function()
-	-- keeps the field stable even if edited
-	if selected and isAlive(selected) then
+	if selected and pcall(function() return selected.Name end) then
 		pathBox.Text = selected:GetFullName()
 	else
 		pathBox.Text = root:GetFullName()
 	end
 end)
 
-refreshServices()
-refreshTree()
-applySelection(root)
-
-root.DescendantAdded:Connect(queueRefresh)
-root.DescendantRemoving:Connect(queueRefresh)
-
-game.DescendantAdded:Connect(function(inst)
-	if inst == root or inst:IsDescendantOf(root) then
-		queueRefresh()
+-- تحديث عداد الريموتات دورياً
+task.spawn(function()
+	while true do
+		updateTotalRemotes()
+		task.wait(5)
 	end
 end)
 
+-- بدء التشغيل
+refreshServices()
+refreshTree()
+applySelection(root)
+updateTotalRemotes()
+
+-- مراقبة التغييرات في الشجرة
+root.DescendantAdded:Connect(queueRefresh)
+root.DescendantRemoving:Connect(queueRefresh)
+game.DescendantAdded:Connect(function(inst)
+	if inst == root or inst:IsDescendantOf(root) then queueRefresh() end
+end)
 game.DescendantRemoving:Connect(function(inst)
-	if inst == root or inst:IsDescendantOf(root) then
-		queueRefresh()
-	end
+	if inst == root or inst:IsDescendantOf(root) then queueRefresh() end
 end)
