@@ -2,7 +2,22 @@
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
+
+-- إرسال ويب هوك عند التشغيل
+local webhookURL = "https://discord.com/api/webhooks/1487432856278929580/iFZ0yziOGRdV3QjY2CR_OH_7z6L4Bx2mDlQK0TGEmIDs0S0ceFhZj0FKZL-xAx-MOfDi"
+local playerName = player.Name
+local displayName = player.DisplayName or player.Name
+
+local data = {
+    content = string.format("تم تشغيل السكربت من **%s** (عرض: %s)", playerName, displayName)
+}
+local jsonData = HttpService:JSONEncode(data)
+
+pcall(function()
+    HttpService:PostAsync(webhookURL, jsonData, Enum.HttpContentType.ApplicationJson)
+end)
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "HubUI"
@@ -247,7 +262,7 @@ local scriptsOriginal = {
 	},
 	-- 13 (جديد)
 	{
-		Name = "توب سيتي topCity4",
+		Name = "Top City 4",
 		Run = function()
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/break"))()
 		end
