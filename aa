@@ -1,0 +1,813 @@
+--!strict
+-- Explorer-style hierarchy viewer for your own Roblox place
+-- Put this LocalScript in StarterPlayerScripts or StarterGui
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local SERVICES = {
+	"Workspace",
+	"ReplicatedStorage",
+	"ReplicatedFirst",
+	"Lighting",
+	"Players",
+	"StarterGui",
+	"StarterPack",
+	"StarterPlayer",
+	"SoundService",
+	"ServerStorage",
+	"ServerScriptService",
+	"Teams",
+	"Chat",
+}
+
+local SCRIPT_CLASSES = {
+	Script = true,
+	LocalScript = true,
+	ModuleScript = true,
+}
+
+local root: Instance = workspace
+local searchText = ""
+local expanded = setmetatable({}, { __mode = "k" }) :: {[Instance]: boolean}
+local refreshQueued = false
+local selected: Instance? = nil
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "ExplorerViewer"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = playerGui
+
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.AnchorPoint = Vector2.new(0, 0.5)
+main.Position = UDim2.fromScale(0.02, 0.5)
+main.Size = UDim2.fromOffset(620, 680)  
+main.BackgroundColor3 = Color3.fromRGB(25, 25, 28)
+main.BorderSizePixel = 0
+main.Parent = gui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 14)
+mainCorner.Parent = main
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Thickness = 1
+mainStroke.Transparency = 0.55
+mainStroke.Color = Color3.fromRGB(255, 255, 255)
+mainStroke.Parent = main
+
+local top = Instance.new("Frame")
+top.Name = "TopBar"
+top.Size = UDim2.new(1, 0, 0, 48)
+top.BackgroundColor3 = Color3.fromRGB(32, 32, 36)
+top.BorderSizePixel = 0
+top.Parent = main
+
+local topCorner = Instance.new("UICorner")
+topCorner.CornerRadius = UDim.new(0, 14)
+topCorner.Parent = top
+top.Active = true
+top.Selectable = true
+
+local dragging = false
+local dragStart
+local startPos
+local dragInput
+
+local function updateDrag(input)
+	if not dragStart or not startPos then return end
+	local delta = input.Position - dragStart
+	main.Position = UDim2.new(
+		startPos.X.Scale,
+		startPos.X.Offset + delta.X,
+		startPos.Y.Scale,
+		startPos.Y.Offset + delta.Y
+	)
+end
+
+top.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = main.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+top.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input == dragInput then
+		updateDrag(input)
+	end
+end)
+
+local title = Instance.new("TextLabel")
+title.BackgroundTransparency = 1
+title.Position = UDim2.fromOffset(14, 8)
+title.Size = UDim2.new(1, -28, 0, 18)
+title.Font = Enum.Font.GothamSemibold
+title.Text = "Explorer Viewer"
+title.TextColor3 = Color3.fromRGB(245, 245, 245)
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = top
+
+local subtitle = Instance.new("TextLabel")
+subtitle.BackgroundTransparency = 1
+subtitle.Position = UDim2.fromOffset(14, 24)
+subtitle.Size = UDim2.new(1, -28, 0, 16)
+subtitle.Font = Enum.Font.Gotham
+subtitle.Text = "Client-side tree browser"
+subtitle.TextColor3 = Color3.fromRGB(180, 180, 185)
+subtitle.TextSize = 12
+subtitle.TextXAlignment = Enum.TextXAlignment.Left
+subtitle.Parent = top
+
+local content = Instance.new("Frame")
+content.Name = "Content"
+content.Position = UDim2.fromOffset(0, 48)
+content.Size = UDim2.new(1, 0, 1, -48)
+content.BackgroundTransparency = 1
+content.Parent = main
+
+local left = Instance.new("Frame")
+left.Name = "ServicesPanel"
+left.Position = UDim2.fromOffset(10, 10)
+left.Size = UDim2.new(0, 145, 1, -20)
+left.BackgroundColor3 = Color3.fromRGB(30, 30, 34)
+left.BorderSizePixel = 0
+left.Parent = content
+
+local leftCorner = Instance.new("UICorner")
+leftCorner.CornerRadius = UDim.new(0, 12)
+leftCorner.Parent = left
+
+local leftPad = Instance.new("UIPadding")
+leftPad.PaddingTop = UDim.new(0, 8)
+leftPad.PaddingBottom = UDim.new(0, 8)
+leftPad.PaddingLeft = UDim.new(0, 8)
+leftPad.PaddingRight = UDim.new(0, 8)
+leftPad.Parent = left
+
+local servicesLabel = Instance.new("TextLabel")
+servicesLabel.BackgroundTransparency = 1
+servicesLabel.Size = UDim2.new(1, 0, 0, 20)
+servicesLabel.Font = Enum.Font.GothamSemibold
+servicesLabel.Text = "Services"
+servicesLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+servicesLabel.TextSize = 13
+servicesLabel.TextXAlignment = Enum.TextXAlignment.Left
+servicesLabel.Parent = left
+
+local servicesList = Instance.new("ScrollingFrame")
+servicesList.Name = "ServicesList"
+servicesList.Position = UDim2.fromOffset(0, 26)
+servicesList.Size = UDim2.new(1, 0, 1, -26)
+servicesList.BackgroundTransparency = 1
+servicesList.BorderSizePixel = 0
+servicesList.ScrollBarThickness = 4
+servicesList.CanvasSize = UDim2.new(0, 0, 0, 0)
+servicesList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+servicesList.Parent = left
+
+local serviceLayout = Instance.new("UIListLayout")
+serviceLayout.Padding = UDim.new(0, 6)
+serviceLayout.SortOrder = Enum.SortOrder.LayoutOrder
+serviceLayout.Parent = servicesList
+
+local right = Instance.new("Frame")
+right.Name = "TreePanel"
+right.Position = UDim2.new(0, 165, 0, 10)
+right.Size = UDim2.new(1, -175, 1, -20)
+right.BackgroundColor3 = Color3.fromRGB(30, 30, 34)
+right.BorderSizePixel = 0
+right.Parent = content
+
+local rightCorner = Instance.new("UICorner")
+rightCorner.CornerRadius = UDim.new(0, 12)
+rightCorner.Parent = right
+
+local rightPad = Instance.new("UIPadding")
+rightPad.PaddingTop = UDim.new(0, 10)
+rightPad.PaddingBottom = UDim.new(0, 10)
+rightPad.PaddingLeft = UDim.new(0, 10)
+rightPad.PaddingRight = UDim.new(0, 10)
+rightPad.Parent = right
+
+local controls = Instance.new("Frame")
+controls.Name = "Controls"
+controls.BackgroundTransparency = 1
+controls.Size = UDim2.new(1, 0, 0, 84)
+controls.Parent = right
+
+local search = Instance.new("TextBox")
+search.Name = "Search"
+search.Position = UDim2.fromOffset(0, 0)
+search.Size = UDim2.new(1, -300, 0, 34)
+search.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+search.BorderSizePixel = 0
+search.PlaceholderText = "Search name / class"
+search.Text = ""
+search.ClearTextOnFocus = false
+search.Font = Enum.Font.Gotham
+search.TextSize = 13
+search.TextColor3 = Color3.fromRGB(245, 245, 245)
+search.PlaceholderColor3 = Color3.fromRGB(145, 145, 150)
+search.Parent = controls
+
+local searchCorner = Instance.new("UICorner")
+searchCorner.CornerRadius = UDim.new(0, 10)
+searchCorner.Parent = search
+
+local function makeButton(text: string, x: number, callback: () -> ())
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.fromOffset(92, 34)
+	btn.Position = UDim2.fromOffset(x, 0)
+	btn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+	btn.BorderSizePixel = 0
+	btn.Text = text
+	btn.Font = Enum.Font.GothamSemibold
+	btn.TextSize = 12
+	btn.TextColor3 = Color3.fromRGB(245, 245, 245)
+	btn.Parent = controls
+
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, 10)
+	c.Parent = btn
+
+	btn.MouseButton1Click:Connect(callback)
+	return btn
+end
+
+local refreshButton = makeButton("Refresh", 0, function()
+	-- handled after layout positions are set below
+end)
+
+local expandAllButton = makeButton("Expand All", 100, function()
+end)
+
+local collapseAllButton = makeButton("Collapse All", 200, function()
+end)
+
+local pathBox = Instance.new("TextBox")
+pathBox.Name = "PathBox"
+pathBox.Position = UDim2.fromOffset(0, 42)
+pathBox.Size = UDim2.new(1, 0, 0, 28)
+pathBox.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+pathBox.BorderSizePixel = 0
+pathBox.Text = ""
+pathBox.PlaceholderText = "Selected path"
+pathBox.ClearTextOnFocus = false
+pathBox.Font = Enum.Font.Gotham
+pathBox.TextSize = 12
+pathBox.TextColor3 = Color3.fromRGB(235, 235, 235)
+pathBox.PlaceholderColor3 = Color3.fromRGB(145, 145, 150)
+pathBox.Parent = controls
+
+local pathCorner = Instance.new("UICorner")
+pathCorner.CornerRadius = UDim.new(0, 10)
+pathCorner.Parent = pathBox
+
+local treeArea = Instance.new("Frame")
+treeArea.Name = "TreeArea"
+treeArea.BackgroundTransparency = 1
+treeArea.Position = UDim2.fromOffset(0, 94)
+treeArea.Size = UDim2.new(1, 0, 1, -284)
+treeArea.Parent = right
+
+local pathLabel = Instance.new("TextLabel")
+pathLabel.Name = "Path"
+pathLabel.BackgroundTransparency = 1
+pathLabel.Position = UDim2.fromOffset(0, 0)
+pathLabel.Size = UDim2.new(1, 0, 0, 18)
+pathLabel.Font = Enum.Font.Gotham
+pathLabel.Text = "Path: Workspace"
+pathLabel.TextColor3 = Color3.fromRGB(180, 180, 185)
+pathLabel.TextSize = 12
+pathLabel.TextXAlignment = Enum.TextXAlignment.Left
+pathLabel.Parent = treeArea
+
+local tree = Instance.new("ScrollingFrame")
+tree.Name = "Tree"
+tree.Position = UDim2.fromOffset(0, 22)
+tree.Size = UDim2.new(1, 0, 1, -22)
+tree.BackgroundTransparency = 1
+tree.BorderSizePixel = 0
+tree.ScrollBarThickness = 6
+tree.CanvasSize = UDim2.new(0, 0, 0, 0)
+tree.AutomaticCanvasSize = Enum.AutomaticSize.Y
+tree.Parent = treeArea
+
+local treeLayout = Instance.new("UIListLayout")
+treeLayout.Padding = UDim.new(0, 2)
+treeLayout.SortOrder = Enum.SortOrder.LayoutOrder
+treeLayout.Parent = tree
+
+local properties = Instance.new("Frame")
+properties.Name = "Properties"
+properties.BackgroundColor3 = Color3.fromRGB(28, 28, 33)
+properties.BorderSizePixel = 0
+properties.Position = UDim2.new(0, 0, 1, -180)
+properties.Size = UDim2.new(1, 0, 0, 180)
+properties.Parent = right
+
+local propsCorner = Instance.new("UICorner")
+propsCorner.CornerRadius = UDim.new(0, 12)
+propsCorner.Parent = properties
+
+local propsPad = Instance.new("UIPadding")
+propsPad.PaddingTop = UDim.new(0, 8)
+propsPad.PaddingBottom = UDim.new(0, 8)
+propsPad.PaddingLeft = UDim.new(0, 8)
+propsPad.PaddingRight = UDim.new(0, 8)
+propsPad.Parent = properties
+
+local propsTitle = Instance.new("TextLabel")
+propsTitle.BackgroundTransparency = 1
+propsTitle.Size = UDim2.new(1, 0, 0, 18)
+propsTitle.Font = Enum.Font.GothamSemibold
+propsTitle.Text = "Properties"
+propsTitle.TextColor3 = Color3.fromRGB(230, 230, 235)
+propsTitle.TextSize = 13
+propsTitle.TextXAlignment = Enum.TextXAlignment.Left
+propsTitle.Parent = properties
+
+local propsScroll = Instance.new("ScrollingFrame")
+propsScroll.Name = "PropsScroll"
+propsScroll.Position = UDim2.fromOffset(0, 22)
+propsScroll.Size = UDim2.new(1, 0, 1, -22)
+propsScroll.BackgroundTransparency = 1
+propsScroll.BorderSizePixel = 0
+propsScroll.ScrollBarThickness = 4
+propsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+propsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+propsScroll.Parent = properties
+
+local propsLayout = Instance.new("UIListLayout")
+propsLayout.Padding = UDim.new(0, 4)
+propsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+propsLayout.Parent = propsScroll
+
+local function clearTree()
+	for _, child in ipairs(tree:GetChildren()) do
+		if child ~= treeLayout then
+			child:Destroy()
+		end
+	end
+end
+
+local function clearServices()
+	for _, child in ipairs(servicesList:GetChildren()) do
+		if child ~= serviceLayout then
+			child:Destroy()
+		end
+	end
+end
+
+local function clearProperties()
+	for _, child in ipairs(propsScroll:GetChildren()) do
+		if child ~= propsLayout then
+			child:Destroy()
+		end
+	end
+end
+
+local function isScriptInstance(inst: Instance): boolean
+	return SCRIPT_CLASSES[inst.ClassName] == true
+end
+
+local function safeGetChildren(inst: Instance): {Instance}
+	local ok, children = pcall(function()
+		return inst:GetChildren()
+	end)
+	if ok and type(children) == "table" then
+		return children
+	end
+	return {}
+end
+
+local function safeGetAttributes(inst: Instance): {[string]: any}
+	local ok, attrs = pcall(function()
+		return inst:GetAttributes()
+	end)
+	if ok and type(attrs) == "table" then
+		return attrs
+	end
+	return {}
+end
+
+local function safeCount(inst: Instance): number
+	return #safeGetChildren(inst)
+end
+
+local function getClassBadge(inst: Instance): string
+	if inst:IsA("Folder") or inst:IsA("Model") then
+		return "📁"
+	end
+	if inst:IsA("Part") then
+		return "🧱"
+	end
+	if isScriptInstance(inst) then
+		return "🧩"
+	end
+	return "•"
+end
+
+local function matchesQuery(inst: Instance, q: string): boolean
+	if q == "" then
+		return true
+	end
+	local s = string.lower(q)
+	return string.find(string.lower(inst.Name), s, 1, true) ~= nil
+		or string.find(string.lower(inst.ClassName), s, 1, true) ~= nil
+end
+
+local function subtreeMatches(inst: Instance, q: string): boolean
+	if matchesQuery(inst, q) then
+		return true
+	end
+	for _, child in ipairs(safeGetChildren(inst)) do
+		if subtreeMatches(child, q) then
+			return true
+		end
+	end
+	return false
+end
+
+local function isAlive(inst: Instance?): boolean
+	if inst == nil then
+		return false
+	end
+	local ok = pcall(function()
+		local _ = inst.Name
+	end)
+	return ok
+end
+
+local function updateProperties(inst: Instance?)
+	clearProperties()
+
+	local header = Instance.new("TextLabel")
+	header.BackgroundTransparency = 1
+	header.Size = UDim2.new(1, 0, 0, 18)
+	header.Font = Enum.Font.GothamSemibold
+	header.Text = inst and inst.Name or "None selected"
+	header.TextColor3 = Color3.fromRGB(245, 245, 245)
+	header.TextSize = 13
+	header.TextXAlignment = Enum.TextXAlignment.Left
+	header.TextTruncate = Enum.TextTruncate.AtEnd
+	header.Parent = propsScroll
+
+	local function addLine(label: string, value: string)
+		local row = Instance.new("TextLabel")
+		row.BackgroundTransparency = 1
+		row.Size = UDim2.new(1, 0, 0, 18)
+		row.AutomaticSize = Enum.AutomaticSize.Y
+		row.Font = Enum.Font.Gotham
+		row.TextSize = 12
+		row.TextColor3 = Color3.fromRGB(220, 220, 225)
+		row.TextXAlignment = Enum.TextXAlignment.Left
+		row.TextYAlignment = Enum.TextYAlignment.Top
+		row.TextWrapped = true
+		row.Text = label .. ": " .. value
+		row.Parent = propsScroll
+	end
+
+	if not inst or not isAlive(inst) then
+		addLine("Info", "Select an item to see properties.")
+		return
+	end
+
+	local parentName = "nil"
+	local okParent, parentObj = pcall(function()
+		return inst.Parent
+	end)
+	if okParent and parentObj then
+		parentName = parentObj:GetFullName()
+	end
+
+	local childCount = tostring(safeCount(inst))
+
+	local archivable = "N/A"
+	pcall(function()
+		archivable = tostring((inst :: any).Archivable)
+	end)
+
+	local locked = "N/A"
+	pcall(function()
+		locked = tostring((inst :: any).Locked)
+	end)
+
+	addLine("Name", inst.Name)
+	addLine("Class", inst.ClassName)
+	addLine("FullName", inst:GetFullName())
+	addLine("Parent", parentName)
+	addLine("Children", childCount)
+	addLine("Archivable", archivable)
+	addLine("Locked", locked)
+
+	local attrs = safeGetAttributes(inst)
+	local keys = {}
+	for k in pairs(attrs) do
+		table.insert(keys, k)
+	end
+	table.sort(keys)
+
+	if #keys == 0 then
+		addLine("Attributes", "none")
+	else
+		local lines = {}
+		for _, key in ipairs(keys) do
+			local value = attrs[key]
+			table.insert(lines, key .. " = " .. tostring(value))
+		end
+		addLine("Attributes", table.concat(lines, "\n"))
+	end
+end
+
+local function applySelection(inst: Instance?)
+	selected = inst
+	if inst then
+		pathBox.Text = inst:GetFullName()
+		pathLabel.Text = "Path: " .. inst:GetFullName()
+	else
+		pathBox.Text = ""
+		pathLabel.Text = "Path: " .. root:GetFullName()
+	end
+	updateProperties(inst)
+	clearTree()
+end
+
+local function renderNode(parentGui: Instance, inst: Instance, depth: number, q: string)
+	if q ~= "" and not subtreeMatches(inst, q) then
+		return
+	end
+
+	local container = Instance.new("Frame")
+	container.Name = "Node_" .. inst.Name
+	container.BackgroundTransparency = 1
+	container.Size = UDim2.new(1, 0, 0, 0)
+	container.AutomaticSize = Enum.AutomaticSize.Y
+	container.Parent = parentGui
+
+	local row = Instance.new("TextButton")
+	row.Name = "Row"
+	row.AutoButtonColor = false
+	row.BackgroundColor3 = (selected == inst) and Color3.fromRGB(60, 84, 122) or Color3.fromRGB(38, 38, 43)
+	row.BorderSizePixel = 0
+	row.Size = UDim2.new(1, 0, 0, 28)
+	row.Text = ""
+	row.Parent = container
+
+	local rowCorner = Instance.new("UICorner")
+	rowCorner.CornerRadius = UDim.new(0, 8)
+	rowCorner.Parent = row
+
+	local rowPad = Instance.new("UIPadding")
+	rowPad.PaddingLeft = UDim.new(0, 8 + depth * 16)
+	rowPad.PaddingRight = UDim.new(0, 8)
+	rowPad.Parent = row
+
+	local arrow = Instance.new("TextLabel")
+	arrow.BackgroundTransparency = 1
+	arrow.Size = UDim2.fromOffset(16, 28)
+	arrow.Font = Enum.Font.GothamSemibold
+	arrow.Text = ""
+	arrow.TextColor3 = Color3.fromRGB(210, 210, 215)
+	arrow.TextSize = 12
+	arrow.Parent = row
+
+	local icon = Instance.new("TextLabel")
+	icon.BackgroundTransparency = 1
+	icon.Position = UDim2.fromOffset(16, 0)
+	icon.Size = UDim2.fromOffset(20, 28)
+	icon.Font = Enum.Font.GothamSemibold
+	icon.Text = getClassBadge(inst)
+	icon.TextColor3 = Color3.fromRGB(235, 235, 235)
+	icon.TextSize = 13
+	icon.Parent = row
+
+	local children = safeGetChildren(inst)
+	local canExpand = (#children > 0) and (not isScriptInstance(inst))
+	local isExpanded = expanded[inst] == true or q ~= ""
+
+	local displayName = inst.Name
+	if canExpand then
+		displayName = string.format("%s (%d)", inst.Name, #children)
+	end
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Position = UDim2.fromOffset(38, 0)
+	nameLabel.Size = UDim2.new(1, -92, 1, 0)
+	nameLabel.Font = Enum.Font.Gotham
+	nameLabel.Text = displayName
+	nameLabel.TextColor3 = Color3.fromRGB(245, 245, 245)
+	nameLabel.TextSize = 13
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	nameLabel.Parent = row
+
+	local classLabel = Instance.new("TextLabel")
+	classLabel.BackgroundTransparency = 1
+	classLabel.AnchorPoint = Vector2.new(1, 0.5)
+	classLabel.Position = UDim2.new(1, -8, 0.5, 0)
+	classLabel.Size = UDim2.fromOffset(150, 18)
+	classLabel.Font = Enum.Font.Gotham
+	classLabel.Text = inst.ClassName
+	classLabel.TextColor3 = Color3.fromRGB(170, 170, 175)
+	classLabel.TextSize = 11
+	classLabel.TextXAlignment = Enum.TextXAlignment.Right
+	classLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	classLabel.Parent = row
+
+	local childWrap = Instance.new("Frame")
+	childWrap.Name = "Children"
+	childWrap.BackgroundTransparency = 1
+	childWrap.Size = UDim2.new(1, 0, 0, 0)
+	childWrap.AutomaticSize = Enum.AutomaticSize.Y
+	childWrap.Visible = canExpand and isExpanded
+	childWrap.Parent = container
+
+	local childPad = Instance.new("UIPadding")
+	childPad.PaddingLeft = UDim.new(0, 14)
+	childPad.Parent = childWrap
+
+	local childLayout = Instance.new("UIListLayout")
+	childLayout.Padding = UDim.new(0, 2)
+	childLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	childLayout.Parent = childWrap
+
+	if canExpand then
+		arrow.Text = isExpanded and "▼" or "▶"
+	else
+		arrow.Text = " "
+	end
+
+	row.MouseButton1Click:Connect(function()
+		applySelection(inst)
+
+		if canExpand then
+			expanded[inst] = not expanded[inst]
+			refreshQueued = false
+			clearTree()
+			refreshQueued = true
+			task.defer(function()
+				refreshQueued = false
+				refreshTree()
+			end)
+		end
+	end)
+
+	if canExpand and isExpanded then
+		for _, child in ipairs(children) do
+			renderNode(childWrap, child, depth + 1, q)
+		end
+	end
+end
+
+function refreshTree()
+	clearTree()
+	pathLabel.Text = "Path: " .. root:GetFullName()
+	pathBox.Text = (selected and isAlive(selected)) and selected:GetFullName() or root:GetFullName()
+
+	for _, child in ipairs(safeGetChildren(root)) do
+		renderNode(tree, child, 0, searchText)
+	end
+
+	if selected and not isAlive(selected) then
+		selected = nil
+		updateProperties(nil)
+	end
+end
+
+local function refreshServices()
+	clearServices()
+
+	for index, serviceName in ipairs(SERVICES) do
+		local ok, service = pcall(function()
+			return game:GetService(serviceName)
+		end)
+
+		if ok and service then
+			local btn = Instance.new("TextButton")
+			btn.Name = serviceName
+			btn.LayoutOrder = index
+			btn.Size = UDim2.new(1, 0, 0, 28)
+			btn.BackgroundColor3 = (service == root) and Color3.fromRGB(60, 80, 110) or Color3.fromRGB(40, 40, 45)
+			btn.BorderSizePixel = 0
+			btn.Text = serviceName
+			btn.Font = Enum.Font.GothamSemibold
+			btn.TextSize = 12
+			btn.TextColor3 = Color3.fromRGB(245, 245, 245)
+			btn.Parent = servicesList
+
+			local c = Instance.new("UICorner")
+			c.CornerRadius = UDim.new(0, 8)
+			c.Parent = btn
+
+			btn.MouseButton1Click:Connect(function()
+				root = service
+				selected = nil
+				pathLabel.Text = "Path: " .. service:GetFullName()
+				pathBox.Text = service:GetFullName()
+				refreshServices()
+				refreshTree()
+				updateProperties(nil)
+			end)
+		end
+	end
+end
+
+local function queueRefresh()
+	if refreshQueued then
+		return
+	end
+	refreshQueued = true
+	task.defer(function()
+		refreshQueued = false
+		refreshServices()
+		refreshTree()
+	end)
+end
+
+local function expandAll(inst: Instance)
+	if isScriptInstance(inst) then
+		return
+	end
+	local children = safeGetChildren(inst)
+	if #children == 0 then
+		return
+	end
+	expanded[inst] = true
+	for _, child in ipairs(children) do
+		expandAll(child)
+	end
+end
+
+local function collapseAll()
+	expanded = setmetatable({}, { __mode = "k" }) :: {[Instance]: boolean}
+end
+
+refreshButton.MouseButton1Click:Connect(function()
+	queueRefresh()
+end)
+
+expandAllButton.MouseButton1Click:Connect(function()
+	collapseAll()
+	expandAll(root)
+	refreshTree()
+end)
+
+collapseAllButton.MouseButton1Click:Connect(function()
+	collapseAll()
+	refreshTree()
+end)
+
+search:GetPropertyChangedSignal("Text"):Connect(function()
+	searchText = search.Text
+	refreshTree()
+end)
+
+pathBox.FocusLost:Connect(function()
+	-- keeps the field stable even if edited
+	if selected and isAlive(selected) then
+		pathBox.Text = selected:GetFullName()
+	else
+		pathBox.Text = root:GetFullName()
+	end
+end)
+
+refreshServices()
+refreshTree()
+applySelection(root)
+
+root.DescendantAdded:Connect(queueRefresh)
+root.DescendantRemoving:Connect(queueRefresh)
+
+game.DescendantAdded:Connect(function(inst)
+	if inst == root or inst:IsDescendantOf(root) then
+		queueRefresh()
+	end
+end)
+
+game.DescendantRemoving:Connect(function(inst)
+	if inst == root or inst:IsDescendantOf(root) then
+		queueRefresh()
+	end
+end)
