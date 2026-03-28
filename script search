@@ -157,7 +157,7 @@ grid.CellPadding = UDim2.new(0, 10, 0, 10)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = buttonsScrolling
 
--- تعريف الأزرار (جميع الأزرار من 1 إلى 12)
+-- تعريف الأزرار (جميع الأزرار من 1 إلى 13)
 local scriptsOriginal = {
 	-- 1
 	{
@@ -219,7 +219,6 @@ local scriptsOriginal = {
 	{
 		Name = "Color Block",
 		Run = function()
-			-- Note: This script directly executes a remote event; pcall protects it.
 			pcall(function()
 				game:GetService("ReplicatedStorage").Events.Gold.GoldBuyRF:InvokeServer(-999999999999999999)
 			end)
@@ -244,6 +243,13 @@ local scriptsOriginal = {
 		Name = "Atherhub | Blox Fruits | 99 Nights | Rivals | And More!",
 		Run = function()
 			loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Atherhub-41929"))()
+		end
+	},
+	-- 13 (جديد)
+	{
+		Name = "توب سيتي topCity4",
+		Run = function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/break"))()
 		end
 	},
 }
