@@ -172,7 +172,7 @@ grid.CellPadding = UDim2.new(0, 10, 0, 10)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = buttonsScrolling
 
--- تعريف الأزرار (جميع الأزرار من 1 إلى 13)
+-- تعريف الأزرار (الآن 14 زراً)
 local scriptsOriginal = {
 	-- 1
 	{
@@ -260,11 +260,18 @@ local scriptsOriginal = {
 			loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Atherhub-41929"))()
 		end
 	},
-	-- 13 (جديد)
+	-- 13 (Top City 4)
 	{
 		Name = "Top City 4",
 		Run = function()
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/break"))()
+		end
+	},
+	-- 14 (جديد)
+	{
+		Name = "[🐸] NPC or DIE! 💢",
+		Run = function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/nbc"))()
 		end
 	},
 }
