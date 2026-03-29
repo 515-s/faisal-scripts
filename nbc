@@ -1,102 +1,67 @@
--- LocalScript (ضعه في StarterGui أو StarterPlayerScripts)
 local Players = game:GetService("Players")
-local localPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
--- قاموس لتخزين الـ BillboardGui لكل لاعب
-local tags = {}
-
--- دالة لإنشاء أو تحديث التاج للاعب معين
-local function forceTag(player)
-	-- لا تظهر فوق رأسك (اختياري – علق السطر التالي إذا أردت رؤيته على نفسك)
-	if player == localPlayer then return end
-
-	local character = player.Character
-	if not character then return end
-
-	local head = character:FindFirstChild("Head")
+local function makeTag(head)
 	if not head then return end
+	
+	local existing = head:FindFirstChild("RealTag")
+	if existing then return end
 
-	-- إذا كان التاج موجوداً بالفعل ومرتبطاً بالرأس نفسه، لا نعيد إنشائه
-	local existing = tags[player]
-	if existing and existing.Parent == head then
-		return
-	end
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "RealTag"
+	gui.Size = UDim2.new(0, 140, 0, 50)
+	gui.StudsOffset = Vector3.new(0, 3, 0)
+	gui.AlwaysOnTop = true
+	gui.ResetOnSpawn = false
+	gui.Parent = head
 
-	-- إزالة أي تاج قديم
-	if existing then
-		existing:Destroy()
-	end
-
-	-- إنشاء تاج جديد
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "RealTag"
-	billboard.Adornee = head
-	billboard.Size = UDim2.new(0, 120, 0, 40)
-	billboard.StudsOffset = Vector3.new(0, 2.5, 0)
-	billboard.AlwaysOnTop = true
-	billboard.ResetOnSpawn = false
-
-	local label = Instance.new("TextLabel")
-	label.Text = "REAL"
-	label.TextColor3 = Color3.fromRGB(0, 255, 0)
-	label.BackgroundTransparency = 1
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.Font = Enum.Font.GothamBold
-	label.TextSize = 20
-	label.TextStrokeTransparency = 0.3
-	label.TextScaled = true
-	label.Parent = billboard
-
-	billboard.Parent = head
-	tags[player] = billboard
+	local txt = Instance.new("TextLabel")
+	txt.Size = UDim2.new(1,0,1,0)
+	txt.BackgroundTransparency = 1
+	txt.Text = "REAL"
+	txt.TextScaled = true
+	txt.Font = Enum.Font.GothamBlack
+	txt.TextColor3 = Color3.fromRGB(0,255,0)
+	txt.TextStrokeTransparency = 0
+	txt.Parent = gui
 end
 
--- مراقبة إضافة الشخصيات وإعادة ربط التاج بالقوة
-local function onCharacterAdded(player, character)
-	-- ننتظر قليلاً حتى يكتمل الـ Head (في بعض الألعاب يتأخر)
-	task.wait(0.5)
-	forceTag(player)
-
-	-- مراقبة اختفاء الرأس (مثل عندما يموت) لإعادة الربط فور ظهوره مرة أخرى
-	character:WaitForChild("Head"):GetPropertyChangedSignal("Parent"):Connect(function()
-		forceTag(player)
+local function processPlayer(plr)
+	if not plr then return end
+	
+	local function handleChar(char)
+		if not char then return end
+		
+		local head = char:FindFirstChild("Head") or char:WaitForChild("Head", 10)
+		if not head then return end
+		
+		makeTag(head)
+	end
+	
+	if plr.Character then
+		handleChar(plr.Character)
+	end
+	
+	plr.CharacterAdded:Connect(function(char)
+		task.wait(0.3)
+		handleChar(char)
 	end)
 end
 
--- تحديث دوري سريع (كل 0.3 ثانية) لضمان ظهور التاج
-task.spawn(function()
-	while true do
-		for _, player in ipairs(Players:GetPlayers()) do
-			forceTag(player)
+for _,p in ipairs(Players:GetPlayers()) do
+	processPlayer(p)
+end
+
+Players.PlayerAdded:Connect(processPlayer)
+
+RunService.RenderStepped:Connect(function()
+	for _,p in ipairs(Players:GetPlayers()) do
+		local c = p.Character
+		if c then
+			local head = c:FindFirstChild("Head")
+			if head and not head:FindFirstChild("RealTag") then
+				makeTag(head)
+			end
 		end
-		task.wait(0.3)  -- التحديث السريع يضمن عدم فقدان التاج
-	end
-end)
-
--- عند انضمام لاعب جديد
-Players.PlayerAdded:Connect(function(player)
-	player.CharacterAdded:Connect(function(character)
-		onCharacterAdded(player, character)
-	end)
-	-- إذا كان اللاعب موجوداً بالفعل (في حالة السكربت بدأ بعد وجوده)
-	task.wait(0.5)
-	forceTag(player)
-end)
-
--- التعامل مع اللاعبين الموجودين حالياً
-for _, player in ipairs(Players:GetPlayers()) do
-	player.CharacterAdded:Connect(function(character)
-		onCharacterAdded(player, character)
-	end)
-	task.wait(0.2)
-	forceTag(player)
-end
-
--- تنظيف عند مغادرة اللاعب
-Players.PlayerRemoving:Connect(function(player)
-	local tag = tags[player]
-	if tag then
-		tag:Destroy()
-		tags[player] = nil
 	end
 end)
