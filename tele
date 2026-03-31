@@ -1,12 +1,67 @@
--- دالة الانتقال بين 3 مواقع
-local function teleportThreeLocations(char)
-	local hrp = char:WaitForChild("HumanoidRootPart")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
-	hrp.CFrame = CFrame.new(170, 3, 473)
-	task.wait(0.001)
+local function makeTag(head)
+	if not head then return end
+	
+	local existing = head:FindFirstChild("RealTag")
+	if existing then return end
 
-	hrp.CFrame = CFrame.new(170, 47, 426)
-	task.wait(0.001)
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "RealTag"
+	gui.Size = UDim2.new(0, 140, 0, 50)
+	gui.StudsOffset = Vector3.new(0, 3, 0)
+	gui.AlwaysOnTop = true
+	gui.ResetOnSpawn = false
+	gui.Parent = head
 
-	hrp.CFrame = CFrame.new(111, 3, 530)
+	local txt = Instance.new("TextLabel")
+	txt.Size = UDim2.new(1,0,1,0)
+	txt.BackgroundTransparency = 1
+	txt.Text = "REAL"
+	txt.TextScaled = true
+	txt.Font = Enum.Font.GothamBlack
+	txt.TextColor3 = Color3.fromRGB(0,255,0)
+	txt.TextStrokeTransparency = 0
+	txt.Parent = gui
 end
+
+local function processPlayer(plr)
+	if not plr then return end
+	
+	local function handleChar(char)
+		if not char then return end
+		
+		local head = char:FindFirstChild("Head") or char:WaitForChild("Head", 10)
+		if not head then return end
+		
+		makeTag(head)
+	end
+	
+	if plr.Character then
+		handleChar(plr.Character)
+	end
+	
+	plr.CharacterAdded:Connect(function(char)
+		task.wait(0.3)
+		handleChar(char)
+	end)
+end
+
+for _,p in ipairs(Players:GetPlayers()) do
+	processPlayer(p)
+end
+
+Players.PlayerAdded:Connect(processPlayer)
+
+RunService.RenderStepped:Connect(function()
+	for _,p in ipairs(Players:GetPlayers()) do
+		local c = p.Character
+		if c then
+			local head = c:FindFirstChild("Head")
+			if head and not head:FindFirstChild("RealTag") then
+				makeTag(head)
+			end
+		end
+	end
+end)
