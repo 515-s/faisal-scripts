@@ -1,67 +1,133 @@
+-- خدمات
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 
-local function makeTag(head)
-	if not head then return end
-	
-	local existing = head:FindFirstChild("RealTag")
-	if existing then return end
-
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "RealTag"
-	gui.Size = UDim2.new(0, 140, 0, 50)
-	gui.StudsOffset = Vector3.new(0, 3, 0)
-	gui.AlwaysOnTop = true
-	gui.ResetOnSpawn = false
-	gui.Parent = head
-
-	local txt = Instance.new("TextLabel")
-	txt.Size = UDim2.new(1,0,1,0)
-	txt.BackgroundTransparency = 1
-	txt.Text = "REAL"
-	txt.TextScaled = true
-	txt.Font = Enum.Font.GothamBlack
-	txt.TextColor3 = Color3.fromRGB(0,255,0)
-	txt.TextStrokeTransparency = 0
-	txt.Parent = gui
+-- حذف القديم
+if player.PlayerGui:FindFirstChild("ProUI") then
+	player.PlayerGui.ProUI:Destroy()
 end
 
-local function processPlayer(plr)
-	if not plr then return end
-	
-	local function handleChar(char)
-		if not char then return end
-		
-		local head = char:FindFirstChild("Head") or char:WaitForChild("Head", 10)
-		if not head then return end
-		
-		makeTag(head)
+-- GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ProUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local buttonWidth = 140
+local buttonHeight = 25
+local buttonPadding = 5
+local framePadding = 6
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, buttonWidth + framePadding*2, 0, 110)
+mainFrame.Position = UDim2.new(0, 5, 0.5, -55)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 8)
+uiCorner.Parent = mainFrame
+
+local padding = Instance.new("UIPadding")
+padding.PaddingLeft = UDim.new(0, framePadding)
+padding.PaddingRight = UDim.new(0, framePadding)
+padding.PaddingTop = UDim.new(0, framePadding)
+padding.PaddingBottom = UDim.new(0, framePadding)
+padding.Parent = mainFrame
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, buttonPadding)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = mainFrame
+
+-- سحب
+local dragging = false
+local dragInput, mousePos, framePos
+
+mainFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		mousePos = input.Position
+		framePos = mainFrame.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
 	end
-	
-	if plr.Character then
-		handleChar(plr.Character)
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
 	end
-	
-	plr.CharacterAdded:Connect(function(char)
-		task.wait(0.3)
-		handleChar(char)
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - mousePos
+		mainFrame.Position = UDim2.new(
+			framePos.X.Scale,
+			framePos.X.Offset + delta.X,
+			framePos.Y.Scale,
+			framePos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+-- دالة زر
+local function createButton(name, callback)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0, buttonWidth, 0, buttonHeight)
+	button.Text = name
+	button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.BorderSizePixel = 0
+	button.Parent = mainFrame
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent = button
+
+	button.MouseButton1Click:Connect(function()
+		callback(button)
 	end)
 end
 
-for _,p in ipairs(Players:GetPlayers()) do
-	processPlayer(p)
-end
+-- 🔹 زر 1 (ACTIVE)
+createButton("Criminals ESP", function(selfButton)
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/main/tele"))()
+	selfButton.Text = "(ACTIVE) Criminals ESP"
+	selfButton.AutoButtonColor = false
+	selfButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 
-Players.PlayerAdded:Connect(processPlayer)
+	selfButton.MouseButton1Click:Disconnect()
+end)
 
-RunService.RenderStepped:Connect(function()
-	for _,p in ipairs(Players:GetPlayers()) do
-		local c = p.Character
-		if c then
-			local head = c:FindFirstChild("Head")
-			if head and not head:FindFirstChild("RealTag") then
-				makeTag(head)
-			end
-		end
+-- 🔹 زر 2 (حفظ موقع + تنقل + رجوع بدون مشاكل)
+createButton("Collect Cash from Chest", function()
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	-- 🔥 ننتظر ثبات (يحل مشكلة أول مرة)
+	task.wait(0.2)
+
+	-- حفظ الموقع الصحيح
+	local original = hrp.CFrame
+
+	-- التنقل
+	hrp.CFrame = CFrame.new(170, 3, 473)
+	task.wait()
+
+	hrp.CFrame = CFrame.new(170, 47, 426)
+	task.wait()
+
+	-- 🔥 تثبيت الرجوع
+	for i = 1, 15 do
+		hrp.CFrame = original
+		task.wait()
 	end
 end)
