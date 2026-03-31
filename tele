@@ -1,0 +1,12 @@
+-- دالة الانتقال بين 3 مواقع
+local function teleportThreeLocations(char)
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	hrp.CFrame = CFrame.new(170, 3, 473)
+	task.wait(0.001)
+
+	hrp.CFrame = CFrame.new(170, 47, 426)
+	task.wait(0.001)
+
+	hrp.CFrame = CFrame.new(111, 3, 530)
+end
