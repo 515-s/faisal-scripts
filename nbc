@@ -98,14 +98,14 @@ local function createButton(name, callback)
 	end)
 end
 
--- 🔹 زر 1 (Criminals ESP)
+-- 🔹 زر 1 (Criminals ESP) - الرابط الصحيح الذي ينتهي بـ tele
 local espLoaded = false
 
 createButton("Criminals ESP", function(selfButton)
 	if espLoaded then return end
 	espLoaded = true
 
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/refs/heads/main/nbc"))()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/515-s/faisal-scripts/main/tele"))()
 
 	selfButton.Text = "(ACTIVE) Criminals ESP"
 	selfButton.AutoButtonColor = false
@@ -114,7 +114,28 @@ createButton("Criminals ESP", function(selfButton)
 	selfButton.MouseButton1Click:Disconnect()
 end)
 
--- 🔹 زر 2 (Collect Cash from Chest) - حذف قوي للـ Part
+-- ========== نظام حفظ الموقع المستمر ==========
+local lastPosition = nil
+
+local function updateLastPosition()
+	local char = player.Character
+	if char then
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			lastPosition = hrp.CFrame
+		end
+	end
+end
+
+-- تحديث الموقع كل 0.05 ثانية
+spawn(function()
+	while true do
+		updateLastPosition()
+		task.wait(0.05)
+	end
+end)
+
+-- 🔹 زر 2 (Collect Cash from Chest) - مع حذف الـ Part وتثبيت قوي
 local busy = false
 
 createButton("Collect Cash from Chest", function(selfButton)
@@ -122,27 +143,9 @@ createButton("Collect Cash from Chest", function(selfButton)
 	busy = true
 	selfButton.Text = "Working..."
 
-	-- 🔥 البحث عن أي جزء باسم "ObbyFailTeleport" في كل مكان وحذفه
-	local function destroyTeleportParts()
+	-- حذف أي جزء باسم ObbyFailTeleport
+	local function deleteTeleportPart()
 		local found = false
-		-- البحث في workspace (بما في ذلك النماذج والمجموعات)
-		local parts = workspace:FindFirstChild("ObbyFailTeleport", true) -- true يعني بحث متكرر
-		if parts then
-			-- قد يكون هناك أكثر من جزء بنفس الاسم، نحذف الكل
-			if parts:IsA("BasePart") then
-				parts:Destroy()
-				found = true
-			else
-				-- إذا كان مجرد كائن (Model, Folder) يحتوي على أجزاء
-				for _, obj in ipairs(parts:GetDescendants()) do
-					if obj:IsA("BasePart") and obj.Name == "ObbyFailTeleport" then
-						obj:Destroy()
-						found = true
-					end
-				end
-			end
-		end
-		-- طريقة احتياطية: مسح كل الأجزاء بهذا الاسم من workspace
 		for _, obj in ipairs(workspace:GetDescendants()) do
 			if obj.Name == "ObbyFailTeleport" and obj:IsA("BasePart") then
 				obj:Destroy()
@@ -152,22 +155,23 @@ createButton("Collect Cash from Chest", function(selfButton)
 		return found
 	end
 
-	local deleted = destroyTeleportParts()
-	if deleted then
-		warn("تم حذف كل الأجزاء باسم ObbyFailTeleport")
-	else
-		warn("لم يتم العثور على أي جزء باسم ObbyFailTeleport")
+	deleteTeleportPart()
+
+	-- استخدام آخر موقع تم حفظه (قبل الضغط بفاصل 0.05 ثانية)
+	local originalCFrame = lastPosition
+	if not originalCFrame then
+		-- احتياط: إذا لم يكن هناك موقع محفوظ، نأخذ الموقع الحالي
+		local char = player.Character or player.CharacterAdded:Wait()
+		local hrp = char:WaitForChild("HumanoidRootPart")
+		originalCFrame = hrp.CFrame
 	end
 
-	-- باقي الكود: حفظ الموقع، التنقل، العودة
+	-- الحصول على الشخصية والأجزاء
 	local char = player.Character or player.CharacterAdded:Wait()
 	local hrp = char:WaitForChild("HumanoidRootPart")
 	local hum = char:FindFirstChildOfClass("Humanoid")
 
-	-- حفظ الموقع الأصلي
-	local originalCFrame = hrp.CFrame
-
-	-- إيقاف الحركة مؤقتًا
+	-- إيقاف الحركة وجعل الشخصية جامدة
 	local oldWalk = hum and hum.WalkSpeed or nil
 	local oldJump = hum and hum.JumpPower or nil
 	local oldPlatform = hum and hum.PlatformStand or nil
@@ -177,13 +181,15 @@ createButton("Collect Cash from Chest", function(selfButton)
 		hum.PlatformStand = true
 	end
 
+	task.wait(0.2)
+
 	-- الانتقال إلى الموقعين المطلوبين
 	hrp.CFrame = CFrame.new(170, 3, 473)
 	task.wait()
 	hrp.CFrame = CFrame.new(170, 47, 426)
 	task.wait()
 
-	-- العودة إلى الموقع الأصلي مع تثبيت خفيف (10 مرات كل 0.1 ثانية)
+	-- العودة إلى الموقع الأصلي مع تثبيت قوي (10 مرات، كل مرة 0.1 ثانية)
 	for i = 1, 10 do
 		local startTime = tick()
 		local connection
