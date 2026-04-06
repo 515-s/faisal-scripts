@@ -1,7 +1,141 @@
--- ALL TEAMS TAG (PURE LUA STYLE)
-
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+local pos1 = CFrame.new(170, 3, 475)
+local pos2 = CFrame.new(170, 47, 426)
+
+-- ===== GUI =====
+local gui = player:WaitForChild("PlayerGui"):FindFirstChild("CLCH")
+if not gui then
+	gui = Instance.new("ScreenGui")
+	gui.Name = "CLCH"
+	gui.ResetOnSpawn = false
+	gui.Parent = player:WaitForChild("PlayerGui")
+end
+
+-- القائمة
+local frame = gui:FindFirstChild("MainFrame")
+if not frame then
+	frame = Instance.new("Frame")
+	frame.Name = "MainFrame"
+	frame.Size = UDim2.fromOffset(180, 80)
+	frame.Position = UDim2.new(0.5, -90, 0.75, 0)
+	frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+	frame.BorderSizePixel = 0
+	frame.Active = true
+	frame.Parent = gui
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = frame
+end
+
+-- الزر
+local button = frame:FindFirstChild("CollectButton")
+if not button then
+	button = Instance.new("TextButton")
+	button.Name = "CollectButton"
+	button.Size = UDim2.new(1, -20, 0, 40)
+	button.Position = UDim2.new(0, 10, 0.5, -20)
+	button.BackgroundColor3 = Color3.fromRGB(70,70,70)
+	button.Text = "Collect Cash"
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = 16
+	button.TextColor3 = Color3.new(1,1,1)
+	button.Parent = frame
+
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 6)
+	btnCorner.Parent = button
+end
+
+-- ===== سحب =====
+local dragging = false
+local dragInput, dragStart, startPos
+
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	if dragging and dragInput then
+		local delta = dragInput.Position - dragStart
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+-- ===== منطقك =====
+local function removeFailPart()
+	local obby = Workspace:FindFirstChild("Obby")
+	if not obby then return end
+
+	local fail = obby:FindFirstChild("ObbyFailTeleport", true)
+	if fail then
+		fail:Destroy()
+	end
+end
+
+local function forceTouch(hrp, cf)
+	hrp.CFrame = cf + Vector3.new(0, 2, 0)
+	task.wait(0.008)
+
+	hrp.CFrame = cf
+	task.wait(0.015)
+
+	hrp.CFrame = cf * CFrame.new(0, 0.1, 0)
+	task.wait(0.015)
+end
+
+button.MouseButton1Click:Connect(function()
+	local char = player.Character
+	if not char then return end
+
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	removeFailPart()
+
+	local original = hrp.CFrame
+
+	hrp.AssemblyLinearVelocity = Vector3.zero
+	hrp.AssemblyAngularVelocity = Vector3.zero
+
+	forceTouch(hrp, pos1)
+	forceTouch(hrp, pos2)
+
+	for i = 1, 12 do
+		hrp.CFrame = original
+		task.wait(0.08)
+	end
+end)
+
+-- =====================================================
+-- ===== سكربت ALL TEAMS TAG (بدون تغيير) =====
+-- =====================================================
 
 local tracked = {}
 
@@ -62,7 +196,6 @@ local function createTag(player, char)
 
 	tracked[char] = true
 
-	-- تحديثات
 	player:GetPropertyChangedSignal("Team"):Connect(update)
 
 	char.DescendantAdded:Connect(function()
@@ -132,7 +265,6 @@ Workspace.DescendantAdded:Connect(function(inst)
 	end
 end)
 
--- scan قوي
 task.spawn(function()
 	while true do
 		for _, p in ipairs(Players:GetPlayers()) do
