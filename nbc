@@ -1,381 +1,145 @@
---!strict
--- Real Player Detector + Billboard Tag
--- Place this as a LocalScript in StarterPlayerScripts
+-- ALL TEAMS TAG (PURE LUA STYLE)
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
 
-local LocalPlayer = Players.LocalPlayer
+local tracked = {}
 
-local CONFIG = {
-	LabelText = "",
-	ShowName = true,
-	ShowDisplayName = false,
-	ShowTeam = true,
-	ShowLocalPlayer = true,
-
-	UseHighlight = true,
-	HighlightFillTransparency = 0.85,
-	HighlightOutlineTransparency = 0,
-
-	BillboardSize = UDim2.fromOffset(180, 50),
-	BillboardOffset = Vector3.new(0, 2.8, 0),
-	TextSize = 18,
-
-	ScanInterval = 2.0, -- light periodic sweep to catch weird cases
-	Debug = false,
-}
-
-type Entry = {
-	player: Player,
-	character: Model,
-	billboard: BillboardGui?,
-	textLabel: TextLabel?,
-	highlight: Highlight?,
-	connections: { RBXScriptConnection },
-}
-
-local tracked: {[Model]: Entry} = {}
-
-local function dprint(...)
-	if CONFIG.Debug then
-		print("[RealTag]", ...)
-	end
+local function getPart(char)
+	return char:FindFirstChild("Head")
+		or char:FindFirstChild("HumanoidRootPart")
+		or char:FindFirstChildWhichIsA("BasePart")
 end
 
-local function disconnectAll(connections: {RBXScriptConnection})
-	for _, c in ipairs(connections) do
-		if c.Connected then
-			c:Disconnect()
-		end
-	end
-	table.clear(connections)
+local function getPlayer(char)
+	return Players:GetPlayerFromCharacter(char)
 end
 
-local function cleanup(character: Model)
-	local entry = tracked[character]
-	if not entry then
+local function createTag(player, char)
+	if tracked[char] then return end
+
+	local part = getPart(char)
+	if not part then return end
+
+	if char:FindFirstChild("TAG") then
+		tracked[char] = true
 		return
 	end
 
-	disconnectAll(entry.connections)
-
-	if entry.billboard then
-		entry.billboard:Destroy()
-	end
-
-	if entry.highlight then
-		entry.highlight:Destroy()
-	end
-
-	tracked[character] = nil
-end
-
-local function getAdornee(character: Model): BasePart?
-	local head = character:FindFirstChild("Head")
-	if head and head:IsA("BasePart") then
-		return head
-	end
-
-	local hrp = character:FindFirstChild("HumanoidRootPart")
-	if hrp and hrp:IsA("BasePart") then
-		return hrp
-	end
-
-	local upperTorso = character:FindFirstChild("UpperTorso")
-	if upperTorso and upperTorso:IsA("BasePart") then
-		return upperTorso
-	end
-
-	local torso = character:FindFirstChild("Torso")
-	if torso and torso:IsA("BasePart") then
-		return torso
-	end
-
-	for _, inst in ipairs(character:GetChildren()) do
-		if inst:IsA("BasePart") then
-			return inst
-		end
-	end
-
-	return nil
-end
-
-local function hasMinimumRig(character: Model): boolean
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not humanoid then
-		return false
-	end
-
-	local parts = 0
-	for _, inst in ipairs(character:GetDescendants()) do
-		if inst:IsA("BasePart") then
-			parts += 1
-			if parts >= 5 then
-				return true
-			end
-		end
-	end
-
-	return false
-end
-
-local function getPlayerFromCharacterStrict(character: Model): Player?
-	local player = Players:GetPlayerFromCharacter(character)
-	if player then
-		return player
-	end
-
-	for _, p in ipairs(Players:GetPlayers()) do
-		if p.Character == character then
-			return p
-		end
-	end
-
-	return nil
-end
-
-local function buildText(player: Player): string
-	local pieces = {}
-
-	table.insert(pieces, CONFIG.LabelText)
-
-	if CONFIG.ShowName then
-		table.insert(pieces, player.Name)
-	end
-
-	if CONFIG.ShowDisplayName then
-		table.insert(pieces, ("@%s"):format(player.DisplayName))
-	end
-
-	if CONFIG.ShowTeam and player.Team then
-		table.insert(pieces, ("[%s]"):format(player.Team.Name))
-	end
-
-	return table.concat(pieces, "  ")
-end
-
-local function updateEntryText(entry: Entry)
-	if not entry.textLabel then
-		return
-	end
-
-	entry.textLabel.Text = buildText(entry.player)
-
-	local player = entry.player
-	if player.Team then
-		local teamColor = player.TeamColor.Color
-		entry.textLabel.TextColor3 = teamColor
-	else
-		entry.textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	end
-end
-
-local function createBillboard(character: Model, player: Player): (BillboardGui?, TextLabel?, Highlight?)
-	local adornee = getAdornee(character)
-	if not adornee then
-		return nil, nil, nil
-	end
-
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "RealPlayerTag"
-	billboard.Adornee = adornee
-	billboard.AlwaysOnTop = true
-	billboard.LightInfluence = 0
-	billboard.Size = CONFIG.BillboardSize
-	billboard.StudsOffsetWorldSpace = CONFIG.BillboardOffset
-	billboard.MaxDistance = 500
-	billboard.Parent = adornee
+	local bb = Instance.new("BillboardGui")
+	bb.Name = "TAG"
+	bb.Adornee = part
+	bb.AlwaysOnTop = true
+	bb.Size = UDim2.fromOffset(180,50)
+	bb.StudsOffsetWorldSpace = Vector3.new(0,2.8,0)
+	bb.Parent = part
 
 	local label = Instance.new("TextLabel")
-	label.Name = "TagLabel"
+	label.Size = UDim2.fromScale(1,1)
 	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromScale(1, 1)
 	label.Font = Enum.Font.GothamBold
-	label.TextScaled = false
-	label.TextSize = CONFIG.TextSize
-	label.TextWrapped = true
-	label.RichText = false
+	label.TextSize = 18
 	label.TextStrokeTransparency = 0.2
-	label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-	label.TextTransparency = 0
-	label.Text = buildText(player)
-	label.Parent = billboard
+	label.TextStrokeColor3 = Color3.new(0,0,0)
 
-	local highlight: Highlight? = nil
-	if CONFIG.UseHighlight then
-		highlight = Instance.new("Highlight")
-		highlight.Name = "RealPlayerHighlight"
-		highlight.Adornee = character
-		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-		highlight.FillTransparency = CONFIG.HighlightFillTransparency
-		highlight.OutlineTransparency = CONFIG.HighlightOutlineTransparency
-		highlight.Parent = character
-	end
-
-	return billboard, label, highlight
-end
-
-local function isRealPlayerCharacter(character: Model): (boolean, Player?)
-	if not character or not character:IsA("Model") then
-		return false, nil
-	end
-
-	if not character:IsDescendantOf(Workspace) and character.Parent ~= nil then
-		-- still allow if the model is in a container under Workspace later
-		-- the strict player binding is what matters
-	end
-
-	local player = getPlayerFromCharacterStrict(character)
-	if not player then
-		return false, nil
-	end
-
-	if not hasMinimumRig(character) then
-		return false, player
-	end
-
-	return true, player
-end
-
-local function bindCharacter(character: Model)
-	if tracked[character] then
-		return
-	end
-
-	local ok, player = isRealPlayerCharacter(character)
-	if not ok or not player then
-		return
-	end
-
-	if player == LocalPlayer and not CONFIG.ShowLocalPlayer then
-		return
-	end
-
-	local billboard, label, highlight = createBillboard(character, player)
-	if not billboard or not label then
-		return
-	end
-
-	local entry: Entry = {
-		player = player,
-		character = character,
-		billboard = billboard,
-		textLabel = label,
-		highlight = highlight,
-		connections = {},
-	}
-
-	tracked[character] = entry
-	updateEntryText(entry)
-
-	table.insert(entry.connections, character.AncestryChanged:Connect(function(_, parent)
-		if parent == nil then
-			cleanup(character)
+	local function update()
+		local text = player.Name
+		if player.Team then
+			text = text .. " [" .. player.Team.Name .. "]"
+			label.TextColor3 = player.TeamColor.Color
 		end
-	end))
-
-	table.insert(entry.connections, character.ChildAdded:Connect(function()
-		if tracked[character] then
-			local adornee = getAdornee(character)
-			if adornee and entry.billboard then
-				entry.billboard.Adornee = adornee
-				entry.billboard.Parent = adornee
-			end
-		end
-	end))
-
-	table.insert(entry.connections, player:GetPropertyChangedSignal("Team"):Connect(function()
-		if tracked[character] then
-			updateEntryText(entry)
-		end
-	end))
-
-	table.insert(entry.connections, player:GetPropertyChangedSignal("TeamColor"):Connect(function()
-		if tracked[character] then
-			updateEntryText(entry)
-		end
-	end))
-
-	table.insert(entry.connections, player.CharacterRemoving:Connect(function(oldCharacter)
-		if oldCharacter == character then
-			cleanup(character)
-		end
-	end))
-
-	dprint("Bound real player:", player.Name, "=>", character:GetFullName())
-end
-
-local function sweepWorkspace()
-	for _, inst in ipairs(Workspace:GetDescendants()) do
-		if inst:IsA("Model") then
-			local player = getPlayerFromCharacterStrict(inst)
-			if player then
-				bindCharacter(inst)
-			end
-		end
-	end
-end
-
-local function hookPlayer(player: Player)
-	local function onCharacter(character: Model)
-		task.defer(function()
-			local t0 = os.clock()
-			while character.Parent ~= nil and os.clock() - t0 < 5 do
-				local real, boundPlayer = isRealPlayerCharacter(character)
-				if real and boundPlayer then
-					bindCharacter(character)
-					return
-				end
-				task.wait(0.1)
-			end
-		end)
+		label.Text = text
 	end
 
-	if player.Character then
-		onCharacter(player.Character)
-	end
+	update()
+	label.Parent = bb
 
-	player.CharacterAdded:Connect(onCharacter)
-	player.CharacterRemoving:Connect(function(character)
-		if character then
-			cleanup(character)
+	local hl = Instance.new("Highlight")
+	hl.Adornee = char
+	hl.FillTransparency = 0.85
+	hl.OutlineTransparency = 0
+	hl.Parent = char
+
+	tracked[char] = true
+
+	-- تحديثات
+	player:GetPropertyChangedSignal("Team"):Connect(update)
+
+	char.DescendantAdded:Connect(function()
+		local new = getPart(char)
+		if new then
+			bb.Adornee = new
+			bb.Parent = new
+		end
+	end)
+
+	char.AncestryChanged:Connect(function(_, p)
+		if not p then
+			tracked[char] = nil
 		end
 	end)
 end
 
-for _, player in ipairs(Players:GetPlayers()) do
-	hookPlayer(player)
+local function bind(char)
+	task.spawn(function()
+		for i = 1, 100 do
+			if not char.Parent then return end
+
+			local player = getPlayer(char)
+			local part = getPart(char)
+
+			if player and part then
+				createTag(player, char)
+				return
+			end
+
+			task.wait(0.1)
+		end
+	end)
 end
 
-Players.PlayerAdded:Connect(hookPlayer)
-Players.PlayerRemoving:Connect(function(player)
+local function hook(player)
 	if player.Character then
-		cleanup(player.Character)
+		bind(player.Character)
 	end
-end)
+
+	player.CharacterAdded:Connect(bind)
+
+	player.CharacterAppearanceLoaded:Connect(function(char)
+		bind(char)
+	end)
+
+	player:GetPropertyChangedSignal("Team"):Connect(function()
+		if player.Character then
+			tracked[player.Character] = nil
+			bind(player.Character)
+		end
+	end)
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+	hook(p)
+end
+
+Players.PlayerAdded:Connect(hook)
 
 Workspace.DescendantAdded:Connect(function(inst)
 	if inst:IsA("Model") then
-		task.defer(function()
-			local player = getPlayerFromCharacterStrict(inst)
-			if player then
-				bindCharacter(inst)
-			end
-		end)
+		local p = getPlayer(inst)
+		if p then
+			bind(inst)
+		end
 	end
 end)
 
+-- scan قوي
 task.spawn(function()
 	while true do
-		sweepWorkspace()
-		task.wait(CONFIG.ScanInterval)
+		for _, p in ipairs(Players:GetPlayers()) do
+			if p.Character and not tracked[p.Character] then
+				bind(p.Character)
+			end
+		end
+		task.wait(1.5)
 	end
 end)
-
-for _, player in ipairs(Players:GetPlayers()) do
-	if player.Character then
-		bindCharacter(player.Character)
-	end
-end
