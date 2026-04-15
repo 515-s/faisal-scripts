@@ -1,40 +1,11 @@
---!strict
--- CLEAN SCRIPT: ONLY FUNCTIONAL BUTTONS + COOLDOWN ON COLLECT CASH (2 MINUTES)
--- ADDED: Walk Speed & Jump Power TextBoxes (with persistent loop)
--- ADDED: Useless "ESP (Auto)" button in GAME page (just for looks)
-
 local Players = game:GetService("Players")
-local MarketplaceService = game:GetService("MarketplaceService")
-local UserInputService = game:GetService("UserInputService")
-local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
-local CoreGui = game:GetService("CoreGui")
-local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 
-local LocalPlayer = Players.LocalPlayer
-local startTime = os.time()
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
--- ===== CONFIGURATION =====
 local PLACE_ID = 11276071411
 local DISCORD_LINK = "https://discord.gg/RM5nxyNf"
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1491492154273697844/UdRcJqu_HSXci_GsdHDPOa3cifjLqVFcepYy57AF_yXGjzwjsf7bw7O9Obc0fLccUpGL"
 
--- ===== PLACE ID CHECK =====
-if game.PlaceId ~= PLACE_ID then
-	pcall(function()
-		StarterGui:SetCore("SendNotification", {
-			Title = "Wrong Game",
-			Text = "This script only works in the correct place.",
-			Duration = 7
-		})
-	end)
-	return
-end
-
--- ===== HELPER FUNCTIONS =====
 local function notify(title, text)
 	task.spawn(function()
 		for _ = 1, 10 do
@@ -45,7 +16,9 @@ local function notify(title, text)
 					Duration = 9
 				})
 			end)
-			if ok then return end
+			if ok then
+				return
+			end
 			task.wait(0.5)
 		end
 	end)
@@ -59,30 +32,31 @@ local function copy(text)
 	end)
 end
 
--- ===== WEBHOOK SENDER =====
-local function sendWebhook(message)
-	local data = { content = message }
-	local json = HttpService:JSONEncode(data)
-	pcall(function()
-		if syn and syn.request then
-			syn.request({ Url = WEBHOOK_URL, Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = json })
-		elseif request then
-			request({ Url = WEBHOOK_URL, Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = json })
-		elseif http_request then
-			http_request({ Url = WEBHOOK_URL, Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = json })
-		end
-	end)
+if game.PlaceId ~= PLACE_ID then
+	notify("game", "Not in correct game")
+	return
+else
+	copy(DISCORD_LINK)
+	notify("discord", "For more scripts, you must join our Discord server. The link has been copied to your clipboard")
+	notify("Developer", "Created by faisal")
 end
 
--- ===== INITIAL ACTIONS =====
-copy(DISCORD_LINK)
-notify("Discord", "For more scripts, you must join our Discord server. The link has been copied to your clipboard.")
-notify("Developer", "Created by faisal")
+-- ===== TEAM COUNTER UI =====
+
+local LocalPlayer = Players.LocalPlayer
+
+-- ===== WEBHOOK DISCORD =====
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1491492078843068590/GAmOGJXPDSfgW7LdNgqmHXq9dcY37dHOeVk6hQ-Nn9FCQTHdSnEz3Kk9oZZ-w3H8yz4l"
+
+local HttpService = game:GetService("HttpService")
+
+local startTime = os.time()
+
 local function sendOnExit()
 	local duration = os.time() - startTime
 	local gameName = game.Name
 
-	sendWebhook(string.format([[
+	local message = string.format([[
 @here
 
 👤 PLAYER INFO
@@ -94,154 +68,66 @@ local function sendOnExit()
 • Minutes: %.2f
 
 ]],
-	LocalPlayer.Name,
-	LocalPlayer.UserId,
-	duration,
-	duration / 60,
-	gameName
-	))
-end
--- ===== COLLECT CASH FUNCTION =====
-local pos1 = CFrame.new(170, 3, 475)
-local pos2 = CFrame.new(170, 47, 426)
+		LocalPlayer.Name,
+		LocalPlayer.UserId,
+		duration,
+		duration / 60,
+		gameName
+	)
 
-local function removeFailPart()
-	local obby = Workspace:FindFirstChild("Obby")
-	if not obby then return end
-	local fail = obby:FindFirstChild("ObbyFailTeleport", true)
-	if fail then fail:Destroy() end
-end
+	local data = { content = message }
+	local json = HttpService:JSONEncode(data)
 
-local function forceTouch(hrp, cf)
-	hrp.CFrame = cf + Vector3.new(0, 2, 0)
-	task.wait(0.008)
-	hrp.CFrame = cf
-	task.wait(0.015)
-	hrp.CFrame = cf * CFrame.new(0, 0.1, 0)
-	task.wait(0.015)
-end
-
-local function collectCash()
-	local char = LocalPlayer.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-	removeFailPart()
-	local original = hrp.CFrame
-	hrp.AssemblyLinearVelocity = Vector3.zero
-	hrp.AssemblyAngularVelocity = Vector3.zero
-	forceTouch(hrp, pos1)
-	forceTouch(hrp, pos2)
-	for i = 1, 12 do
-		hrp.CFrame = original
-		task.wait(0.08)
-	end
-end
-
--- ===== FREE ZOOM =====
-local function setZoom(value)
-	local plr = LocalPlayer
-	pcall(function() plr.CameraMaxZoomDistance = value end)
-	local char = plr.Character
-	if char then
-		local hum = char:FindFirstChildOfClass("Humanoid")
-		if hum then pcall(function() hum.CameraMaxZoomDistance = value end) end
-	end
-	pcall(function() plr:SetAttribute("CameraMaxZoomDistance", value) end)
-	local ls = plr:FindFirstChild("leaderstats")
-	if ls then
-		local v = ls:FindFirstChild("CameraMaxZoomDistance")
-		if v and v:IsA("ValueBase") then v.Value = value end
-	end
-	for _, obj in ipairs(plr:GetDescendants()) do
-		if obj.Name == "CameraMaxZoomDistance" and obj:IsA("ValueBase") then
-			obj.Value = value
-		end
-	end
-end
-local zoomEnabled = false
-
--- ===== SPEED & JUMP HANDLERS (PERSISTENT LOOP) =====
-local currentWalkSpeed = 16
-local currentJumpPower = 50
-
--- دالة لتطبيق القيم على الهيومانويد (تستخدم في اللوب)
-local function applyStatsToHumanoid(hum)
-	if not hum then return end
 	pcall(function()
-		if hum.WalkSpeed ~= currentWalkSpeed then
-			hum.WalkSpeed = currentWalkSpeed
-		end
-		if hum.JumpPower ~= currentJumpPower then
-			hum.JumpPower = currentJumpPower
+		if syn and syn.request then
+			syn.request({ Url = WEBHOOK_URL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = json })
+		elseif request then
+			request({ Url = WEBHOOK_URL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = json })
+		elseif http_request then
+			http_request({ Url = WEBHOOK_URL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = json })
 		end
 	end)
 end
 
-local function applyStatsOnce()
-	local char = LocalPlayer.Character
-	if not char then return end
-	local hum = char:FindFirstChildOfClass("Humanoid")
-	if not hum then return end
 
-	pcall(function()
-		hum.WalkSpeed = currentWalkSpeed
-	end)
-end
+local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- أيضاً عند ظهور الشخصية لأول مرة
-local function onCharacterAdded(character)
-	local hum = character:WaitForChild("Humanoid", 5)
-	if hum then
-		applyStatsToHumanoid(hum)
-	end
-end
-LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
-if LocalPlayer.Character then
-	task.wait(0.5)
-	local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-	if hum then applyStatsToHumanoid(hum) end
-end
+local gui = Instance.new("ScreenGui")
+gui.Name = "TeamCounterUI"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
 
--- ===== TEAM COUNTER UI =====
-local oldCounter = PlayerGui:FindFirstChild("TeamCounterUI")
-if oldCounter then oldCounter:Destroy() end
+local frame = Instance.new("Frame")
+frame.Name = "MainFrame"
+frame.Size = UDim2.new(0, 150, 0, 78)
+frame.Position = UDim2.new(0.5, -75, 0.15, 0)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BackgroundTransparency = 0.15
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Parent = gui
 
-local counterGui = Instance.new("ScreenGui")
-counterGui.Name = "TeamCounterUI"
-counterGui.ResetOnSpawn = false
-counterGui.Enabled = true
-counterGui.Parent = PlayerGui
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = frame
 
-local counterFrame = Instance.new("Frame")
-counterFrame.Name = "MainFrame"
-counterFrame.Size = UDim2.fromOffset(150, 78)
-counterFrame.Position = UDim2.new(0.5, -75, 0.15, 0)
-counterFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-counterFrame.BackgroundTransparency = 0.15
-counterFrame.BorderSizePixel = 0
-counterFrame.Active = true
-counterFrame.Parent = counterGui
-Instance.new("UICorner", counterFrame).CornerRadius = UDim.new(0, 10)
-local counterStroke = Instance.new("UIStroke")
-counterStroke.Thickness = 1
-counterStroke.Color = Color3.fromRGB(255, 255, 255)
-counterStroke.Transparency = 0.7
-counterStroke.Parent = counterFrame
+local stroke = Instance.new("UIStroke")
+stroke.Thickness = 1
+stroke.Color = Color3.fromRGB(255, 255, 255)
+stroke.Transparency = 0.7
+stroke.Parent = frame
 
-local counterTitle = Instance.new("TextLabel")
-counterTitle.Name = "Title"
-counterTitle.Size = UDim2.new(1, 0, 0, 22)
-counterTitle.Position = UDim2.new(0, 0, 0, 0)
-counterTitle.BackgroundTransparency = 1
-counterTitle.Text = "Team Counter"
-counterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-counterTitle.Font = Enum.Font.GothamBold
-counterTitle.TextSize = 15
-counterTitle.Parent = counterFrame
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 22)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "Team Counter"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 15
+title.Parent = frame
 
 local sheriffsLabel = Instance.new("TextLabel")
-sheriffsLabel.Name = "SheriffsLabel"
 sheriffsLabel.Size = UDim2.new(1, -12, 0, 20)
 sheriffsLabel.Position = UDim2.new(0, 8, 0, 28)
 sheriffsLabel.BackgroundTransparency = 1
@@ -249,10 +135,9 @@ sheriffsLabel.TextXAlignment = Enum.TextXAlignment.Left
 sheriffsLabel.TextColor3 = Color3.fromRGB(80, 170, 255)
 sheriffsLabel.Font = Enum.Font.GothamBold
 sheriffsLabel.TextSize = 15
-sheriffsLabel.Parent = counterFrame
+sheriffsLabel.Parent = frame
 
 local criminalsLabel = Instance.new("TextLabel")
-criminalsLabel.Name = "CriminalsLabel"
 criminalsLabel.Size = UDim2.new(1, -12, 0, 20)
 criminalsLabel.Position = UDim2.new(0, 8, 0, 48)
 criminalsLabel.BackgroundTransparency = 1
@@ -260,67 +145,146 @@ criminalsLabel.TextXAlignment = Enum.TextXAlignment.Left
 criminalsLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
 criminalsLabel.Font = Enum.Font.GothamBold
 criminalsLabel.TextSize = 15
-criminalsLabel.Parent = counterFrame
+criminalsLabel.Parent = frame
 
-local function updateTeamCounter()
-	local sheriffs, criminals = 0, 0
-	for _, p in ipairs(Players:GetPlayers()) do
-		local team = p.Team
+local function countTeams()
+	local sheriffs = 0
+	local criminals = 0
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		local team = player.Team
 		if team then
-			if team.Name == "Sheriffs" then sheriffs += 1
-			elseif team.Name == "Criminals" then criminals += 1 end
+			if team.Name == "Sheriffs" then
+				sheriffs += 1
+			elseif team.Name == "Criminals" then
+				criminals += 1
+			end
 		end
 	end
+
 	sheriffsLabel.Text = "Sheriffs: " .. sheriffs
 	criminalsLabel.Text = "Criminals: " .. criminals
 end
 
-local function hookTeamChange(p)
-	p:GetPropertyChangedSignal("Team"):Connect(updateTeamCounter)
+local function hookCounter(player)
+	player:GetPropertyChangedSignal("Team"):Connect(countTeams)
 end
-for _, p in ipairs(Players:GetPlayers()) do hookTeamChange(p) end
-Players.PlayerAdded:Connect(function(p) hookTeamChange(p); updateTeamCounter() end)
-Players.PlayerRemoving:Connect(updateTeamCounter)
-updateTeamCounter()
 
--- Dragging for Team Counter
+for _, player in ipairs(Players:GetPlayers()) do
+	hookCounter(player)
+end
+
+Players.PlayerAdded:Connect(function(player)
+	hookCounter(player)
+	countTeams()
+end)
+
+Players.PlayerRemoving:Connect(function()
+	countTeams()
+end)
+
+countTeams()
+
 do
-	local dragging, dragInput, dragStart, startPos = false
+	local dragging = false
+	local dragInput
+	local dragStart
+	local startPos
+
 	local function update(input)
 		local delta = input.Position - dragStart
-		counterFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
 	end
-	counterFrame.InputBegan:Connect(function(input)
-		if i.UserInputType == Enum.UserInputType.MouseButton1 
-or i.UserInputType == Enum.UserInputType.Touch then
+
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
 			dragging = true
 			dragStart = input.Position
-			startPos = counterFrame.Position
+			startPos = frame.Position
+
 			input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End then dragging = false end
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
 			end)
 		end
 	end)
-	counterFrame.InputChanged:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
 			dragInput = input
 		end
 	end)
+
 	RunService.RenderStepped:Connect(function()
-		if dragging and dragInput then update(dragInput) end
+		if dragging and dragInput then
+			update(dragInput)
+		end
 	end)
 end
 
--- ===== ALL TEAMS TAG SYSTEM =====
-local tracked = {}
-local function getPart(char) return char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart") or char:FindFirstChildWhichIsA("BasePart") end
-local function getPlayer(char) return Players:GetPlayerFromCharacter(char) end
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
 
-local function createTag(plr, char)
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement
+			or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+
+	RunService.RenderStepped:Connect(function()
+		if dragging and dragInput then
+			update(dragInput)
+		end
+	end)
+end
+
+-- ===== TAG SYSTEM =====
+
+local tracked = {}
+
+local function getPart(char)
+	return char:FindFirstChild("Head")
+		or char:FindFirstChild("HumanoidRootPart")
+		or char:FindFirstChildWhichIsA("BasePart")
+end
+
+local function getPlayer(char)
+	return Players:GetPlayerFromCharacter(char)
+end
+
+local function createTag(player, char)
 	if tracked[char] then return end
+
 	local part = getPart(char)
 	if not part then return end
-	if char:FindFirstChild("TAG") then tracked[char] = true; return end
+
+	if char:FindFirstChild("TAG") then
+		tracked[char] = true
+		return
+	end
+
 	local bb = Instance.new("BillboardGui")
 	bb.Name = "TAG"
 	bb.Adornee = part
@@ -328,6 +292,7 @@ local function createTag(plr, char)
 	bb.Size = UDim2.fromOffset(180,50)
 	bb.StudsOffsetWorldSpace = Vector3.new(0,2.8,0)
 	bb.Parent = part
+
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1,1)
 	label.BackgroundTransparency = 1
@@ -335,455 +300,158 @@ local function createTag(plr, char)
 	label.TextSize = 18
 	label.TextStrokeTransparency = 0.2
 	label.TextStrokeColor3 = Color3.new(0,0,0)
+
 	local function update()
-		local text = plr.Name
-		if plr.Team then text = text .. " [" .. plr.Team.Name .. "]"; label.TextColor3 = plr.TeamColor.Color end
+		local text = player.Name
+		if player.Team then
+			text = text .. " [" .. player.Team.Name .. "]"
+			label.TextColor3 = player.TeamColor.Color
+		end
 		label.Text = text
 	end
+
 	update()
 	label.Parent = bb
+
 	local hl = Instance.new("Highlight")
 	hl.Adornee = char
 	hl.FillTransparency = 0.85
 	hl.OutlineTransparency = 0
 	hl.Parent = char
+
 	tracked[char] = true
-	plr:GetPropertyChangedSignal("Team"):Connect(update)
+
+	player:GetPropertyChangedSignal("Team"):Connect(update)
+
 	char.DescendantAdded:Connect(function()
 		local new = getPart(char)
-		if new then bb.Adornee = new; bb.Parent = new end
+		if new then
+			bb.Adornee = new
+			bb.Parent = new
+		end
 	end)
-	char.AncestryChanged:Connect(function(_, p) if not p then tracked[char] = nil end end)
+
+	char.AncestryChanged:Connect(function(_, p)
+		if not p then
+			tracked[char] = nil
+		end
+	end)
 end
 
 local function bind(char)
 	task.spawn(function()
-		for _ = 1, 100 do
+		for i = 1, 100 do
 			if not char.Parent then return end
-			local p = getPlayer(char)
+
+			local player = getPlayer(char)
 			local part = getPart(char)
-			if p and part then createTag(p, char); return end
+
+			if player and part then
+				createTag(player, char)
+				return
+			end
+
 			task.wait(0.1)
 		end
 	end)
 end
 
-local function hookTag(plr)
-	if plr.Character then bind(plr.Character) end
-	plr.CharacterAdded:Connect(bind)
-	plr.CharacterAppearanceLoaded:Connect(bind)
-	plr:GetPropertyChangedSignal("Team"):Connect(function()
-		if plr.Character then tracked[plr.Character] = nil; bind(plr.Character) end
+local function hook(player)
+	if player.Character then
+		bind(player.Character)
+	end
+
+	player.CharacterAdded:Connect(bind)
+
+	player.CharacterAppearanceLoaded:Connect(function(char)
+		bind(char)
+	end)
+
+	player:GetPropertyChangedSignal("Team"):Connect(function()
+		if player.Character then
+			tracked[player.Character] = nil
+			bind(player.Character)
+		end
 	end)
 end
-for _, p in ipairs(Players:GetPlayers()) do hookTag(p) end
-Players.PlayerAdded:Connect(hookTag)
+
+for _, p in ipairs(Players:GetPlayers()) do
+	hook(p)
+end
+
+Players.PlayerAdded:Connect(hook)
+
 Workspace.DescendantAdded:Connect(function(inst)
-	if inst:IsA("Model") then local p = getPlayer(inst); if p then bind(inst) end end
+	if inst:IsA("Model") then
+		local p = getPlayer(inst)
+		if p then
+			bind(inst)
+		end
+	end
 end)
+
 task.spawn(function()
 	while true do
 		for _, p in ipairs(Players:GetPlayers()) do
-			if p.Character and not tracked[p.Character] then bind(p.Character) end
+			if p.Character and not tracked[p.Character] then
+				bind(p.Character)
+			end
 		end
 		task.wait(1.5)
 	end
 end)
 
--- ===== REMOVE OLD MAIN GUI =====
-local oldGui = PlayerGui:FindFirstChild("WhitePurpleCompactMenu")
-if oldGui then oldGui:Destroy() end
-oldGui = CoreGui:FindFirstChild("WhitePurpleCompactMenu")
-if oldGui then oldGui:Destroy() end
+-- ===== ANTI FALL SYSTEM =====
 
--- ===== CREATE MAIN COMPACT MENU =====
-local gui = Instance.new("ScreenGui")
-gui.Name = "WhitePurpleCompactMenu"
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.DisplayOrder = 999999999
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-pcall(function() gui.Parent = CoreGui end)
-if not gui.Parent then gui.Parent = PlayerGui end
+local Lobby = Workspace:FindFirstChild("Lobby")
+if not Lobby then return end
 
-local main = Instance.new("Frame")
-main.Size = UDim2.fromOffset(420, 320)
-if isMobile then
-	local scale = Instance.new("UIScale")
-	scale.Scale = 0.55
-	scale.Parent = main
-end
-main.Position = UDim2.new(0.5, -210, 0.5, -160)
-main.BackgroundColor3 = Color3.fromRGB(210, 180, 255)
-main.Parent = gui
-if isMobile then
-	local toggleBtn = Instance.new("TextButton")
-	toggleBtn.Size = UDim2.fromOffset(40,40)
-	toggleBtn.Position = UDim2.new(0, 15, 0.5, 0)
-	toggleBtn.BackgroundColor3 = Color3.fromRGB(150, 90, 255)
-	toggleBtn.Text = ""
-	toggleBtn.Parent = gui
-	toggleBtn.ZIndex = 999999
+local Obby = Lobby:FindFirstChild("Obby")
+if not Obby then return end
 
-	Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1,0)
+local FallingPlatforms = Obby:FindFirstChild("FallingPlatforms")
+if not FallingPlatforms then return end
 
-	local icon = Instance.new("TextLabel")
-	icon.Size = UDim2.fromScale(1,1)
-	icon.BackgroundTransparency = 1
-	icon.Text = "≡"
-	icon.TextColor3 = Color3.new(1,1,1)
-	icon.Font = Enum.Font.GothamBold
-	icon.TextScaled = true
-	icon.Parent = toggleBtn
+local antiFallFolder = Instance.new("Folder")
+antiFallFolder.Name = "anti_fall"
+antiFallFolder.Parent = Obby
 
-	toggleBtn.MouseButton1Click:Connect(function()
-		main.Visible = not main.Visible
-	end)
-end
-Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
-local mainStroke = Instance.new("UIStroke")
-mainStroke.Thickness = 2
-mainStroke.Color = Color3.fromRGB(150,90,255)
-mainStroke.Parent = main
-
--- HEADER
-local topBar = Instance.new("Frame")
-topBar.Size = UDim2.new(1,-10,0,70)
-topBar.Position = UDim2.new(0,5,0,5)
-topBar.BackgroundColor3 = Color3.fromRGB(255,255,255)
-topBar.Parent = main
-Instance.new("UICorner", topBar).CornerRadius = UDim.new(0,12)
-Instance.new("UIStroke", topBar).Color = Color3.fromRGB(220,210,255)
-
-local rynx = Instance.new("TextLabel")
-rynx.BackgroundTransparency = 1
-rynx.Text = "RYNX"
-rynx.Font = Enum.Font.GothamBlack
-rynx.TextSize = 30
-rynx.TextColor3 = Color3.fromRGB(150,90,255)
-rynx.Size = UDim2.new(1,0,1,0)
-rynx.Parent = topBar
-
-local avatar = Instance.new("ImageLabel")
-avatar.Size = UDim2.fromOffset(46,46)
-avatar.Position = UDim2.new(0,10,0,12)
-avatar.BackgroundTransparency = 1
-avatar.Image = "rbxthumb://type=AvatarHeadShot&id="..LocalPlayer.UserId.."&w=150&h=150"
-avatar.Parent = topBar
-Instance.new("UICorner", avatar).CornerRadius = UDim.new(1,0)
-
-local title = Instance.new("TextLabel")
-title.BackgroundTransparency = 1
-pcall(function()
-	local info = MarketplaceService:GetProductInfo(game.PlaceId)
-	title.Text = (info and info.Name) or game.Name or "GAME"
-end)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 13
-title.TextColor3 = Color3.fromRGB(0,0,0)
-title.Position = UDim2.new(1,-160,0,6)
-title.Size = UDim2.new(0,150,0,18)
-title.TextXAlignment = Enum.TextXAlignment.Right
-title.Parent = topBar
-
-local nameLabel = Instance.new("TextLabel")
-nameLabel.BackgroundTransparency = 1
-nameLabel.Text = LocalPlayer.Name
-nameLabel.Font = Enum.Font.GothamBold
-nameLabel.TextSize = 15
-nameLabel.TextXAlignment = Enum.TextXAlignment.Right
-nameLabel.Size = UDim2.new(1,-70,0,18)
-nameLabel.Position = UDim2.new(0,60,0,22)
-nameLabel.Parent = topBar
-
-local idLabel = Instance.new("TextLabel")
-idLabel.BackgroundTransparency = 1
-idLabel.Text = "ID: "..LocalPlayer.UserId
-idLabel.Font = Enum.Font.Gotham
-idLabel.TextSize = 12
-idLabel.TextColor3 = Color3.fromRGB(0,0,0)
-idLabel.TextXAlignment = Enum.TextXAlignment.Right
-idLabel.Size = UDim2.new(1,-70,0,16)
-idLabel.Position = UDim2.new(0,60,0,40)
-idLabel.Parent = topBar
-
--- BODY
-local body = Instance.new("Frame")
-body.Size = UDim2.new(1,-10,1,-85)
-body.Position = UDim2.new(0,5,0,80)
-body.BackgroundTransparency = 1
-body.Parent = main
-
-local left = Instance.new("Frame")
-left.Size = UDim2.new(0,120,1,0)
-left.BackgroundColor3 = Color3.fromRGB(255,255,255)
-left.Parent = body
-Instance.new("UICorner", left).CornerRadius = UDim.new(0,12)
-Instance.new("UIStroke", left).Color = Color3.fromRGB(220,210,255)
-
-local list = Instance.new("UIListLayout")
-list.Padding = UDim.new(0,8)
-list.Parent = left
-
-local right = Instance.new("Frame")
-right.Size = UDim2.new(1,-130,1,0)
-right.Position = UDim2.new(0,130,0,0)
-right.BackgroundColor3 = Color3.fromRGB(255,255,255)
-right.Parent = body
-Instance.new("UICorner", right).CornerRadius = UDim.new(0,12)
-
-local pages = {}
-
--- ===== HELPER FUNCTION FOR LEVEL SETTER =====
-local function setPlayerLevel(value)
-	local numValue = tonumber(value)
-	if not numValue then return false end
-	local success = false
-	local target = nil
-	local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
-	if leaderstats then
-		for _, child in ipairs(leaderstats:GetChildren()) do
-			if child:IsA("ValueBase") and string.lower(child.Name) == "level" then target = child; break end
-		end
-		if not target then
-			for _, child in ipairs(leaderstats:GetChildren()) do
-				if child:IsA("ValueBase") and string.find(string.lower(child.Name), "level") then target = child; break end
+local function getAllParts(model)
+	local parts = {}
+	local function scan(parent)
+		for _, child in ipairs(parent:GetChildren()) do
+			if child:IsA("BasePart") then
+				table.insert(parts, child)
+			end
+			if child:IsA("Model") or child:IsA("Folder") then
+				scan(child)
 			end
 		end
 	end
-	if not target then
-		for _, child in ipairs(LocalPlayer:GetChildren()) do
-			if child:IsA("ValueBase") and string.lower(child.Name) == "level" then target = child; break end
-		end
-	end
-	if not target then
-		for _, descendant in ipairs(LocalPlayer:GetDescendants()) do
-			if descendant:IsA("ValueBase") and string.lower(descendant.Name) == "level" then target = descendant; break end
-		end
-	end
-	if target then
-		pcall(function()
-			if target:IsA("NumberValue") or target:IsA("IntValue") or target:IsA("FloatValue") then
-				target.Value = numValue
-				success = true
-			elseif target:IsA("StringValue") then
-				target.Value = tostring(numValue)
-				success = true
-			elseif target:IsA("BoolValue") then
-				target.Value = (numValue ~= 0)
-				success = true
-			end
-		end)
-	else
-		local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
-		if leaderstats then
-			local newLevel = Instance.new("IntValue")
-			newLevel.Name = "Level"
-			newLevel.Value = numValue
-			newLevel.Parent = leaderstats
-			success = true
-		end
-	end
-	return success
+	scan(model)
+	return parts
 end
 
--- ===== CREATE PAGES =====
-local function makePage(name)
-	local p = Instance.new("Frame")
-	p.Size = UDim2.fromScale(1,1)
-	p.BackgroundTransparency = 1
-	p.Visible = false
-	p.Parent = right
-	pages[name] = p
-
-	if name == "GAME" then
-		-- زر إظهار/إخفاء Team Counter
-		local btn1 = Instance.new("TextButton")
-		btn1.Size = UDim2.new(1,-10,0,30)
-		btn1.Position = UDim2.new(0,5,0,0)
-		btn1.Text = counterGui.Enabled and "Hide Team Counter" or "Show Team Counter"
-		btn1.Font = Enum.Font.GothamBold
-		btn1.TextSize = 12
-		btn1.BackgroundColor3 = Color3.fromRGB(245,245,255)
-		btn1.Parent = p
-		Instance.new("UICorner", btn1)
-		btn1.MouseButton1Click:Connect(function()
-			counterGui.Enabled = not counterGui.Enabled
-			btn1.Text = counterGui.Enabled and "Hide Team Counter" or "Show Team Counter"
-		end)
-
-		-- زر Collect Cash مع Cooldown
-		local btn2 = Instance.new("TextButton")
-		btn2.Size = UDim2.new(1,-10,0,30)
-		btn2.Position = UDim2.new(0,5,0,34)
-		btn2.Text = "Collect Cash"
-		btn2.Font = Enum.Font.GothamBold
-		btn2.TextSize = 12
-		btn2.BackgroundColor3 = Color3.fromRGB(245,245,255)
-		btn2.Parent = p
-		Instance.new("UICorner", btn2)
-		local onCooldown = false
-		local cooldownTime = 120
-		btn2.MouseButton1Click:Connect(function()
-			if onCooldown then return end
-			collectCash()
-			onCooldown = true
-			local remaining = cooldownTime
-			btn2.Text = string.format("Collect Cash (%ds)", remaining)
-			task.spawn(function()
-				while remaining > 0 do
-					task.wait(1)
-					if not onCooldown then break end
-					remaining = remaining - 1
-					if remaining > 0 then btn2.Text = string.format("Collect Cash (%ds)", remaining) end
-				end
-				if onCooldown then btn2.Text = "Collect Cash"; onCooldown = false end
-			end)
-		end)
-
-		-- زر جديد: ESP (Auto) بدون وظيفة (للشكل فقط)
-		local espBtn = Instance.new("TextButton")
-		espBtn.Size = UDim2.new(1,-10,0,30)
-		espBtn.Position = UDim2.new(0,5,0,68) -- تحت Collect Cash
-		espBtn.Text = "ESP (Auto)"
-		espBtn.Font = Enum.Font.GothamBold
-		espBtn.TextSize = 12
-		espBtn.BackgroundColor3 = Color3.fromRGB(245,245,255) -- لون مختلف للشكل
-		espBtn.Parent = p
-		Instance.new("UICorner", espBtn)
-		-- لا يوجد أي حدث MouseButton1Click -> زر بدون وظيفة
-
-	elseif name == "PLAYER" then
-		local zoomBtn = Instance.new("TextButton")
-		zoomBtn.Size = UDim2.new(1,-10,0,30)
-		zoomBtn.Position = UDim2.new(0,5,0,0)
-		zoomBtn.Text = "Free Zoom"
-		zoomBtn.Font = Enum.Font.GothamBold
-		zoomBtn.TextSize = 12
-		zoomBtn.BackgroundColor3 = Color3.fromRGB(245,245,255)
-		zoomBtn.Parent = p
-		Instance.new("UICorner", zoomBtn)
-		zoomBtn.MouseButton1Click:Connect(function()
-			if not zoomEnabled then
-				setZoom(100)
-				zoomEnabled = true
-				zoomBtn.Text = "Free Zoom (ON)"
-			else
-				setZoom(25)
-				zoomEnabled = false
-				zoomBtn.Text = "Free Zoom"
-			end
-		end)
-
-		local walkBox = Instance.new("TextBox")
-		walkBox.Size = UDim2.new(1,-10,0,30)
-		walkBox.Position = UDim2.new(0,5,0,38)
-		walkBox.PlaceholderText = "Walk Speed "
-		walkBox.Text = ""
-		walkBox.Font = Enum.Font.GothamBold
-		walkBox.TextSize = 12
-		walkBox.BackgroundColor3 = Color3.fromRGB(245,245,255)
-		walkBox.Parent = p
-		Instance.new("UICorner", walkBox)
-		walkBox:GetPropertyChangedSignal("Text"):Connect(function()
-			local value = tonumber(walkBox.Text)
-			if value then
-				currentWalkSpeed = value
-applyStatsOnce()
-				-- التطبيق الفوري عبر اللوب المستمر سيتم تلقائياً
-			end
-		end)
-
-		
-
-	elseif name == "FAKE" then
-		local friendBox = Instance.new("TextBox")
-		friendBox.Size = UDim2.new(1,-10,0,30)
-		friendBox.Position = UDim2.new(0,5,0,0)
-		friendBox.PlaceholderText = "Friend Bonus"
-		friendBox.Text = ""
-		friendBox.Font = Enum.Font.GothamBold
-		friendBox.TextSize = 12
-		friendBox.BackgroundColor3 = Color3.fromRGB(245,245,255)
-		friendBox.Parent = p
-		Instance.new("UICorner", friendBox)
-		friendBox:GetPropertyChangedSignal("Text"):Connect(function()
-			local value = tonumber(friendBox.Text)
-			if not value then return end
-			if LocalPlayer:GetAttribute("FriendBonus") ~= nil then
-				LocalPlayer:SetAttribute("FriendBonus", value)
-			end
-		end)
-
-		local levelBox = Instance.new("TextBox")
-		levelBox.Size = UDim2.new(1,-10,0,30)
-		levelBox.Position = UDim2.new(0,5,0,38)
-		levelBox.PlaceholderText = "Level"
-		levelBox.Text = ""
-		levelBox.Font = Enum.Font.GothamBold
-		levelBox.TextSize = 12
-		levelBox.BackgroundColor3 = Color3.fromRGB(245,245,255)
-		levelBox.Parent = p
-		Instance.new("UICorner", levelBox)
-		levelBox:GetPropertyChangedSignal("Text"):Connect(function()
-			local value = tonumber(levelBox.Text)
-			if not value then return end
-			setPlayerLevel(value)
-		end)
-	end
+local originalParts = getAllParts(FallingPlatforms)
+if #originalParts == 0 then
+	antiFallFolder:Destroy()
+	return
 end
 
-makePage("GAME")
-makePage("PLAYER")
-makePage("FAKE")
-
-local function show(n)
-	for k,v in pairs(pages) do v.Visible = (k == n) end
-end
-show("GAME")
-
-local function mkBtn(txt, cb)
-	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(1,0,0,34)
-	b.Text = txt
-	b.Font = Enum.Font.GothamBold
-	b.TextSize = 13
-	b.BackgroundColor3 = Color3.fromRGB(240,240,255)
-	b.Parent = left
-	Instance.new("UICorner", b)
-	b.MouseButton1Click:Connect(cb)
+for _, oldPart in ipairs(originalParts) do
+	local newPart = Instance.new("Part")
+	newPart.Name = oldPart.Name .. "_static"
+	newPart.CFrame = oldPart.CFrame
+	newPart.Size = oldPart.Size
+	newPart.Color = Color3.fromRGB(134, 188, 255)
+	newPart.Material = Enum.Material.DiamondPlate
+	newPart.Anchored = true
+	newPart.CanCollide = true
+	newPart.Transparency = 0
+	newPart.Parent = antiFallFolder
 end
 
-mkBtn("GAME", function() show("GAME") end)
-mkBtn("PLAYER", function() show("PLAYER") end)
-mkBtn("FAKE", function() show("FAKE") end)
-
--- DRAG MAIN MENU
-local dragging, dragStart, startPos = false
-main.InputBegan:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = i.Position
-		startPos = main.Position
-	end
-end)
-UserInputService.InputChanged:Connect(function(i)
-	if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
-		local delta = i.Position - dragStart
-		main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	end
-end)
-UserInputService.InputEnded:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-end)
-
--- B TOGGLE MAIN MENU
-UserInputService.InputBegan:Connect(function(input, processed)
-	if processed then return end
-	if input.KeyCode == Enum.KeyCode.B then
-		gui.Enabled = not gui.Enabled
-	end
-end)
+FallingPlatforms:Destroy()
 
 Players.PlayerRemoving:Connect(function(plr)
 	if plr == LocalPlayer then
