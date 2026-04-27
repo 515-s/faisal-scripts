@@ -1,0 +1,151 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+
+-- 🔒 قفل السكربت على لعبة معينة
+local ALLOWED_PLACE_ID = 138296236632651
+
+if game.PlaceId ~= ALLOWED_PLACE_ID then
+	pcall(function()
+		StarterGui:SetCore("SendNotification", {
+			Title = "RYNX",
+			Text = "هذا السكربت لا يعمل في هذه اللعبة",
+			Duration = 5
+		})
+	end)
+	return -- يوقف السكربت بالكامل
+end
+
+-- إشعار البداية
+task.spawn(function()
+	pcall(function()
+		StarterGui:SetCore("SendNotification", {
+			Title = "RYNX",
+			Text = "ممكن يعلق عليك كم ثانية ويرجع",
+			Duration = 5
+		})
+	end)
+end)
+
+-- =========================
+-- SKINS SYSTEM
+-- =========================
+local SKINS = {
+	8464544713,
+	7896101918,
+	3191718865,
+	10474431426,
+9794969551
+}
+
+local index = 1
+local remote = ReplicatedStorage:WaitForChild("ChangeSkinEvent")
+
+local running = true
+
+task.spawn(function()
+	while true do
+		if running then
+			local currentId = SKINS[index]
+
+			pcall(function()
+				remote:FireServer(currentId)
+			end)
+
+			index += 1
+			if index > #SKINS then
+				index = 1
+			end
+		end
+
+		task.wait(0.15)
+	end
+end)
+
+-- =========================
+-- UI
+-- =========================
+local gui = Instance.new("ScreenGui")
+gui.Name = "RYNX_UI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 120)
+frame.Position = UDim2.new(0.05, 0, 0.4, 0)
+frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Parent = gui
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "RYNX"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.Parent = frame
+
+-- زر تشغيل/إيقاف
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0.8, 0, 0, 40)
+button.Position = UDim2.new(0.1, 0, 0.5, 0)
+button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 16
+button.Text = "ON"
+button.Parent = frame
+
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
+
+button.MouseButton1Click:Connect(function()
+	running = not running
+
+	if running then
+		button.Text = "ON"
+		button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	else
+		button.Text = "OFF"
+		button.BackgroundColor3 = Color3.fromRGB(80, 20, 20)
+	end
+end)
+
+-- =========================
+-- DRAG SYSTEM
+-- =========================
+local dragging = false
+local dragStart
+local startPos
+
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+	end
+end)
+
+frame.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
