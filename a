@@ -9724,21 +9724,3 @@ local STR_9110 = "Players"
 local STR_9111 = "LocalPlayer"
 local STR_9112 = "UserId"
 local STR_9113 = "\",\"server\":\"default_server\"}"
-for i, url in ipairs(AllURLs) do
-    print("Loading:", i, url)
-
-    task.spawn(function()
-        local ok, err = pcall(function()
-            local src = game:HttpGet(url)
-            loadstring(src)()
-        end)
-
-        if ok then
-            print("Loaded:", i)
-        else
-            warn("Error in "..i.." : "..tostring(err))
-        end
-    end)
-
-    task.wait(0.2)
-end
