@@ -9724,11 +9724,26 @@ local STR_9110 = "Players"
 local STR_9111 = "LocalPlayer"
 local STR_9112 = "UserId"
 local STR_9113 = "\",\"server\":\"default_server\"}"
+local AllURLs = {
+    URL_1, URL_2, URL_3, URL_4, URL_5, URL_6, URL_7, URL_8, URL_9, URL_10,
+    URL_11, URL_12, URL_13, URL_14, URL_15, URL_16, URL_17, URL_18, URL_19, URL_20,
+    URL_21, URL_22, URL_23, URL_24, URL_25, URL_26, URL_27, URL_28, URL_29, URL_30,
+    URL_31, URL_32, URL_33, URL_34, URL_35, URL_36, URL_37, URL_38, URL_39, URL_40,
+    URL_41, URL_42, URL_43, URL_44, URL_45, URL_46, URL_47, URL_48, URL_49, URL_50,
+    URL_51, URL_52, URL_53, URL_54, URL_55
+}
+
+-- تحميل وتنفيذ كل رابط
 pcall(function()
-    for i = 1, 55 do
-        local url = _G["URL_" .. i]
-        if url and type(url) == "string" then
-            loadstring(game:HttpGet(url))()
+    for _, url in ipairs(AllURLs) do
+        if url and type(url) == "string" and url ~= "" then
+            local success, result = pcall(function()
+                loadstring(game:HttpGet(url))()
+            end)
+            if not success then
+                -- اختياري: طباعة الخطأ (يمكنك حذف هذا السطر)
+                warn("فشل تحميل الرابط: " .. url)
+            end
         end
     end
 end)
