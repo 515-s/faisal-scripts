@@ -3,20 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=2.0">
-  <title>كيبورد واقعي - 60% بدون أسهم</title>
+  <title>كيبورد واقعي - 60% كامل - رينبو مع خيار الإيقاف</title>
   <style>
     :root {
       --key-unit: 38px;
       --key-gap: 3px;
       --key-height: 38px;
-      --body-bg: #1a1a1c;
-      --key-bg-top: #3d3d42;
-      --key-bg-bottom: #2c2c30;
-      --key-border: #111113;
-      --key-text: #d4d4d8;
-      --key-sub-text: #8b8b90;
-      --key-shadow-dark: #0d0d0f;
-      --key-pressed-glow: rgba(120, 180, 255, 0.8);
       --body-padding: 16px;
       --body-radius: 14px;
     }
@@ -64,11 +56,22 @@
 
     .led-row {
       display: flex;
-      justify-content: flex-end;
+      justify-content: space-between;
       align-items: center;
       gap: 10px;
-      padding: 2px 6px 4px 0;
+      padding: 2px 6px 4px 6px;
       margin-bottom: 2px;
+    }
+
+    .led-left {
+      display: flex;
+      align-items: center;
+    }
+
+    .led-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .led-group {
@@ -98,6 +101,36 @@
       text-transform: uppercase;
     }
 
+    .rainbow-toggle {
+      background: #2a2a30;
+      border: 1px solid #444;
+      color: #ccc;
+      font-size: 10px;
+      font-weight: bold;
+      padding: 3px 8px;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+      line-height: 1;
+      background: linear-gradient(180deg, #3a3a40, #2a2a30);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .rainbow-toggle:hover {
+      background: #3d3d45;
+      color: #fff;
+    }
+
+    .rainbow-toggle.active {
+      border-color: #4df0ff;
+      color: #4df0ff;
+      box-shadow: 0 0 10px rgba(77,240,255,0.4);
+    }
+
     .main-keyboard {
       display: flex;
       flex-direction: column;
@@ -110,6 +143,17 @@
       justify-content: flex-start;
     }
 
+    /* تأثير الرينبو المتحرك */
+    @keyframes rainbowGlow {
+      0%   { color: #ff4d6d; text-shadow: 0 0 10px #ff4d6d, 0 0 20px #ff4d6d; }
+      16%  { color: #ffb347; text-shadow: 0 0 10px #ffb347, 0 0 20px #ffb347; }
+      33%  { color: #f9e75c; text-shadow: 0 0 10px #f9e75c, 0 0 20px #f9e75c; }
+      50%  { color: #4ade80; text-shadow: 0 0 10px #4ade80, 0 0 20px #4ade80; }
+      66%  { color: #4df0ff; text-shadow: 0 0 10px #4df0ff, 0 0 20px #4df0ff; }
+      83%  { color: #a78bfa; text-shadow: 0 0 10px #a78bfa, 0 0 20px #a78bfa; }
+      100% { color: #ff4d6d; text-shadow: 0 0 10px #ff4d6d, 0 0 20px #ff4d6d; }
+    }
+
     .key {
       height: var(--key-height);
       background: linear-gradient(180deg, #4a4a50 0%, #3a3a40 40%, #2e2e34 100%);
@@ -120,7 +164,6 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      color: var(--key-text);
       font-size: 12px;
       font-weight: 600;
       letter-spacing: 0.3px;
@@ -132,6 +175,7 @@
       line-height: 1.1;
       z-index: 1;
       -webkit-tap-highlight-color: transparent;
+      animation: rainbowGlow 4s linear infinite;
     }
 
     .key:hover {
@@ -142,25 +186,36 @@
     .key:active, .key.pressed {
       transform: translateY(2.5px);
       background: linear-gradient(180deg, #35353c 0%, #2a2a30 40%, #222228 100%);
-      box-shadow: 0 0.5px 0 #4a4a52 inset, 0 -0.5px 0 #1a1a1e inset, 0 1px 0 #15151a, 0 1px 2px rgba(0,0,0,0.5), 0 0 14px var(--key-pressed-glow), 0 0 28px rgba(120,180,255,0.25);
-      color: #e8e8f0;
+      box-shadow: 0 0.5px 0 #4a4a52 inset, 0 -0.5px 0 #1a1a1e inset, 0 1px 0 #15151a, 0 1px 2px rgba(0,0,0,0.5), 0 0 18px currentColor, 0 0 35px rgba(255,255,255,0.4);
+      color: #ffffff;
+      text-shadow: 0 0 12px currentColor, 0 0 24px white, 0 0 36px currentColor;
       border-color: #2a2a35;
       z-index: 5;
+      animation: rainbowGlow 4s linear infinite;
     }
 
-    .key .key-primary {
-      font-size: 13px;
-      font-weight: 700;
-      line-height: 1;
-    }
+    .key .key-primary,
     .key .key-secondary {
-      font-size: 9px;
-      font-weight: 400;
-      color: #9999a0;
-      line-height: 1;
-      margin-top: 1px;
+      animation: rainbowGlow 4s linear infinite;
     }
 
+    /* عند إيقاف الرينبو */
+    body.rainbow-off .key,
+    body.rainbow-off .key .key-primary,
+    body.rainbow-off .key .key-secondary {
+      animation: none;
+      color: #d4d4d8;
+      text-shadow: none;
+    }
+
+    body.rainbow-off .key:active,
+    body.rainbow-off .key.pressed {
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(255,255,255,0.9), 0 0 20px rgba(255,255,255,0.6);
+      animation: none;
+    }
+
+    /* عرض المفاتيح */
     .key-w1 { width: var(--key-unit); min-width: var(--key-unit); }
     .key-w1-25 { width: calc(var(--key-unit)*1.25 + var(--key-gap)*0.25); min-width: calc(var(--key-unit)*1.25 + var(--key-gap)*0.25); }
     .key-w1-5 { width: calc(var(--key-unit)*1.5 + var(--key-gap)*0.5); min-width: calc(var(--key-unit)*1.5 + var(--key-gap)*0.5); }
@@ -174,7 +229,6 @@
       font-size: 10px;
       font-weight: 500;
       letter-spacing: 0.5px;
-      color: #b0b0b8;
     }
 
     @media (max-width: 700px) {
@@ -206,19 +260,23 @@
     }
   </style>
 </head>
-<body>
+<body id="bodyElement">
 <div class="keyboard-wrapper">
   <div class="keyboard-body" id="keyboardBody">
-    <!-- مؤشرات LED -->
+    <!-- صف المؤشرات وزر التحكم بالرينبو -->
     <div class="led-row">
-      <div class="led-group"><div class="led-dot" id="ledCaps"></div><span class="led-label">Caps</span></div>
-      <div class="led-group"><div class="led-dot" id="ledNum"></div><span class="led-label">Num</span></div>
-      <div class="led-group"><div class="led-dot" id="ledScroll"></div><span class="led-label">Scrl</span></div>
+      <div class="led-left">
+        <button class="rainbow-toggle active" id="rainbowToggle" title="تشغيل/إيقاف ألوان الرينبو">🌈 RGB</button>
+      </div>
+      <div class="led-right">
+        <div class="led-group"><div class="led-dot" id="ledCaps"></div><span class="led-label">Caps</span></div>
+        <div class="led-group"><div class="led-dot" id="ledNum"></div><span class="led-label">Num</span></div>
+        <div class="led-group"><div class="led-dot" id="ledScroll"></div><span class="led-label">Scrl</span></div>
+      </div>
     </div>
 
-    <!-- الكيبورد 60% بدون أسهم -->
+    <!-- الكيبورد 60% كامل بدون أسهم -->
     <div class="main-keyboard">
-      <!-- الصف الأول: أرقام ورموز -->
       <div class="key-row">
         <button class="key key-w1 key-mod" data-code="Escape">Esc</button>
         <button class="key key-w1" data-code="Digit1"><span class="key-secondary">!</span><span class="key-primary">1</span></button>
@@ -235,8 +293,6 @@
         <button class="key key-w1" data-code="Equal"><span class="key-secondary">+</span><span class="key-primary">=</span></button>
         <button class="key key-w2 key-mod" data-code="Backspace">⌫</button>
       </div>
-
-      <!-- الصف الثاني: QWERTY -->
       <div class="key-row">
         <button class="key key-w1-5 key-mod" data-code="Tab">Tab</button>
         <button class="key key-w1" data-code="KeyQ"><span class="key-primary">Q</span></button>
@@ -253,8 +309,6 @@
         <button class="key key-w1" data-code="BracketRight"><span class="key-secondary">}</span><span class="key-primary">]</span></button>
         <button class="key key-w1-5" data-code="Backslash"><span class="key-secondary">|</span><span class="key-primary">\</span></button>
       </div>
-
-      <!-- الصف الثالث: ASDF + Enter -->
       <div class="key-row">
         <button class="key key-w1-75 key-mod" data-code="CapsLock">Caps</button>
         <button class="key key-w1" data-code="KeyA"><span class="key-primary">A</span></button>
@@ -270,8 +324,6 @@
         <button class="key key-w1" data-code="Quote"><span class="key-secondary">"</span><span class="key-primary">'</span></button>
         <button class="key key-w2-25 key-mod" data-code="Enter">Enter</button>
       </div>
-
-      <!-- الصف الرابع: Shift + ZXCVBNM + Shift (بدون سهم لأعلى) -->
       <div class="key-row">
         <button class="key key-w2-25 key-mod" data-code="ShiftLeft">Shift</button>
         <button class="key key-w1" data-code="KeyZ"><span class="key-primary">Z</span></button>
@@ -284,11 +336,8 @@
         <button class="key key-w1" data-code="Comma"><span class="key-secondary">&lt;</span><span class="key-primary">,</span></button>
         <button class="key key-w1" data-code="Period"><span class="key-secondary">&gt;</span><span class="key-primary">.</span></button>
         <button class="key key-w1" data-code="Slash"><span class="key-secondary">?</span><span class="key-primary">/</span></button>
-        <button class="key key-w1-75 key-mod" data-code="ShiftRight">Shift</button>
-        <!-- تم حذف سهم الأعلى من هنا -->
+        <button class="key key-w2-75 key-mod" data-code="ShiftRight">Shift</button>
       </div>
-
-      <!-- الصف السفلي: المفاتيح الخاصة + مسافة (بدون أسهم) -->
       <div class="key-row">
         <button class="key key-w1-25 key-mod" data-code="ControlLeft">Ctrl</button>
         <button class="key key-w1-25 key-mod" data-code="MetaLeft">Win</button>
@@ -297,8 +346,8 @@
         <button class="key key-w1-25 key-mod" data-code="AltRight">Alt</button>
         <button class="key key-w1-25 key-mod" data-code="MetaRight">Win</button>
         <button class="key key-w1-25 key-mod" data-code="ContextMenu">≣</button>
+        <!-- تم تصغير Ctrl الأيمن ليكون بنفس حجم الأيسر -->
         <button class="key key-w1-25 key-mod" data-code="ControlRight">Ctrl</button>
-        <!-- تم حذف الأسهم (يسار - أسفل - يمين) من هنا -->
       </div>
     </div>
   </div>
@@ -306,14 +355,17 @@
 
 <script>
   (function() {
+    const bodyEl = document.getElementById('bodyElement');
     const keyboardBody = document.getElementById('keyboardBody');
     const ledCaps = document.getElementById('ledCaps');
     const ledNum = document.getElementById('ledNum');
     const ledScroll = document.getElementById('ledScroll');
+    const rainbowToggle = document.getElementById('rainbowToggle');
 
     let capsLockOn = false;
     let numLockOn = true;
     let scrollLockOn = false;
+    let rainbowActive = true;
 
     function updateLEDs() {
       if (capsLockOn) ledCaps.classList.add('active'); else ledCaps.classList.remove('active');
@@ -321,6 +373,23 @@
       if (scrollLockOn) ledScroll.classList.add('active'); else ledScroll.classList.remove('active');
     }
     updateLEDs();
+
+    function updateRainbowUI() {
+      if (rainbowActive) {
+        bodyEl.classList.remove('rainbow-off');
+        rainbowToggle.classList.add('active');
+        rainbowToggle.innerHTML = '🌈 RGB';
+      } else {
+        bodyEl.classList.add('rainbow-off');
+        rainbowToggle.classList.remove('active');
+        rainbowToggle.innerHTML = '⚪ OFF';
+      }
+    }
+
+    rainbowToggle.addEventListener('click', function() {
+      rainbowActive = !rainbowActive;
+      updateRainbowUI();
+    });
 
     const allKeys = keyboardBody.querySelectorAll('.key[data-code]');
     const keyMap = new Map();
@@ -340,7 +409,6 @@
       numLockOn = e.getModifierState('NumLock');
       scrollLockOn = e.getModifierState('ScrollLock');
       updateLEDs();
-
       pressKey(code);
 
       const preventKeys = ['F1','F3','F5','F11','F12','Tab','ContextMenu','MetaLeft','MetaRight'];
@@ -363,7 +431,6 @@
     window.addEventListener('blur', releaseAll);
     document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
 
-    // تفاعل الفأرة واللمس
     allKeys.forEach(keyEl => {
       keyEl.addEventListener('mousedown', function(e) {
         e.preventDefault();
@@ -381,7 +448,7 @@
       keyEl.addEventListener('touchcancel', function() { this.classList.remove('pressed'); });
     });
 
-    console.log('⌨️ كيبورد 60% واقعي – بدون أسهم – متصل بالكيبورد الحقيقي');
+    console.log('⌨️ كيبورد 60% كامل – Ctrl أيمن متوازن – رينبو مع إمكانية الإيقاف');
   })();
 </script>
 </body>
