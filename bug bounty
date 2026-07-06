@@ -1,0 +1,20 @@
+https://portswigger.net/web-security/information-disclosure/exploiting/lab-infoleak-via-backup-files كتابه robots.txt في رابط الموقع واخذ الملف المغطى والبحث فيه ك ملف في نهايه الرابط
+https://portswigger.net/web-security/information-disclosure/exploiting/lab-infoleak-on-debug-page كتابه cgi-bin  في نهايه الموقع والدخول على الرابط واابحث عن secret key 
+https://portswigger.net/web-security/information-disclosure/exploiting/lab-infoleak-in-version-control-history اداه Git 
+https://portswigger.net/web-security/information-disclosure/exploiting/lab-infoleak-in-error-messages فحص رقم المنتج ووضع عدد ضخم جدا
+https://portswigger.net/web-security/access-control/lab-user-role-controlled-by-request-parameter
+https://portswigger.net/web-security/access-control/lab-user-id-controlled-by-request-parameter-with-unpredictable-user-ids
+https://portswigger.net/web-security/access-control/lab-user-id-controlled-by-request-parameter-with-password-disclosure
+https://portswigger.net/web-security/access-control/lab-insecure-direct-object-references
+https://portswigger.net/web-security/access-control/lab-user-role-can-be-modified-in-user-profile
+https://portswigger.net/web-security/information-disclosure/exploiting/lab-infoleak-authentication-bypass
+https://portswigger.net/web-security/file-path-traversal/lab-absolute-path-bypass
+https://portswigger.net/web-security/file-path-traversal/lab-simple
+https://portswigger.net/web-security/file-path-traversal/lab-validate-file-extension-null-byte-bypass
+https://portswigger.net/web-security/file-path-traversal/lab-sequences-stripped-non-recursively
+https://portswigger.net/web-security/file-path-traversal/lab-validate-start-of-path
+https://portswigger.net/web-security/file-path-traversal/lab-superfluous-url-decode
+https://portswigger.net/web-security/cross-site-scripting/reflected/lab-html-context-nothing-encoded
+https://portswigger.net/web-security/cross-site-scripting/stored/lab-html-context-nothing-encoded
+https://portswigger.net/web-security/cross-site-scripting/dom-based/lab-jquery-href-attribute-sink
+https://portswigger.net/web-security/cross-site-scripting/dom-based/lab-document-write-sink
