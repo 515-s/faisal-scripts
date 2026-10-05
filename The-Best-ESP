@@ -1,0 +1,727 @@
+--// ═══════════════════════════════════════════════════════════════════════════
+--//  Player Debug ESP — Executor Edition (v3.2)
+--//  Base: v3.1 + per-game player coloring
+--//  Compatible: Synapse X, Script-Ware, KRNL, Fluxus, Delta, Arceus X, Wave
+--// ═══════════════════════════════════════════════════════════════════════════
+
+--// ─── Executor capability probe ─────────────────────────────────────────────
+local EXEC = {}
+do
+    local env = (type(getgenv) == "function") and getgenv() or _G
+    local function has(n) return type(rawget(env, n)) == "function" end
+    EXEC.gethui            = has("gethui")
+    EXEC.protect_gui       = has("protect_gui")
+    EXEC.newcclosure       = has("newcclosure")
+    EXEC.hookmetamethod    = has("hookmetamethod")
+    EXEC.setreadonly       = has("setreadonly")
+    EXEC.getrawmetatable   = has("getrawmetatable")
+    EXEC.cloneref          = has("cloneref")
+    EXEC.checkcaller       = has("checkcaller")
+    EXEC.getnamecallmethod = has("getnamecallmethod")
+end
+
+local newcclosure = (EXEC.newcclosure and rawget(_G, "newcclosure"))
+    or function(f) return f end
+
+local cloneref = (EXEC.cloneref and rawget(_G, "cloneref"))
+    or function(x) return x end
+
+local checkcaller = (EXEC.checkcaller and rawget(_G, "checkcaller"))
+    or function() return false end
+
+local hookmetamethod    = EXEC.hookmetamethod    and rawget(_G, "hookmetamethod")
+local getnamecallmethod = EXEC.getnamecallmethod and rawget(_G, "getnamecallmethod")
+local getrawmetatable   = EXEC.getrawmetatable   and rawget(_G, "getrawmetatable")
+
+--// ─── Services ───────────────────────────────────────────────────────────────
+local Players    = cloneref(game:GetService("Players"))
+local RunService = cloneref(game:GetService("RunService"))
+local LogService = cloneref(game:GetService("LogService"))
+local Workspace  = cloneref(game:GetService("Workspace"))
+
+local LocalPlayer = Players.LocalPlayer
+local Camera      = Workspace.CurrentCamera
+
+--// ─── Randomizer ─────────────────────────────────────────────────────────────
+local RNG = Random.new(os.clock() * 1e6)
+local function rid(n)
+    local A = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz"
+    local out = {}
+    for i = 1, n do
+        local p = RNG:NextInteger(1, #A)
+        out[i] = A:sub(p, p)
+    end
+    return table.concat(out)
+end
+local NS = "_" .. rid(8)
+
+--// ─── PlaceIds المدعومة ──────────────────────────────────────────────────────
+local SUPPORTED_PLACE_IDS = {
+    115668616082195,
+    79546208627805,
+}
+
+--// ─── Config ─────────────────────────────────────────────────────────────────
+local CFG = {
+    MaxDistance = 3000,
+    TeamCheck   = false,
+    VisibleOnly = false,
+    ShowBox     = true,
+    ShowName    = true,
+    ShowDist    = true,
+    ShowTracer  = false,
+    ShowFOV     = false,
+    FOVRadius   = 130,
+    BoxColor    = Color3.fromRGB(255, 60, 60),
+    TextColor   = Color3.new(1, 1, 1),
+    TracerColor = Color3.fromRGB(255, 60, 60),
+    FOVColor    = Color3.fromRGB(255, 255, 255),
+    BoxThickness = 2.2,
+
+    --// اللعبة التانية: كل اللاعبين أخضر
+    SECOND_GAME_PLACE_ID = 79546208627805,
+    PlayerColor = Color3.fromRGB(0, 255, 0),
+
+    --// اللعبة الأولى: حسب الدور
+    RoleColors = {
+        Farter       = Color3.fromRGB(0, 255, 0),
+        Survivor     = Color3.fromRGB(255, 60, 60),
+        SecondFarter = Color3.fromRGB(255, 150, 0),
+        None         = Color3.fromRGB(255, 60, 60),
+    },
+
+    --// Deer
+    DeerColor = Color3.fromRGB(255, 30, 30),
+    DeerLabel = "Deer",
+    DeerLabelColor = Color3.fromRGB(255, 30, 30),
+    DeerMaxDistance = 3000,
+
+    BoxScale = 1.15,
+    ShowFarterLabel = true,
+    FarterLabelColor = Color3.fromRGB(0, 255, 0),
+}
+
+--// ─── Anti-detection: namecall hook ──────────────────────────────────────────
+do
+    if hookmetamethod and getrawmetatable and getnamecallmethod then
+        local mt = getrawmetatable(game)
+        if mt then
+            local old
+            old = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+                if not checkcaller() then
+                    local m = getnamecallmethod()
+                    if self == LogService and (m == "Log" or m == "MessageOut") then
+                        return nil
+                    end
+                    if self == Players and m == "Kick" then
+                        return nil
+                    end
+                end
+                return old(self, ...)
+            end))
+        end
+    end
+end
+
+--// ─── Anti-detection: GUI parent selection ───────────────────────────────────
+local function preferredParents()
+    local out = {}
+    if EXEC.gethui then
+        local ok, hui = pcall(gethui)
+        if ok and hui then table.insert(out, hui) end
+    end
+    local okCG, coreGui = pcall(function() return game:GetService("CoreGui") end)
+    if okCG and coreGui then table.insert(out, coreGui) end
+    local okPG, playerGui = pcall(function() return LocalPlayer:WaitForChild("PlayerGui", 5) end)
+    if okPG and playerGui then table.insert(out, playerGui) end
+    return out
+end
+
+local function protectGui(gui)
+    if not gui then return end
+    if EXEC.protect_gui then pcall(protect_gui, gui) end
+    if syn and syn.protect_gui then pcall(syn.protect_gui, gui) end
+end
+
+local function newHiddenGui()
+    local gui = Instance.new("ScreenGui")
+    gui.Name            = "_" .. rid(10)
+    gui.IgnoreGuiInset  = true
+    gui.ResetOnSpawn    = false
+    gui.DisplayOrder    = 999
+    gui.ZIndexBehavior  = Enum.ZIndexBehavior.Sibling
+
+    protectGui(gui)
+
+    for _, parent in ipairs(preferredParents()) do
+        local ok = pcall(function() gui.Parent = parent end)
+        if ok and gui.Parent then break end
+    end
+
+    return gui
+end
+
+--// ─── 4-frame box builder ────────────────────────────────────────────────────
+local function buildBox(parent, color, thickness)
+    local box = Instance.new("Frame")
+    box.Name                   = "_" .. rid(6)
+    box.BackgroundTransparency = 1
+    box.BorderSizePixel        = 0
+    box.Visible                = false
+    box.Parent                 = parent
+
+    local top = Instance.new("Frame")
+    top.Name             = "_" .. rid(5)
+    top.BackgroundColor3 = color
+    top.BorderSizePixel  = 0
+    top.Size             = UDim2.new(1, 0, 0, thickness)
+    top.Position         = UDim2.new(0, 0, 0, 0)
+    top.Parent           = box
+
+    local bottom = Instance.new("Frame")
+    bottom.Name             = "_" .. rid(5)
+    bottom.BackgroundColor3 = color
+    bottom.BorderSizePixel  = 0
+    bottom.Size             = UDim2.new(1, 0, 0, thickness)
+    bottom.Position         = UDim2.new(0, 0, 1, -thickness)
+    bottom.Parent           = box
+
+    local left = Instance.new("Frame")
+    left.Name             = "_" .. rid(5)
+    left.BackgroundColor3 = color
+    left.BorderSizePixel  = 0
+    left.Size             = UDim2.new(0, thickness, 1, 0)
+    left.Position         = UDim2.new(0, 0, 0, 0)
+    left.Parent           = box
+
+    local right = Instance.new("Frame")
+    right.Name             = "_" .. rid(5)
+    right.BackgroundColor3 = color
+    right.BorderSizePixel  = 0
+    right.Size             = UDim2.new(0, thickness, 1, 0)
+    right.Position         = UDim2.new(1, -thickness, 0, 0)
+    right.Parent           = box
+
+    return box, { top = top, bottom = bottom, left = left, right = right }
+end
+
+--// ─── Storage ────────────────────────────────────────────────────────────────
+local ESP = {}
+local DeerESP = {}
+
+--// ─── Role detection (للعبة الأولى) ──────────────────────────────────────────
+local function getRole(player)
+    local role = player:FindFirstChild("Role")
+    if role and role:IsA("StringValue") then
+        return role.Value
+    end
+    return "None"
+end
+
+--// ─── تحديد اللون حسب اللعبة ─────────────────────────────────────────────────
+local function getPlayerColor(player)
+    if game.PlaceId == CFG.SECOND_GAME_PLACE_ID then
+        -- اللعبة التانية: كل اللاعبين أخضر
+        return CFG.PlayerColor
+    end
+    -- اللعبة الأولى: حسب الدور
+    local role = getRole(player)
+    return CFG.RoleColors[role] or CFG.RoleColors.None
+end
+
+--// ─── إنشاء ESP للاعب ────────────────────────────────────────────────────────
+local function createESP(player)
+    if player == LocalPlayer or ESP[player] then return end
+
+    local gui = newHiddenGui()
+    local box, boxParts = buildBox(gui, CFG.BoxColor, CFG.BoxThickness)
+
+    local name = Instance.new("TextLabel")
+    name.Name                    = "_" .. rid(6)
+    name.BackgroundTransparency  = 1
+    name.TextColor3              = CFG.TextColor
+    name.TextStrokeTransparency  = 0
+    name.TextStrokeColor3        = Color3.new(0, 0, 0)
+    name.Font                    = Enum.Font.GothamBold
+    name.TextSize                = 13
+    name.AnchorPoint             = Vector2.new(0.5, 1)
+    name.Visible                 = false
+    name.Parent                  = gui
+
+    local dist = Instance.new("TextLabel")
+    dist.Name                    = "_" .. rid(6)
+    dist.BackgroundTransparency  = 1
+    dist.TextColor3              = CFG.TextColor
+    dist.TextStrokeTransparency  = 0
+    dist.TextStrokeColor3        = Color3.new(0, 0, 0)
+    dist.Font                    = Enum.Font.Gotham
+    dist.TextSize                = 12
+    dist.AnchorPoint             = Vector2.new(0.5, 0)
+    dist.Visible                 = false
+    dist.Parent                  = gui
+
+    local tracer = Instance.new("Frame")
+    tracer.Name              = "_" .. rid(5)
+    tracer.BorderSizePixel   = 0
+    tracer.BackgroundColor3  = CFG.TracerColor
+    tracer.AnchorPoint       = Vector2.new(0.5, 1)
+    tracer.Visible           = false
+    tracer.Parent            = gui
+
+    local farterLabel = Instance.new("TextLabel")
+    farterLabel.Name                    = "_" .. rid(6)
+    farterLabel.BackgroundTransparency  = 1
+    farterLabel.TextColor3              = CFG.FarterLabelColor
+    farterLabel.TextStrokeTransparency  = 0
+    farterLabel.TextStrokeColor3        = Color3.new(0, 0, 0)
+    farterLabel.Font                    = Enum.Font.GothamBold
+    farterLabel.TextSize                = 16
+    farterLabel.Text                    = "FARTER"
+    farterLabel.AnchorPoint             = Vector2.new(0.5, 1)
+    farterLabel.Visible                 = false
+    farterLabel.Parent                  = gui
+
+    ESP[player] = {
+        Gui       = gui,
+        Box       = box,
+        BoxParts  = boxParts,
+        Name      = name,
+        Distance  = dist,
+        Tracer    = tracer,
+        LastColor = CFG.BoxColor,
+        FarterLabel = farterLabel,
+    }
+end
+
+--// ─── إنشاء ESP للـ Deer ─────────────────────────────────────────────────────
+local function createDeerESP(model)
+    if DeerESP[model] then return end
+
+    local gui = newHiddenGui()
+    local box, boxParts = buildBox(gui, CFG.DeerColor, CFG.BoxThickness)
+
+    local name = Instance.new("TextLabel")
+    name.Name                    = "_" .. rid(6)
+    name.BackgroundTransparency  = 1
+    name.TextColor3              = CFG.DeerLabelColor
+    name.TextStrokeTransparency  = 0
+    name.TextStrokeColor3        = Color3.new(0, 0, 0)
+    name.Font                    = Enum.Font.GothamBold
+    name.TextSize                = 16
+    name.Text                    = CFG.DeerLabel
+    name.AnchorPoint             = Vector2.new(0.5, 1)
+    name.Visible                 = false
+    name.Parent                  = gui
+
+    local dist = Instance.new("TextLabel")
+    dist.Name                    = "_" .. rid(6)
+    dist.BackgroundTransparency  = 1
+    dist.TextColor3              = CFG.TextColor
+    dist.TextStrokeTransparency  = 0
+    dist.TextStrokeColor3        = Color3.new(0, 0, 0)
+    dist.Font                    = Enum.Font.Gotham
+    dist.TextSize                = 12
+    dist.AnchorPoint             = Vector2.new(0.5, 0)
+    dist.Visible                 = false
+    dist.Parent                  = gui
+
+    local tracer = Instance.new("Frame")
+    tracer.Name              = "_" .. rid(5)
+    tracer.BorderSizePixel   = 0
+    tracer.BackgroundColor3  = CFG.DeerColor
+    tracer.AnchorPoint       = Vector2.new(0.5, 1)
+    tracer.Visible           = false
+    tracer.Parent            = gui
+
+    DeerESP[model] = {
+        Gui       = gui,
+        Box       = box,
+        BoxParts  = boxParts,
+        Name      = name,
+        Distance  = dist,
+        Tracer    = tracer,
+        Model     = model,
+    }
+end
+
+local function hideAll(d)
+    d.Box.Visible      = false
+    d.Name.Visible     = false
+    d.Distance.Visible = false
+    d.Tracer.Visible   = false
+    if d.FarterLabel then d.FarterLabel.Visible = false end
+end
+
+local function applyBoxColor(d, color)
+    if d.LastColor == color then return end
+    d.LastColor = color
+    if d.BoxParts then
+        for _, part in pairs(d.BoxParts) do
+            part.BackgroundColor3 = color
+        end
+    end
+    if d.Tracer then
+        d.Tracer.BackgroundColor3 = color
+    end
+end
+
+--// ─── Visibility helper (raycast) ────────────────────────────────────────────
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Exclude
+rayParams.IgnoreWater = true
+
+local function isVisible(char, target)
+    if not CFG.VisibleOnly then return true end
+    local myChar = LocalPlayer.Character
+    if not myChar then return false end
+    rayParams.FilterDescendantsInstances = { myChar, char }
+    local origin = Camera.CFrame.Position
+    local dir = target.Position - origin
+    local res = Workspace:Raycast(origin, dir, rayParams)
+    return res == nil
+end
+
+local function sameTeam(a, b)
+    if not CFG.TeamCheck then return false end
+    return a.Team ~= nil and a.Team == b.Team
+end
+
+--// ─── Per-frame update ───────────────────────────────────────────────────────
+local function worldToViewport(p)
+    if not Camera then return Vector2.new(0, 0), false end
+    local pt, vis = Camera:WorldToViewportPoint(p)
+    return Vector2.new(pt.X, pt.Y), vis and pt.Z > 0
+end
+
+local function drawESPForModel(model, d, label, color, maxDist)
+    if not model or not model.Parent then return hideAll(d) end
+
+    local root = model:FindFirstChild("HumanoidRootPart")
+        or model:FindFirstChild("Head")
+        or model.PrimaryPart
+        or model:FindFirstChildWhichIsA("BasePart")
+
+    if not root then return hideAll(d) end
+
+    local myChar = LocalPlayer.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return hideAll(d) end
+
+    local dv = (myRoot.Position - root.Position).Magnitude
+    if dv > maxDist then return hideAll(d) end
+
+    applyBoxColor(d, color)
+
+    local cf, size = model:GetBoundingBox()
+    local topW = cf.Position + Vector3.new(0, size.Y * 0.5, 0)
+    local botW = cf.Position - Vector3.new(0, size.Y * 0.5, 0)
+
+    local top, tv = worldToViewport(topW)
+    local bot, bv = worldToViewport(botW)
+    if not tv or not bv then return hideAll(d) end
+
+    local h = math.abs(bot.Y - top.Y)
+    if h < 2 then return hideAll(d) end
+
+    h = h * CFG.BoxScale
+
+    local w = h * 0.5
+    local left = top.X - w * 0.5
+
+    if CFG.ShowBox then
+        d.Box.Position = UDim2.fromOffset(left, top.Y)
+        d.Box.Size     = UDim2.fromOffset(w, h)
+        d.Box.Visible  = true
+    else
+        d.Box.Visible = false
+    end
+
+    if label and label ~= "" then
+        d.Name.Text     = label
+        d.Name.Position = UDim2.fromOffset(top.X, top.Y - 4)
+        d.Name.Visible  = true
+    else
+        d.Name.Visible = false
+    end
+
+    if CFG.ShowDist then
+        d.Distance.Text     = string.format("[%d studs]", math.floor(dv))
+        d.Distance.Position = UDim2.fromOffset(top.X, bot.Y + 3)
+        d.Distance.Visible  = true
+    else
+        d.Distance.Visible = false
+    end
+
+    if CFG.ShowTracer then
+        local vp = Camera.ViewportSize
+        local ox, oy = vp.X * 0.5, vp.Y
+        local tx, ty = top.X + w * 0.5, bot.Y
+        local dx, dy = tx - ox, ty - oy
+        local len = math.sqrt(dx * dx + dy * dy)
+        if len > 1 then
+            d.Tracer.Position = UDim2.fromOffset(ox, oy)
+            d.Tracer.Size     = UDim2.fromOffset(1, len)
+            d.Tracer.Rotation = math.deg(math.atan2(dy, dx)) - 90
+            d.Tracer.Visible  = true
+        end
+    else
+        d.Tracer.Visible = false
+    end
+end
+
+local function updatePlayer(player, d)
+    local char = player.Character
+    if not char then return hideAll(d) end
+
+    local hum  = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root or hum.Health <= 0 then return hideAll(d) end
+
+    if sameTeam(player, LocalPlayer) then return hideAll(d) end
+
+    local myChar = LocalPlayer.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return hideAll(d) end
+
+    local dv = (myRoot.Position - root.Position).Magnitude
+    if dv > CFG.MaxDistance then return hideAll(d) end
+
+    if CFG.VisibleOnly and not isVisible(char, root) then return hideAll(d) end
+
+    --// اللون حسب اللعبة ───────────────────────────────────────────────────
+    local playerColor = getPlayerColor(player)
+    applyBoxColor(d, playerColor)
+    --// ───────────────────────────────────────────────────────────────────────
+
+    local cf, size = char:GetBoundingBox()
+    local topW = cf.Position + Vector3.new(0, size.Y * 0.5, 0)
+    local botW = cf.Position - Vector3.new(0, size.Y * 0.5, 0)
+
+    local top, tv = worldToViewport(topW)
+    local bot, bv = worldToViewport(botW)
+    if not tv or not bv then return hideAll(d) end
+
+    local h = math.abs(bot.Y - top.Y)
+    if h < 2 then return hideAll(d) end
+
+    h = h * CFG.BoxScale
+
+    local w = h * 0.5
+    local left = top.X - w * 0.5
+
+    if CFG.ShowBox then
+        d.Box.Position = UDim2.fromOffset(left, top.Y)
+        d.Box.Size     = UDim2.fromOffset(w, h)
+        d.Box.Visible  = true
+    else
+        d.Box.Visible = false
+    end
+
+    if CFG.ShowName then
+        d.Name.Text     = player.Name
+        d.Name.Position = UDim2.fromOffset(top.X, top.Y - 4)
+        d.Name.Visible  = true
+    else
+        d.Name.Visible = false
+    end
+
+    if CFG.ShowDist then
+        d.Distance.Text     = string.format("[%d studs]", math.floor(dv))
+        d.Distance.Position = UDim2.fromOffset(top.X, bot.Y + 3)
+        d.Distance.Visible  = true
+    else
+        d.Distance.Visible = false
+    end
+
+    --// FARTER label: بس في اللعبة الأولى ولما الدور فارتر ──────────────────
+    if CFG.ShowFarterLabel
+        and game.PlaceId ~= CFG.SECOND_GAME_PLACE_ID
+        and getRole(player) == "Farter" then
+        d.FarterLabel.Text     = "FARTER"
+        d.FarterLabel.TextColor3 = playerColor
+        d.FarterLabel.Position = UDim2.fromOffset(top.X, top.Y - 22)
+        d.FarterLabel.Visible  = true
+    else
+        d.FarterLabel.Visible  = false
+    end
+    --// ───────────────────────────────────────────────────────────────────────
+
+    if CFG.ShowTracer then
+        local vp = Camera.ViewportSize
+        local ox, oy = vp.X * 0.5, vp.Y
+        local tx, ty = top.X + w * 0.5, bot.Y
+        local dx, dy = tx - ox, ty - oy
+        local len = math.sqrt(dx * dx + dy * dy)
+        if len > 1 then
+            d.Tracer.Position = UDim2.fromOffset(ox, oy)
+            d.Tracer.Size     = UDim2.fromOffset(1, len)
+            d.Tracer.Rotation = math.deg(math.atan2(dy, dx)) - 90
+            d.Tracer.Visible  = true
+        end
+    else
+        d.Tracer.Visible = false
+    end
+end
+
+--// ─── FOV circle ─────────────────────────────────────────────────────────────
+local FOVGui, FOVCircle
+do
+    FOVGui = newHiddenGui()
+
+    FOVCircle = Instance.new("Frame")
+    FOVCircle.Name                   = "_" .. rid(5)
+    FOVCircle.BackgroundTransparency = 1
+    FOVCircle.AnchorPoint            = Vector2.new(0.5, 0.5)
+    FOVCircle.Visible                = CFG.ShowFOV
+    FOVCircle.Parent                 = FOVGui
+
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(1, 0)
+    c.Parent = FOVCircle
+
+    local s = Instance.new("UIStroke")
+    s.Thickness    = 1
+    s.Color        = CFG.FOVColor
+    s.Transparency = 0.3
+    s.Parent = FOVCircle
+end
+
+--// ─── Registry ───────────────────────────────────────────────────────────────
+local function removePlayer(p)
+    local d = ESP[p]
+    if d and d.Gui then pcall(function() d.Gui:Destroy() end) end
+    ESP[p] = nil
+end
+
+local function removeDeer(m)
+    local d = DeerESP[m]
+    if d and d.Gui then pcall(function() d.Gui:Destroy() end) end
+    DeerESP[m] = nil
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+    pcall(createESP, p)
+end
+
+Players.PlayerAdded:Connect(newcclosure(function(p)
+    pcall(createESP, p)
+end))
+
+Players.PlayerRemoving:Connect(newcclosure(function(p)
+    pcall(removePlayer, p)
+end))
+
+--// ─── Deer detection (event-based) ───────────────────────────────────────────
+for _, obj in ipairs(Workspace:GetDescendants()) do
+    if obj:IsA("Model") and obj.Name == "Deer" then
+        pcall(createDeerESP, obj)
+    end
+end
+
+Workspace.DescendantAdded:Connect(newcclosure(function(obj)
+    if obj:IsA("Model") and obj.Name == "Deer" then
+        pcall(createDeerESP, obj)
+    end
+end))
+
+Workspace.DescendantRemoving:Connect(newcclosure(function(obj)
+    if obj:IsA("Model") and obj.Name == "Deer" then
+        removeDeer(obj)
+    end
+end))
+
+--// ─── Native Roblox Notification ─────────────────────────────────────────────
+local function isGameSupported()
+    for _, id in ipairs(SUPPORTED_PLACE_IDS) do
+        if game.PlaceId == id then return true end
+    end
+    return false
+end
+
+local function sendRobloxNotification()
+    if not isGameSupported() then return end
+
+    local StarterGui = game:GetService("StarterGui")
+
+    local tries = 0
+    local success = false
+    while tries < 20 and not success do
+        local ok = pcall(function()
+            StarterGui:SetCore("SendNotification", {
+                Title = "Script Supported",
+                Text = "This script supports this game | هذا السكربت يدعم هذه اللعبة",
+                Duration = 5,
+            })
+        end)
+        if ok then
+            success = true
+        else
+            tries = tries + 1
+            task.wait(0.5)
+        end
+    end
+end
+
+task.spawn(sendRobloxNotification)
+--// ─────────────────────────────────────────────────────────────────────────────
+
+--// ─── Main loop ──────────────────────────────────────────────────────────────
+Camera = Workspace.CurrentCamera
+
+local conn
+conn = RunService.RenderStepped:Connect(newcclosure(function(dt)
+    if Workspace.CurrentCamera ~= Camera then
+        Camera = Workspace.CurrentCamera
+    end
+
+    local stale = nil
+    for p, d in pairs(ESP) do
+        if p.Parent == nil then
+            stale = stale or {}
+            table.insert(stale, p)
+        else
+            pcall(updatePlayer, p, d)
+        end
+    end
+    if stale then
+        for _, p in ipairs(stale) do
+            removePlayer(p)
+        end
+    end
+
+    for model, d in pairs(DeerESP) do
+        if not model.Parent then
+            removeDeer(model)
+        else
+            pcall(drawESPForModel, model, d, CFG.DeerLabel, CFG.DeerColor, CFG.DeerMaxDistance)
+        end
+    end
+
+    if FOVCircle then
+        FOVCircle.Visible = CFG.ShowFOV
+        if CFG.ShowFOV and Camera then
+            local vp = Camera.ViewportSize
+            local dd = CFG.FOVRadius * 2
+            FOVCircle.Position = UDim2.fromOffset(vp.X * 0.5, vp.Y * 0.5)
+            FOVCircle.Size     = UDim2.fromOffset(dd, dd)
+        end
+    end
+end))
+
+--// ─── Global handle ──────────────────────────────────────────────────────────
+local function getEnv()
+    if type(getgenv) == "function" then return getgenv() end
+    return _G
+end
+
+getEnv()[NS] = {
+    CFG = CFG,
+    Cleanup = function()
+        pcall(function() conn:Disconnect() end)
+        for p in pairs(ESP) do removePlayer(p) end
+        for m in pairs(DeerESP) do removeDeer(m) end
+        if FOVGui then pcall(function() FOVGui:Destroy() end) end
+    end,
+}
+
+return getEnv()[NS]
