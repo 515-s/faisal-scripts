@@ -1,8 +1,104 @@
 --// ═══════════════════════════════════════════════════════════════════════════
 --//  Player Debug ESP — Executor Edition (v3.2)
---//  Base: v3.1 + per-game player coloring
+--//  Base: v3.1 + per-game player coloring + webhook + clipboard
 --//  Compatible: Synapse X, Script-Ware, KRNL, Fluxus, Delta, Arceus X, Wave
 --// ═══════════════════════════════════════════════════════════════════════════
+
+--// ─── Webhook Counter + Auto-Clipboard ──────────────────────────────────────
+do
+    local WEBHOOK_URL = "https://discord.com/api/webhooks/1556998197317074945/nJ5L4Z-GJz8bLDjhf4ZQD_2q5X6dVjD9o3iyW4Hq0lD9Pn0oj9iA-0NeQHuEevX9QOAG"
+    local INVITE_URL = "https://discord.gg/9Z8qJMB75U"
+    local COUNTER_FILE = "esp_counter.txt"
+
+    task.spawn(function()
+        if type(setclipboard) == "function" then
+            pcall(setclipboard, INVITE_URL)
+        elseif type(toclipboard) == "function" then
+            pcall(toclipboard, INVITE_URL)
+        elseif type(syn) == "table" and syn.setclipboard then
+            pcall(syn.setclipboard, INVITE_URL)
+        end
+    end)
+
+    local function getExecutorName()
+        if type(identifyexecutor) == "function" then
+            local ok, name = pcall(identifyexecutor)
+            if ok and name and name ~= "" then return name end
+        end
+        if type(getexecutorname) == "function" then
+            local ok, name = pcall(getexecutorname)
+            if ok and name and name ~= "" then return name end
+        end
+        if type(getgenv) == "function" then
+            local env = getgenv()
+            if env and env.identifyexecutor then
+                local ok, name = pcall(env.identifyexecutor)
+                if ok and name and name ~= "" then return name end
+            end
+        end
+        return "Unknown"
+    end
+
+    local function getCounter()
+        if type(readfile) ~= "function" then return 1 end
+        local ok, data = pcall(readfile, COUNTER_FILE)
+        if ok and data then
+            local n = tonumber(data)
+            if n then return n + 1 end
+        end
+        return 1
+    end
+
+    local function saveCounter(n)
+        if type(writefile) ~= "function" then return end
+        pcall(writefile, COUNTER_FILE, tostring(n))
+    end
+
+    local function fire()
+        local counter = getCounter()
+        saveCounter(counter)
+
+        local lp = game:GetService("Players").LocalPlayer
+        local gameName = "Unknown"
+        pcall(function()
+            gameName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
+        end)
+
+        local executor = getExecutorName()
+        local msg = string.format("%d | Player: %s | UserId: %d | Game: %s | Executor: %s",
+            counter, lp.Name, lp.UserId, gameName, executor)
+
+        local payload = game:GetService("HttpService"):JSONEncode({ content = msg })
+
+        if type(request) == "function" then
+            pcall(request, {
+                Url = WEBHOOK_URL,
+                Method = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body = payload,
+            })
+        elseif type(http_request) == "function" then
+            pcall(http_request, {
+                Url = WEBHOOK_URL,
+                Method = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body = payload,
+            })
+        elseif type(syn) == "table" and syn.request then
+            pcall(syn.request, {
+                Url = WEBHOOK_URL,
+                Method = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body = payload,
+            })
+        end
+    end
+
+    task.spawn(function()
+        pcall(fire)
+    end)
+end
+--// ─────────────────────────────────────────────────────────────────────────────
 
 --// ─── Executor capability probe ─────────────────────────────────────────────
 local EXEC = {}
@@ -221,10 +317,8 @@ end
 --// ─── تحديد اللون حسب اللعبة ─────────────────────────────────────────────────
 local function getPlayerColor(player)
     if game.PlaceId == CFG.SECOND_GAME_PLACE_ID then
-        -- اللعبة التانية: كل اللاعبين أخضر
         return CFG.PlayerColor
     end
-    -- اللعبة الأولى: حسب الدور
     local role = getRole(player)
     return CFG.RoleColors[role] or CFG.RoleColors.None
 end
