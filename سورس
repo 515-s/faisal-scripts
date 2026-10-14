@@ -1,104 +1,9 @@
 --// ═══════════════════════════════════════════════════════════════════════════
 --//  Player Debug ESP — Executor Edition (v3.2)
---//  Base: v3.1 + per-game player coloring + webhook + clipboard
+--//  Base: v3.1 + per-game player coloring
 --//  Compatible: Synapse X, Script-Ware, KRNL, Fluxus, Delta, Arceus X, Wave
+--//  + DhabWild Multi-Lock v4 (colored beams, X>3.0, freeze timeout, banner)
 --// ═══════════════════════════════════════════════════════════════════════════
-
---// ─── Webhook Counter + Auto-Clipboard ──────────────────────────────────────
-do
-    local WEBHOOK_URL = "https://discord.com/api/webhooks/1556998197317074945/nJ5L4Z-GJz8bLDjhf4ZQD_2q5X6dVjD9o3iyW4Hq0lD9Pn0oj9iA-0NeQHuEevX9QOAG"
-    local INVITE_URL = "https://discord.gg/9Z8qJMB75U"
-    local COUNTER_FILE = "esp_counter.txt"
-
-    task.spawn(function()
-        if type(setclipboard) == "function" then
-            pcall(setclipboard, INVITE_URL)
-        elseif type(toclipboard) == "function" then
-            pcall(toclipboard, INVITE_URL)
-        elseif type(syn) == "table" and syn.setclipboard then
-            pcall(syn.setclipboard, INVITE_URL)
-        end
-    end)
-
-    local function getExecutorName()
-        if type(identifyexecutor) == "function" then
-            local ok, name = pcall(identifyexecutor)
-            if ok and name and name ~= "" then return name end
-        end
-        if type(getexecutorname) == "function" then
-            local ok, name = pcall(getexecutorname)
-            if ok and name and name ~= "" then return name end
-        end
-        if type(getgenv) == "function" then
-            local env = getgenv()
-            if env and env.identifyexecutor then
-                local ok, name = pcall(env.identifyexecutor)
-                if ok and name and name ~= "" then return name end
-            end
-        end
-        return "Unknown"
-    end
-
-    local function getCounter()
-        if type(readfile) ~= "function" then return 1 end
-        local ok, data = pcall(readfile, COUNTER_FILE)
-        if ok and data then
-            local n = tonumber(data)
-            if n then return n + 1 end
-        end
-        return 1
-    end
-
-    local function saveCounter(n)
-        if type(writefile) ~= "function" then return end
-        pcall(writefile, COUNTER_FILE, tostring(n))
-    end
-
-    local function fire()
-        local counter = getCounter()
-        saveCounter(counter)
-
-        local lp = game:GetService("Players").LocalPlayer
-        local gameName = "Unknown"
-        pcall(function()
-            gameName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
-        end)
-
-        local executor = getExecutorName()
-        local msg = string.format("%d | Player: %s | UserId: %d | Game: %s | Executor: %s",
-            counter, lp.Name, lp.UserId, gameName, executor)
-
-        local payload = game:GetService("HttpService"):JSONEncode({ content = msg })
-
-        if type(request) == "function" then
-            pcall(request, {
-                Url = WEBHOOK_URL,
-                Method = "POST",
-                Headers = { ["Content-Type"] = "application/json" },
-                Body = payload,
-            })
-        elseif type(http_request) == "function" then
-            pcall(http_request, {
-                Url = WEBHOOK_URL,
-                Method = "POST",
-                Headers = { ["Content-Type"] = "application/json" },
-                Body = payload,
-            })
-        elseif type(syn) == "table" and syn.request then
-            pcall(syn.request, {
-                Url = WEBHOOK_URL,
-                Method = "POST",
-                Headers = { ["Content-Type"] = "application/json" },
-                Body = payload,
-            })
-        end
-    end
-
-    task.spawn(function()
-        pcall(fire)
-    end)
-end
---// ─────────────────────────────────────────────────────────────────────────────
 
 --// ─── Executor capability probe ─────────────────────────────────────────────
 local EXEC = {}
@@ -155,6 +60,7 @@ local NS = "_" .. rid(8)
 local SUPPORTED_PLACE_IDS = {
     115668616082195,
     79546208627805,
+    82347957379349,
 }
 
 --// ─── Config ─────────────────────────────────────────────────────────────────
@@ -174,11 +80,9 @@ local CFG = {
     FOVColor    = Color3.fromRGB(255, 255, 255),
     BoxThickness = 2.2,
 
-    --// اللعبة التانية: كل اللاعبين أخضر
     SECOND_GAME_PLACE_ID = 79546208627805,
     PlayerColor = Color3.fromRGB(0, 255, 0),
 
-    --// اللعبة الأولى: حسب الدور
     RoleColors = {
         Farter       = Color3.fromRGB(0, 255, 0),
         Survivor     = Color3.fromRGB(255, 60, 60),
@@ -186,7 +90,6 @@ local CFG = {
         None         = Color3.fromRGB(255, 60, 60),
     },
 
-    --// Deer
     DeerColor = Color3.fromRGB(255, 30, 30),
     DeerLabel = "Deer",
     DeerLabelColor = Color3.fromRGB(255, 30, 30),
@@ -305,7 +208,7 @@ end
 local ESP = {}
 local DeerESP = {}
 
---// ─── Role detection (للعبة الأولى) ──────────────────────────────────────────
+--// ─── Role detection ─────────────────────────────────────────────────────────
 local function getRole(player)
     local role = player:FindFirstChild("Role")
     if role and role:IsA("StringValue") then
@@ -314,7 +217,6 @@ local function getRole(player)
     return "None"
 end
 
---// ─── تحديد اللون حسب اللعبة ─────────────────────────────────────────────────
 local function getPlayerColor(player)
     if game.PlaceId == CFG.SECOND_GAME_PLACE_ID then
         return CFG.PlayerColor
@@ -459,7 +361,7 @@ local function applyBoxColor(d, color)
     end
 end
 
---// ─── Visibility helper (raycast) ────────────────────────────────────────────
+--// ─── Visibility helper ──────────────────────────────────────────────────────
 local rayParams = RaycastParams.new()
 rayParams.FilterType = Enum.RaycastFilterType.Exclude
 rayParams.IgnoreWater = true
@@ -518,7 +420,6 @@ local function drawESPForModel(model, d, label, color, maxDist)
     if h < 2 then return hideAll(d) end
 
     h = h * CFG.BoxScale
-
     local w = h * 0.5
     local left = top.X - w * 0.5
 
@@ -582,10 +483,8 @@ local function updatePlayer(player, d)
 
     if CFG.VisibleOnly and not isVisible(char, root) then return hideAll(d) end
 
-    --// اللون حسب اللعبة ───────────────────────────────────────────────────
     local playerColor = getPlayerColor(player)
     applyBoxColor(d, playerColor)
-    --// ───────────────────────────────────────────────────────────────────────
 
     local cf, size = char:GetBoundingBox()
     local topW = cf.Position + Vector3.new(0, size.Y * 0.5, 0)
@@ -599,7 +498,6 @@ local function updatePlayer(player, d)
     if h < 2 then return hideAll(d) end
 
     h = h * CFG.BoxScale
-
     local w = h * 0.5
     local left = top.X - w * 0.5
 
@@ -627,7 +525,6 @@ local function updatePlayer(player, d)
         d.Distance.Visible = false
     end
 
-    --// FARTER label: بس في اللعبة الأولى ولما الدور فارتر ──────────────────
     if CFG.ShowFarterLabel
         and game.PlaceId ~= CFG.SECOND_GAME_PLACE_ID
         and getRole(player) == "Farter" then
@@ -638,7 +535,6 @@ local function updatePlayer(player, d)
     else
         d.FarterLabel.Visible  = false
     end
-    --// ───────────────────────────────────────────────────────────────────────
 
     if CFG.ShowTracer then
         local vp = Camera.ViewportSize
@@ -705,7 +601,7 @@ Players.PlayerRemoving:Connect(newcclosure(function(p)
     pcall(removePlayer, p)
 end))
 
---// ─── Deer detection (event-based) ───────────────────────────────────────────
+--// ─── Deer detection ─────────────────────────────────────────────────────────
 for _, obj in ipairs(Workspace:GetDescendants()) do
     if obj:IsA("Model") and obj.Name == "Deer" then
         pcall(createDeerESP, obj)
@@ -757,7 +653,6 @@ local function sendRobloxNotification()
 end
 
 task.spawn(sendRobloxNotification)
---// ─────────────────────────────────────────────────────────────────────────────
 
 --// ─── Main loop ──────────────────────────────────────────────────────────────
 Camera = Workspace.CurrentCamera
@@ -801,6 +696,654 @@ conn = RunService.RenderStepped:Connect(newcclosure(function(dt)
         end
     end
 end))
+
+--// ═══════════════════════════════════════════════════════════════════════════
+--//  DhabWild Multi-Lock v4
+--//  - Locks only when Size.X > 3.0
+--//  - Colored beams (10 high-contrast colors), opaque
+--//  - A lock is removed if hitbox does not move for 10 seconds
+--//  - Startup banner appears for 5s then fades
+--//  - HUD is draggable
+--//  - Cleans up old proxies/beams/highlights from previous runs
+--// ═══════════════════════════════════════════════════════════════════════════
+
+do
+    local FOLDER_NAME       = "DhabWild"
+    local HITBOX_NAME       = "Hitbox"
+    local NEW_Z             = 15
+    local NEW_COLOR         = Color3.fromRGB(255, 0, 0)
+    local NEW_TRANSPARENCY  = 0.5
+
+    local BEAM_THICKNESS    = 1.0
+    local BEAM_TRANSPARENCY = 0.0
+    local BEAM_SEGMENTS     = 8
+
+    local RESCAN_INTERVAL   = 2.0
+    local MAX_LOCKS         = 10
+    local MIN_X_TO_LOCK     = 3.0
+    local FREEZE_TIMEOUT    = 10.0
+    local MOVE_THRESHOLD    = 0.1
+
+    local BANNER_TEXT       = "This script locks only the strongest ones."
+    local BANNER_DURATION   = 5.0
+
+    local PALETTE = {
+        Color3.fromRGB(255, 0, 0),
+        Color3.fromRGB(255, 130, 0),
+        Color3.fromRGB(255, 240, 0),
+        Color3.fromRGB(120, 255, 0),
+        Color3.fromRGB(0, 255, 60),
+        Color3.fromRGB(0, 220, 255),
+        Color3.fromRGB(0, 80, 255),
+        Color3.fromRGB(160, 0, 255),
+        Color3.fromRGB(255, 0, 180),
+        Color3.fromRGB(255, 255, 255),
+    }
+
+    local UIS = cloneref(game:GetService("UserInputService"))
+
+    local function isHitbox(obj)
+        return obj:IsA("BasePart") and obj.Name == HITBOX_NAME
+    end
+
+    local function applyHitbox(part)
+        if not isHitbox(part) then return false end
+        local s = part.Size
+        if s.Z ~= NEW_Z then
+            part.Size = Vector3.new(s.X, s.Y, NEW_Z)
+        end
+        if part.Color ~= NEW_COLOR then
+            part.Color = NEW_COLOR
+        end
+        if part.Transparency ~= NEW_TRANSPARENCY then
+            part.Transparency = NEW_TRANSPARENCY
+        end
+        return true
+    end
+
+    local function colorToStr(c)
+        return string.format("(%d,%d,%d)",
+            math.floor(c.R * 255 + 0.5),
+            math.floor(c.G * 255 + 0.5),
+            math.floor(c.B * 255 + 0.5))
+    end
+
+    --========== CLEANUP FROM PREVIOUS RUNS ==========--
+    do
+        local cleaned = 0
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            local n = obj.Name
+            if n:match("^_DhabProxy_")
+                or n:match("^_DhabBeam_")
+                or n:match("^_DhabPxHL_")
+                or n:match("^_DhabTgtHL_") then
+                pcall(function() obj:Destroy() end)
+                cleaned += 1
+            end
+        end
+        if cleaned > 0 then
+            print(("[DhabWild] Cleaned up %d leftover object(s) from previous run."):format(cleaned))
+        end
+    end
+
+    local folder = Workspace:FindFirstChild(FOLDER_NAME)
+    if not folder then
+        warn(("[DhabWild] Folder '%s' not found."):format(FOLDER_NAME))
+    end
+
+    if folder then
+        for _, obj in ipairs(folder:GetDescendants()) do
+            applyHitbox(obj)
+        end
+    end
+
+    --========== HRP TRACKING ==========--
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp       = character:WaitForChild("HumanoidRootPart", 30)
+
+    local hrpAttach = Instance.new("Attachment")
+    hrpAttach.Name   = "DhabHRPAttach"
+    hrpAttach.Parent = hrp
+
+    --========== LOCK STATE ==========--
+    local locks       = {}
+    local hitboxCount = 0
+    local lockSeq     = 0
+
+    --========== HUD ==========--
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+    local oldGui = playerGui:FindFirstChild("DhabWildHUD_SA")
+    if oldGui then oldGui:Destroy() end
+
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name           = "DhabWildHUD_SA"
+    screenGui.ResetOnSpawn   = false
+    screenGui.IgnoreGuiInset = true
+    screenGui.DisplayOrder   = 500
+    protectGui(screenGui)
+
+    for _, parent in ipairs(preferredParents()) do
+        local ok = pcall(function() screenGui.Parent = parent end)
+        if ok and screenGui.Parent then break end
+    end
+
+    --========== STARTUP BANNER ==========--
+    do
+        local bannerGui = Instance.new("ScreenGui")
+        bannerGui.Name           = "DhabWildStartupBanner"
+        bannerGui.ResetOnSpawn   = false
+        bannerGui.IgnoreGuiInset = true
+        bannerGui.DisplayOrder   = 999
+        protectGui(bannerGui)
+
+        for _, parent in ipairs(preferredParents()) do
+            local ok = pcall(function() bannerGui.Parent = parent end)
+            if ok and bannerGui.Parent then break end
+        end
+
+        local banner = Instance.new("Frame")
+        banner.Name                   = "Banner"
+        banner.AnchorPoint            = Vector2.new(0.5, 0)
+        banner.Position               = UDim2.new(0.5, 0, 0, 60)
+        banner.Size                   = UDim2.new(0, 380, 0, 70)
+        banner.BackgroundColor3       = Color3.fromRGB(0, 0, 0)
+        banner.BackgroundTransparency = 0
+        banner.BorderSizePixel        = 0
+        banner.Parent                 = bannerGui
+
+        local bannerCorner = Instance.new("UICorner")
+        bannerCorner.CornerRadius = UDim.new(0, 10)
+        bannerCorner.Parent       = banner
+
+        local bannerStroke = Instance.new("UIStroke")
+        bannerStroke.Color        = Color3.fromRGB(0, 255, 90)
+        bannerStroke.Thickness    = 2
+        bannerStroke.Transparency = 0
+        bannerStroke.Parent       = banner
+
+        local bannerLabel = Instance.new("TextLabel")
+        bannerLabel.BackgroundTransparency = 1
+        bannerLabel.Size                   = UDim2.new(1, -20, 1, 0)
+        bannerLabel.Position               = UDim2.new(0, 10, 0, 0)
+        bannerLabel.Font                   = Enum.Font.GothamBold
+        bannerLabel.TextSize               = 18
+        bannerLabel.TextColor3             = Color3.fromRGB(0, 255, 90)
+        bannerLabel.TextScaled             = true
+        bannerLabel.TextWrapped            = true
+        bannerLabel.Text                   = BANNER_TEXT
+        bannerLabel.Parent                 = banner
+
+        task.spawn(function()
+            task.wait(BANNER_DURATION)
+            local elapsed = 0
+            local fadeTime = 1.0
+            while elapsed < fadeTime do
+                local dt = RunService.RenderStepped:Wait()
+                elapsed = elapsed + dt
+                local a = math.clamp(elapsed / fadeTime, 0, 1)
+                banner.BackgroundTransparency = a
+                bannerStroke.Transparency     = a
+                bannerLabel.TextTransparency  = a
+            end
+            bannerGui:Destroy()
+        end)
+    end
+
+    --========== MAIN HUD ==========--
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size                   = UDim2.new(0, 400, 0, 0)
+    mainFrame.Position               = UDim2.new(0, 16, 0, 16)
+    mainFrame.BackgroundColor3       = Color3.fromRGB(10, 10, 10)
+    mainFrame.BackgroundTransparency = 0.1
+    mainFrame.BorderSizePixel        = 0
+    mainFrame.Active                 = true
+    mainFrame.AutomaticSize          = Enum.AutomaticSize.Y
+    mainFrame.Parent                 = screenGui
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color        = Color3.fromRGB(0, 255, 90)
+    stroke.Thickness    = 1.5
+    stroke.Transparency = 0.1
+    stroke.Parent       = mainFrame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent       = mainFrame
+
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop    = UDim.new(0, 10)
+    padding.PaddingBottom = UDim.new(0, 10)
+    padding.PaddingLeft   = UDim.new(0, 14)
+    padding.PaddingRight  = UDim.new(0, 14)
+    padding.Parent        = mainFrame
+
+    local mainLayout = Instance.new("UIListLayout")
+    mainLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    mainLayout.Padding   = UDim.new(0, 6)
+    mainLayout.Parent    = mainFrame
+
+    local function makeRow(parent, order, height, textSize, color, bold)
+        local lbl = Instance.new("TextLabel")
+        lbl.BackgroundTransparency = 1
+        lbl.Size                   = UDim2.new(1, 0, 0, height)
+        lbl.Font                   = bold and Enum.Font.GothamBold or Enum.Font.Code
+        lbl.TextSize               = textSize
+        lbl.TextColor3             = color or Color3.fromRGB(0, 255, 90)
+        lbl.TextXAlignment         = Enum.TextXAlignment.Left
+        lbl.TextYAlignment         = Enum.TextYAlignment.Center
+        lbl.LayoutOrder            = order
+        lbl.Parent                 = parent
+        return lbl
+    end
+
+    local titleLbl = makeRow(mainFrame, 1, 22, 16, Color3.fromRGB(140, 255, 170), true)
+    titleLbl.Text  = "[ DhabWild Multi-Lock v4 ]  (drag to move)"
+
+    local sep1 = Instance.new("Frame")
+    sep1.BackgroundColor3       = Color3.fromRGB(0, 150, 60)
+    sep1.BackgroundTransparency = 0.3
+    sep1.BorderSizePixel        = 0
+    sep1.Size                   = UDim2.new(1, 0, 0, 1)
+    sep1.LayoutOrder            = 2
+    sep1.Parent                 = mainFrame
+
+    local statsLbl = makeRow(mainFrame, 3, 18, 14, Color3.fromRGB(200, 255, 200), false)
+    statsLbl.Text  = string.format("  Hitboxes: 0    Min X: %.2f    Locks: 0 (0 active)_", MIN_X_TO_LOCK)
+
+    local sep2 = Instance.new("Frame")
+    sep2.BackgroundColor3       = Color3.fromRGB(0, 150, 60)
+    sep2.BackgroundTransparency = 0.3
+    sep2.BorderSizePixel        = 0
+    sep2.Size                   = UDim2.new(1, 0, 0, 1)
+    sep2.LayoutOrder            = 4
+    sep2.Parent                 = mainFrame
+
+    local locksContainer = Instance.new("Frame")
+    locksContainer.Name                   = "LocksContainer"
+    locksContainer.BackgroundTransparency = 1
+    locksContainer.Size                   = UDim2.new(1, 0, 0, 0)
+    locksContainer.AutomaticSize          = Enum.AutomaticSize.Y
+    locksContainer.LayoutOrder            = 5
+    locksContainer.Parent                 = mainFrame
+
+    local locksLayout = Instance.new("UIListLayout")
+    locksLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    locksLayout.Padding   = UDim.new(0, 3)
+    locksLayout.Parent    = locksContainer
+
+    local function createLockHUDRow(lock)
+        local row = Instance.new("Frame")
+        row.Name                   = "LockRow"
+        row.BackgroundTransparency = 1
+        row.Size                   = UDim2.new(1, 0, 0, 18)
+        row.Parent                 = locksContainer
+
+        local swatch = Instance.new("Frame")
+        swatch.Name              = "Swatch"
+        swatch.BackgroundColor3  = lock.color
+        swatch.BorderSizePixel   = 0
+        swatch.Size              = UDim2.new(0, 14, 0, 14)
+        swatch.Position          = UDim2.new(0, 0, 0.5, -7)
+        swatch.Parent            = row
+
+        local swatchCorner = Instance.new("UICorner")
+        swatchCorner.CornerRadius = UDim.new(0, 3)
+        swatchCorner.Parent       = swatch
+
+        local swatchStroke = Instance.new("UIStroke")
+        swatchStroke.Color        = Color3.fromRGB(255, 255, 255)
+        swatchStroke.Thickness    = 1
+        swatchStroke.Transparency = 0.4
+        swatchStroke.Parent       = swatch
+
+        local label = Instance.new("TextLabel")
+        label.Name                   = "Label"
+        label.BackgroundTransparency = 1
+        label.Size                   = UDim2.new(1, -22, 1, 0)
+        label.Position               = UDim2.new(0, 22, 0, 0)
+        label.Font                   = Enum.Font.Code
+        label.TextSize               = 14
+        label.TextColor3             = lock.color
+        label.TextXAlignment         = Enum.TextXAlignment.Left
+        label.TextYAlignment         = Enum.TextYAlignment.Center
+        label.Text                   = string.format("X=%.4f   %s", lock.x, lock.name)
+        label.Parent                 = row
+
+        return row
+    end
+
+    local function refreshHUDRows()
+        local orderIndex = 0
+        for _, l in ipairs(locks) do
+            orderIndex += 1
+            if l.hudRow then
+                l.hudRow.LayoutOrder = orderIndex
+                local label = l.hudRow:FindFirstChild("Label")
+                if label then
+                    label.Text = string.format("X=%.4f   %s", l.x, l.name)
+                end
+            end
+        end
+    end
+
+    --========== DRAG ==========--
+    do
+        local dragging  = false
+        local dragStart = nil
+        local startPos  = nil
+
+        mainFrame.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1
+                or input.UserInputType == Enum.UserInputType.Touch then
+                dragging  = true
+                dragStart = input.Position
+                startPos  = mainFrame.Position
+            end
+        end)
+
+        mainFrame.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1
+                or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = false
+            end
+        end)
+
+        UIS.InputChanged:Connect(function(input)
+            if not dragging then return end
+            if input.UserInputType == Enum.UserInputType.MouseMovement
+                or input.UserInputType == Enum.UserInputType.Touch then
+                local delta = input.Position - dragStart
+                mainFrame.Position = UDim2.new(
+                    startPos.X.Scale, startPos.X.Offset + delta.X,
+                    startPos.Y.Scale, startPos.Y.Offset + delta.Y
+                )
+            end
+        end)
+    end
+
+    --========== LOCK CREATION ==========--
+    local function createLock(part)
+        lockSeq += 1
+        local idx   = ((lockSeq - 1) % #PALETTE) + 1
+        local color = PALETTE[idx]
+
+        local uid = tostring(lockSeq) .. "_" .. tostring(math.floor(os.clock() * 1000))
+
+        local proxy = Instance.new("Part")
+        proxy.Name         = "_DhabProxy_" .. uid
+        proxy.Anchored     = true
+        proxy.CanCollide   = false
+        proxy.CanTouch     = false
+        proxy.CanQuery     = false
+        proxy.CastShadow   = false
+        proxy.Material     = Enum.Material.Neon
+        proxy.Color        = color
+        proxy.Transparency = 0.0
+        proxy.Size         = Vector3.new(1.4, 1.4, 1.4)
+        proxy.CFrame       = part.CFrame
+        proxy.Parent       = Workspace
+
+        local proxyAttach = Instance.new("Attachment")
+        proxyAttach.Name   = "DhabAttach"
+        proxyAttach.Parent = proxy
+
+        local proxyHL = Instance.new("Highlight")
+        proxyHL.Name                = "_DhabPxHL_" .. uid
+        proxyHL.FillColor           = color
+        proxyHL.FillTransparency    = 0.4
+        proxyHL.OutlineColor        = color
+        proxyHL.OutlineTransparency = 0.0
+        pcall(function()
+            proxyHL.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        end)
+        proxyHL.Adornee = proxy
+        proxyHL.Parent  = Workspace
+
+        local beam = Instance.new("Beam")
+        beam.Name           = "_DhabBeam_" .. uid
+        beam.FaceCamera     = true
+        beam.Width0         = BEAM_THICKNESS
+        beam.Width1         = BEAM_THICKNESS
+        beam.Color          = ColorSequence.new(color)
+        beam.Transparency   = NumberSequence.new(BEAM_TRANSPARENCY)
+        beam.LightEmission  = 1
+        beam.LightInfluence = 0
+        beam.Segments       = BEAM_SEGMENTS
+        beam.Enabled        = true
+        pcall(function()
+            beam.DepthMode = Enum.BeamDepthMode.AlwaysOnTop
+        end)
+        beam.Attachment0 = hrpAttach
+        beam.Attachment1 = proxyAttach
+        beam.Parent      = Workspace
+
+        local targetHL = Instance.new("Highlight")
+        targetHL.Name                = "_DhabTgtHL_" .. uid
+        targetHL.FillColor           = color
+        targetHL.FillTransparency    = 0.75
+        targetHL.OutlineColor        = color
+        targetHL.OutlineTransparency = 0.0
+        pcall(function()
+            targetHL.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        end)
+        targetHL.Adornee = part
+        targetHL.Parent  = Workspace
+
+        return {
+            part         = part,
+            name         = part.Name,
+            x            = part.Size.X,
+            color        = color,
+            colorStr     = colorToStr(color),
+            pos          = part.Position,
+            lastPos      = part.Position,
+            lastMovedAt  = os.clock(),
+            proxy        = proxy,
+            proxyAttach  = proxyAttach,
+            beam         = beam,
+            proxyHL      = proxyHL,
+            targetHL     = targetHL,
+            hudRow       = nil,
+        }
+    end
+
+    local function destroyLock(lock)
+        if lock.beam     then lock.beam:Destroy()     end
+        if lock.proxy    then lock.proxy:Destroy()    end
+        if lock.proxyHL  then lock.proxyHL:Destroy()  end
+        if lock.targetHL then lock.targetHL:Destroy() end
+        if lock.hudRow   then lock.hudRow:Destroy()   end
+    end
+
+    local function removeLockByRef(lock, reason)
+        for i, l in ipairs(locks) do
+            if l == lock then
+                table.remove(locks, i)
+                destroyLock(lock)
+                refreshHUDRows()
+                print(("[DhabWild] Removed lock: %s | X=%.4f | reason=%s")
+                    :format(lock.name, lock.x, reason or "?"))
+                return
+            end
+        end
+    end
+
+    local function removeOldestLock()
+        if #locks == 0 then return end
+        local l = table.remove(locks, 1)
+        destroyLock(l)
+        refreshHUDRows()
+    end
+
+    local function pushLock(part)
+        if part.Size.X <= MIN_X_TO_LOCK then return false end
+
+        if #locks >= MAX_LOCKS then
+            removeOldestLock()
+        end
+        local lock = createLock(part)
+        local row  = createLockHUDRow(lock)
+        lock.hudRow = row
+        table.insert(locks, lock)
+        refreshHUDRows()
+        print(("[DhabWild] NEW LOCK #%d: %s | X=%.4f | color=%s")
+            :format(#locks, lock.name, lock.x, lock.colorStr))
+        return true
+    end
+
+    --========== SCAN ==========--
+    local function currentMaxLockX()
+        local m = -math.huge
+        for _, l in ipairs(locks) do
+            if l.x > m then m = l.x end
+        end
+        return m
+    end
+
+    local function rescanAndUpgrade()
+        if not folder or not folder.Parent then return end
+
+        local best, bestX = nil, -math.huge
+        local count = 0
+
+        for _, obj in ipairs(folder:GetDescendants()) do
+            if isHitbox(obj) then
+                count += 1
+                if obj.Size.X > bestX then
+                    best, bestX = obj, obj.Size.X
+                end
+            end
+        end
+
+        hitboxCount = count
+
+        if best and bestX > MIN_X_TO_LOCK and bestX > currentMaxLockX() then
+            pushLock(best)
+        end
+    end
+
+    if folder then
+        rescanAndUpgrade()
+
+        if #locks > 0 then
+            print(("[DhabWild] Initial lock: %s | X=%.4f"):format(locks[#locks].name, locks[#locks].x))
+        else
+            print(("[DhabWild] No hitbox above X=%.2f at start - waiting."):format(MIN_X_TO_LOCK))
+        end
+
+        folder.DescendantAdded:Connect(function(obj)
+            if not applyHitbox(obj) then return end
+            hitboxCount += 1
+            if obj.Size.X > MIN_X_TO_LOCK and obj.Size.X > currentMaxLockX() then
+                pushLock(obj)
+            end
+        end)
+
+        folder.DescendantRemoving:Connect(function(obj)
+            if isHitbox(obj) then
+                hitboxCount = math.max(0, hitboxCount - 1)
+            end
+        end)
+    end
+
+    --========== HRP REATTACH ==========--
+    LocalPlayer.CharacterAdded:Connect(function(newChar)
+        character = newChar
+        hrp       = newChar:WaitForChild("HumanoidRootPart", 30)
+
+        if hrpAttach then
+            if hrpAttach.Parent then hrpAttach:Destroy() end
+            hrpAttach = Instance.new("Attachment")
+            hrpAttach.Name   = "DhabHRPAttach"
+            hrpAttach.Parent = hrp
+        end
+
+        for _, l in ipairs(locks) do
+            if l.beam then
+                l.beam.Attachment0 = hrpAttach
+            end
+        end
+    end)
+
+    --========== MAIN LOOP ==========--
+    local blinkT          = 0
+    local globalT         = 0
+    local timeSinceRescan = 0
+
+    local function blink(dt)
+        blinkT = (blinkT + dt) % 1
+        return blinkT < 0.5 and "_" or " "
+    end
+
+    RunService.RenderStepped:Connect(function(dt)
+        globalT         += dt
+        timeSinceRescan += dt
+
+        if hrp and hrp.Parent and hrpAttach.Parent ~= hrp then
+            hrpAttach.Parent = hrp
+        end
+
+        if timeSinceRescan >= RESCAN_INTERVAL then
+            timeSinceRescan = 0
+            rescanAndUpgrade()
+        end
+
+        local now = os.clock()
+        local activeCount = 0
+        local toRemove = nil
+
+        for _, l in ipairs(locks) do
+            local loaded = l.part and l.part.Parent ~= nil
+
+            if loaded then
+                activeCount += 1
+
+                local moved = (l.part.Position - l.lastPos).Magnitude
+                if moved > MOVE_THRESHOLD then
+                    l.lastPos     = l.part.Position
+                    l.lastMovedAt = now
+                end
+
+                if (now - l.lastMovedAt) >= FREEZE_TIMEOUT then
+                    toRemove = toRemove or {}
+                    table.insert(toRemove, l)
+                end
+
+                l.pos                = l.part.Position
+                l.proxy.CFrame       = l.part.CFrame
+                l.proxy.Transparency = 0.0
+                if l.targetHL.Adornee ~= l.part then
+                    l.targetHL.Adornee = l.part
+                    l.targetHL.Enabled = true
+                end
+            else
+                l.proxy.CFrame       = CFrame.new(l.pos)
+                l.proxy.Transparency = 0.5
+                if l.targetHL.Enabled then
+                    l.targetHL.Enabled = false
+                end
+            end
+
+            if l.beam then
+                l.beam.Enabled = (hrp ~= nil and hrp.Parent ~= nil)
+            end
+        end
+
+        if toRemove then
+            for _, l in ipairs(toRemove) do
+                removeLockByRef(l, "frozen")
+            end
+        end
+
+        local pulse = 0.1 + 0.4 * (0.5 + 0.5 * math.sin(globalT * 3))
+        stroke.Transparency = pulse
+
+        statsLbl.Text = string.format("  Hitboxes: %d    Min X: %.2f    Locks: %d (%d active)%s",
+            hitboxCount, MIN_X_TO_LOCK, #locks, activeCount, blink(dt))
+    end)
+
+    print("[DhabWild] Multi-Lock v4 loaded.")
+end
 
 --// ─── Global handle ──────────────────────────────────────────────────────────
 local function getEnv()
