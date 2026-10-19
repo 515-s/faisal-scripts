@@ -697,8 +697,8 @@ conn = RunService.RenderStepped:Connect(newcclosure(function(dt)
     end
 end))
 
---// Target Tracker - Delta & Xeno Ultimate Edition
---// Features: 10s Inactivity Cleanup, Clear Previous Locks on New Threshold, Executor Safe, Persistent Proxy.
+--// Target Tracker - Ultimate Desert Purge, Zoom Lock & Executor Pro Edition
+--// Features: Continuous Desert Recursive Purge, Camera Zoom Protection, 10s Inactivity Cleanup, Delta & Xeno Safe.
 
 do
     --==============================================================
@@ -723,6 +723,7 @@ do
 
     local LocalPlayer = Players.LocalPlayer
     if not LocalPlayer then return end
+    local Camera = Workspace.CurrentCamera
 
     --==============================================================
     -- SHARED ENVIRONMENT / STOP PREVIOUS RUN
@@ -753,16 +754,14 @@ do
     local NEW_TRANSPARENCY = 0.5
 
     local BEAM_THICKNESS = 1.2
-    local BEAM_TRANSPARENCY = 0.0
     local BEAM_SEGMENTS = 12
 
     local RESCAN_INTERVAL = 1.0
-    local MIN_X_TO_LOCK = 3.0 -- الحد الأدنى المبدئي
+    local MIN_X_TO_LOCK = 3.0
 
-    local FREEZE_TIMEOUT = 10.0 -- 10 ثوانٍ إذا لم يتحرك يتم حذفه من القائمة
+    local FREEZE_TIMEOUT = 10.0
     local MOVE_THRESHOLD = 0.1
-
-    local BANNER_DURATION = 4.0
+    local TARGET_MAX_ZOOM = 999999 -- أقصى مسافة زوم أوت لكي لا تصغر الكاميرا داخل السيارة
 
     local PALETTE = {
         Color3.fromRGB(255, 0, 0),
@@ -788,14 +787,11 @@ do
     local lockSeq = 0
     local thresholdNeedsRefresh = false
 
-    local frozenParts = setmetatable({}, { __mode = "k" })
-
     local character = nil
     local hrp = nil
     local hrpAttach = nil
 
     local screenGui = nil
-    local bannerGui = nil
     local mainFrame = nil
     local statsLbl = nil
     local locksContainer = nil
@@ -809,7 +805,30 @@ do
     end
 
     --==============================================================
-    -- GUI HELPERS (DELTA & XENO COMPATIBLE)
+    -- DESERT CONTINUOUS PURGE (رادار حذف مجلد الصحراء المتجدد)
+    --==============================================================
+
+    local function purgeDesertCompletely()
+        for _, descendant in ipairs(Workspace:GetDescendants()) do
+            if descendant.Name == "Desert" then
+                for _, subObj in ipairs(descendant:GetDescendants()) do
+                    pcall(function() subObj:Destroy() end)
+                end
+                pcall(function() descendant:Destroy() end)
+            end
+        end
+    end
+
+    -- تشغيل رادار الحذف المستمر في خلفية منفصلة لتنظيف المجددات المتجددة أول بأول
+    task.spawn(function()
+        while true do
+            purgeDesertCompletely()
+            task.wait(0.5)
+        end
+    end)
+
+    --==============================================================
+    -- GUI HELPERS
     --==============================================================
 
     local function safeProtectGui(gui)
@@ -957,7 +976,7 @@ do
     end
 
     local titleLbl = makeRow(mainFrame, 1, 24, 15, Color3.fromRGB(140, 255, 170), true)
-    titleLbl.Text = "ALPHA TRACKER | DELTA & XENO PRO"
+    titleLbl.Text = "ALPHA TRACKER | ZOOM & DESERT PRO"
     titleLbl.Active = true
 
     local sep1 = Instance.new("Frame")
@@ -1242,21 +1261,31 @@ do
     rescanAndUpgrade()
 
     --==============================================================
-    -- ENGINE TICK
+    -- ENGINE TICK (CAMERA ZOOM PROTECTION & TRACKER)
     --==============================================================
 
     local globalT = 0
     local timeSinceRescan = 0
+    local zoomCheckTimer = 0
 
     trackConnection(RunService.RenderStepped:Connect(function(dt)
         globalT += dt
         timeSinceRescan += dt
+        zoomCheckTimer += dt
+
+        -- التأكد المستمر من منع انكماش الكاميرا داخل السيارة أو المركبات كل ثانية
+        if zoomCheckTimer >= 1.0 then
+            zoomCheckTimer = 0
+            pcall(function()
+                LocalPlayer.CameraMaxZoomDistance = TARGET_MAX_ZOOM
+                LocalPlayer.CameraMinZoomDistance = 0.5
+            end)
+        end
 
         if hrp and hrp.Parent and hrpAttach and hrpAttach.Parent ~= hrp then
             hrpAttach.Parent = hrp
         end
 
-        -- عند تحديد رقم جديد (Threshold)، يحذف جميع ما قبله فوراً بناءً على الطلب
         if thresholdNeedsRefresh then
             thresholdNeedsRefresh = false
             clearAllLocks()
@@ -1284,7 +1313,6 @@ do
                     lock.lastMovedAt = now
                 end
 
-                -- إذا لم يتحرك لمدة 10 ثوانٍ، يتم حذفه من القائمة
                 if now - lock.lastMovedAt >= FREEZE_TIMEOUT then
                     table.insert(toRemove, lock)
                 else
