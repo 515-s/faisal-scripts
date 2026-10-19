@@ -697,8 +697,8 @@ conn = RunService.RenderStepped:Connect(newcclosure(function(dt)
     end
 end))
 
---// Target Tracker - Executor Enhanced Edition
---// Features: Persistent Locking (No Deletion on Local Disappearance), Enhanced Performance, Dynamic Min-X Guard.
+--// Target Tracker - Delta & Xeno Ultimate Edition
+--// Features: 10s Inactivity Cleanup, Clear Previous Locks on New Threshold, Executor Safe, Persistent Proxy.
 
 do
     --==============================================================
@@ -759,8 +759,8 @@ do
     local RESCAN_INTERVAL = 1.0
     local MIN_X_TO_LOCK = 3.0 -- الحد الأدنى المبدئي
 
-    local FREEZE_TIMEOUT = 999999.0 -- منع الحذف التلقائي وتجميد الهدف للأبد حتى لو اختفى
-    local MOVE_THRESHOLD = 0.01
+    local FREEZE_TIMEOUT = 10.0 -- 10 ثوانٍ إذا لم يتحرك يتم حذفه من القائمة
+    local MOVE_THRESHOLD = 0.1
 
     local BANNER_DURATION = 4.0
 
@@ -809,7 +809,7 @@ do
     end
 
     --==============================================================
-    -- GUI HELPERS (EXECUTOR OPTIMIZED)
+    -- GUI HELPERS (DELTA & XENO COMPATIBLE)
     --==============================================================
 
     local function safeProtectGui(gui)
@@ -957,7 +957,7 @@ do
     end
 
     local titleLbl = makeRow(mainFrame, 1, 24, 15, Color3.fromRGB(140, 255, 170), true)
-    titleLbl.Text = "ALPHA EXECUTOR TRACKER | PRO MODE"
+    titleLbl.Text = "ALPHA TRACKER | DELTA & XENO PRO"
     titleLbl.Active = true
 
     local sep1 = Instance.new("Frame")
@@ -1008,7 +1008,7 @@ do
     applyButton.Font = Enum.Font.GothamBold
     applyButton.TextSize = 12
     applyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    applyButton.Text = "Lock Min"
+    applyButton.Text = "Set Min"
     applyButton.Parent = thresholdRow
 
     local aCorner = Instance.new("UICorner")
@@ -1075,7 +1075,7 @@ do
     end
 
     --==============================================================
-    -- LOCK MANAGEMENT & PERSISTENCE (Anti-Disappearance)
+    -- LOCK MANAGEMENT & PERSISTENCE
     --==============================================================
 
     local function createLockHUDRow(lock)
@@ -1099,7 +1099,7 @@ do
         label.TextSize = 13
         label.TextColor3 = lock.color
         label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Text = string.format("X>=%.2f [LOCKED] | %s", lock.x, lock.name)
+        label.Text = string.format("X=%.2f | %s", lock.x, lock.name)
         label.Parent = row
         return row
     end
@@ -1110,7 +1110,7 @@ do
                 lock.hudRow.LayoutOrder = index
                 local label = lock.hudRow:FindFirstChildOfClass("TextLabel")
                 if label then
-                    label.Text = string.format("X>=%.2f [LOCKED] | %s", lock.x, lock.name)
+                    label.Text = string.format("X=%.2f | %s", lock.x, lock.name)
                 end
             end
         end
@@ -1194,26 +1194,14 @@ do
         refreshHUDRows()
     end
 
-    local function currentMaxLockX()
-        local m = -math.huge
-        for _, l in ipairs(locks) do
-            local val = (l.part and l.part.Parent) and l.part.Size.X or l.x
-            if val > m then m = val end
-        end
-        return m
-    end
-
-    -- القيد الإلزامي: يسوي لوك لأي شيء أعلى من الرقم المحدد (ولا يحذف شيئاً بالخطأ ويحافظ عليه)
     local function pushLock(part)
         if not isHitbox(part) then return false end
         local newX = part.Size.X
 
-        -- الشرط الأساسي: أن تكون القيمة أعلى تماماً من الحد الذي حدده المستخدم (MIN_X_TO_LOCK)
         if newX < MIN_X_TO_LOCK then
             return false
         end
 
-        -- التحقق من عدم تكرار نفس البارت
         for _, l in ipairs(locks) do
             if l.part == part then return false end
         end
@@ -1226,7 +1214,7 @@ do
     end
 
     --==============================================================
-    -- SCANNER LOOP WITH PERSISTENCE GUARANTEE
+    -- SCANNER LOOP
     --==============================================================
 
     local function rescanAndUpgrade()
@@ -1243,7 +1231,6 @@ do
             if isHitbox(obj) then
                 count += 1
                 local xVal = obj.Size.X
-                -- إذا كان العنصر أكبر من الرقم المحدد ولا يوجد له لوك، يتم تثبيته ولن يتم حذفه
                 if xVal >= MIN_X_TO_LOCK then
                     pushLock(obj)
                 end
@@ -1269,23 +1256,10 @@ do
             hrpAttach.Parent = hrp
         end
 
+        -- عند تحديد رقم جديد (Threshold)، يحذف جميع ما قبله فوراً بناءً على الطلب
         if thresholdNeedsRefresh then
             thresholdNeedsRefresh = false
-            local toRemove = {}
-            for _, l in ipairs(locks) do
-                if l.part and l.part.Parent and l.part.Size.X < MIN_X_TO_LOCK then
-                    table.insert(toRemove, l)
-                end
-            end
-            for _, l in ipairs(toRemove) do
-                for idx, targetLock in ipairs(locks) do
-                    if targetLock == l then
-                        table.remove(locks, idx)
-                        destroyLock(l)
-                        break
-                    end
-                end
-            end
+            clearAllLocks()
             rescanAndUpgrade()
             refreshHUDRows()
         end
@@ -1295,25 +1269,38 @@ do
             rescanAndUpgrade()
         end
 
+        local now = os.clock()
         local activeCount = 0
+        local toRemove = {}
+
         for _, lock in ipairs(locks) do
             local part = lock.part
             if part and part.Parent then
-                activeCount += 1
-                lock.x = part.Size.X
-                if lock.proxy then
-                    lock.proxy.CFrame = part.CFrame
-                    lock.proxy.Transparency = 0
+                local currentPos = part.Position
+                local moved = (currentPos - lock.lastPos).Magnitude
+
+                if moved > MOVE_THRESHOLD then
+                    lock.lastPos = currentPos
+                    lock.lastMovedAt = now
                 end
-                if lock.targetHL then
-                    lock.targetHL.Adornee = part
-                    lock.targetHL.Enabled = true
+
+                -- إذا لم يتحرك لمدة 10 ثوانٍ، يتم حذفه من القائمة
+                if now - lock.lastMovedAt >= FREEZE_TIMEOUT then
+                    table.insert(toRemove, lock)
+                else
+                    activeCount += 1
+                    lock.x = part.Size.X
+                    if lock.proxy then
+                        lock.proxy.CFrame = part.CFrame
+                        lock.proxy.Transparency = 0
+                    end
+                    if lock.targetHL then
+                        lock.targetHL.Adornee = part
+                        lock.targetHL.Enabled = true
+                    end
                 end
             else
-                -- ميزة عدم النسيان: إذا اختفى البارت مؤقتاً من اللوكال أو المجلد، نبقي آخر موقع مسجل ولا نحذفه أبداً!
-                if lock.proxy then
-                    lock.proxy.Transparency = 0.7 -- إظهار أنه في وضع الثبات المؤقت
-                end
+                table.insert(toRemove, lock)
             end
 
             if lock.beam then
@@ -1321,7 +1308,21 @@ do
             end
         end
 
-        statsLbl.Text = string.format("Hitboxes: %d | MinX Target: %.2f | Active Locks: %d", hitboxCount, MIN_X_TO_LOCK, activeCount)
+        for _, lock in ipairs(toRemove) do
+            for idx, l in ipairs(locks) do
+                if l == lock then
+                    table.remove(locks, idx)
+                    destroyLock(lock)
+                    break
+                end
+            end
+        end
+
+        if #toRemove > 0 then
+            refreshHUDRows()
+        end
+
+        statsLbl.Text = string.format("Hitboxes: %d | MinX: %.2f | Active: %d", hitboxCount, MIN_X_TO_LOCK, activeCount)
     end))
 
     -- تنظيف شامل عند الإغلاق
