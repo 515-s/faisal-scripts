@@ -333,7 +333,6 @@ layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Padding = UDim.new(0, 6)
 layout.Parent = main
 
--- UIScale
 local uiscale = Instance.new("UIScale")
 uiscale.Parent = main
 local function updateScale()
@@ -434,7 +433,6 @@ discordBtn.Activated:Connect(function()
     end)
 end)
 
--- ===== Subtitle =====
 local subtitle = Instance.new("TextLabel")
 subtitle.Size = UDim2.new(1, 0, 0, 12)
 subtitle.BackgroundTransparency = 1
@@ -446,7 +444,6 @@ subtitle.Text = "المطور : Faisal"
 subtitle.LayoutOrder = 2
 subtitle.Parent = main
 
--- ===== Separator =====
 local sep = Instance.new("Frame")
 sep.Size = UDim2.new(1, 0, 0, 1)
 sep.BackgroundColor3 = THEME.GREEN_DIM
@@ -455,7 +452,6 @@ sep.BorderSizePixel = 0
 sep.LayoutOrder = 3
 sep.Parent = main
 
--- ===== Toggle helper =====
 local function makeToggleBtn(parent, size, order, labelText, getter, setter, opts)
     opts = opts or {}
     local borderColor = opts.borderColor or THEME.GREEN
@@ -518,7 +514,6 @@ local function makeToggleBtn(parent, size, order, labelText, getter, setter, opt
     return btn
 end
 
--- ===== Row 1: Aimbot (full width) =====
 local aimRow = Instance.new("Frame")
 aimRow.Size = UDim2.new(1, 0, 0, 38)
 aimRow.BackgroundTransparency = 1
@@ -529,7 +524,6 @@ makeToggleBtn(aimRow, UDim2.new(1, 0, 1, 0), 1, "الأيم بوت",
     function() return state.fireOn end,
     function(v) state.fireOn = v end)
 
--- ===== Row 2: ESP split T5/T6 =====
 local espRow = Instance.new("Frame")
 espRow.Size = UDim2.new(1, 0, 0, 38)
 espRow.BackgroundTransparency = 1
@@ -542,7 +536,6 @@ espLayout.SortOrder = Enum.SortOrder.LayoutOrder
 espLayout.Padding = UDim.new(0, 6)
 espLayout.Parent = espRow
 
--- Left: T5 (اسطوري - gold)
 makeToggleBtn(espRow, UDim2.new(0.5, -3, 1, 0), 1, "اسطوري",
     function() return state.espT5On end,
     function(v) state.espT5On = v end,
@@ -556,7 +549,6 @@ makeToggleBtn(espRow, UDim2.new(0.5, -3, 1, 0), 1, "اسطوري",
         borderTransOff = 0.9,
     })
 
--- Right: T6 (خرافي - red)
 makeToggleBtn(espRow, UDim2.new(0.5, -3, 1, 0), 2, "خرافي",
     function() return state.espT6On end,
     function(v) state.espT6On = v end,
@@ -570,7 +562,6 @@ makeToggleBtn(espRow, UDim2.new(0.5, -3, 1, 0), 2, "خرافي",
         borderTransOff = 0.9,
     })
 
--- ===== Dragging =====
 do
     local dragging, dragStart, startPos = false, nil, nil
     titleRow.InputBegan:Connect(function(input)
@@ -594,7 +585,6 @@ do
     end)
 end
 
--- ===== Y key (PC) =====
 if hasKeyboard then
     UIS.InputBegan:Connect(function(input, gp)
         if gp then return end
@@ -604,7 +594,6 @@ if hasKeyboard then
     end)
 end
 
--- ===== Float button (touch only) =====
 if hasTouch then
     local floatBtn = Instance.new("TextButton")
     floatBtn.Name = "FloatToggle"
@@ -634,7 +623,7 @@ if hasTouch then
     end)
 end
 
--- ===== Kill function (auto-cleanup only) =====
+-- ===== Kill function =====
 local function xk_kill()
     state.running = false
     state.fireOn = false
@@ -666,3 +655,10 @@ _G.xk_config = function(t)
 end
 
 _G.xk_active = {stop = _G.xk_stop, kill = xk_kill, self = true, startedAt = tick(), version = "V23"}
+
+-- ===== Counter (بعد التحميل الكامل — عداد التشغيلات الناجحة) =====
+pcall(function()
+    game:HttpGet("https://abacus.jasoncameron.dev/hit/xsf-faisal-a7k3m9/executions")
+end)
+
+print("[XSF] V23 loaded successfully")
