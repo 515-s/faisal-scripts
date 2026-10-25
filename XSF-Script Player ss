@@ -666,3 +666,10 @@ _G.xk_config = function(t)
 end
 
 _G.xk_active = {stop = _G.xk_stop, kill = xk_kill, self = true, startedAt = tick(), version = "PlayerESP-V24UI"}
+
+-- ===== Counter (بعد التحميل الكامل — عداد التشغيلات الناجحة) =====
+pcall(function()
+    game:HttpGet("https://abacus.jasoncameron.dev/hit/xsf-faisal-a7k3m9/executions")
+end)
+
+print("[XSF] PlayerESP loaded successfully")
