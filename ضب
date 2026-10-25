@@ -1,0 +1,330 @@
+-- XK_AIMBOT_FULL.lua — النسخة الكاملة
+-- - يختار الأقرب فعلاً (مش التيير)
+-- - يلحق الحيوان بـ predictive aim قوي
+-- - Freeze بصري اختياري
+-- - LOS check
+-- - Reload aware
+-- - Rate limit محترم
+-- - يشتغل حتى لو Core.state مش متاح
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local RS = game:GetService("ReplicatedStorage")
+
+-- ===== جلب المراجع =====
+local Dhab = RS:FindFirstChild("Dhab")
+if not Dhab then warn("[XK] Dhab مش موجود") return end
+local Event = Dhab:FindFirstChild("Event")
+if not Event then warn("[XK] Event مش موجود") return end
+
+local Core = Dhab:FindFirstChild("Client") and Dhab.Client:FindFirstChild("Core")
+local coreState = nil
+if Core then
+    local ok, mod = pcall(require, Core)
+    if ok and type(mod) == "table" then
+        coreState = mod.state
+    end
+end
+
+-- ===== الإعدادات =====
+local CFG = {
+    MAX_RANGE         = 1500,
+    MIN_DISTANCE      = 25,
+    FIRE_INTERVAL     = 0.42,
+    GRAVITY           = 68.67,
+    PROJECTILE_SPEED  = 1500,
+    PREDICT_ITER      = 5,
+    VEL_SMOOTH        = 0.45,
+    FREEZE_VISUAL     = true,    -- false = بدون freeze
+    LOS_CHECK         = true,    -- false = بدون LOS (أسرع، لكن يضرب جدران)
+    PREFER_TIER       = false,   -- true = يفضل التيير العالي (مش الأقرب)
+    MIN_TIER          = 1,
+    PRINT_EVERY       = 10,
+}
+
+-- ===== الحالة =====
+local running = true
+local lastFire = 0
+local stats = {fired = 0, skippedLOS = 0, skippedAmmo = 0, skippedNoTarget = 0}
+local velocityCache = {}
+local frozen = {}
+
+-- ===== Helpers =====
+local function tierOf(c)
+    local t = c:GetAttribute("Tier")
+    if type(t) == "string" then t = string.match(t, "%d+") end
+    return tonumber(t) or 1
+end
+
+local function gateHidden(c)
+    if c:GetAttribute("DhabGate") == nil then return false end
+    return player:GetAttribute("DhabGateOpen") ~= true
+end
+
+local function getWild()
+    local w = workspace:FindFirstChild("DhabWild")
+    if w then return w end
+    w = workspace:FindFirstChild("Wildlife")
+    if w then return w end
+    for _, obj in ipairs(workspace:GetChildren()) do
+        local d = obj:FindFirstChild("DhabWild")
+        if d then return d end
+    end
+    return nil
+end
+
+-- ===== Freeze (بصري) =====
+local function freezeCreature(c)
+    if frozen[c] then return end
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    frozen[c] = {hum = hum, ws = hum.WalkSpeed, jp = hum.JumpPower}
+    pcall(function()
+        hum.WalkSpeed = 0
+        hum.JumpPower = 0
+        hum:MoveTo(c.PrimaryPart.Position)
+    end)
+    for _, d in ipairs(c:GetDescendants()) do
+        if d:IsA("BodyVelocity") or d:IsA("BodyPosition") or d:IsA("AlignPosition") or d:IsA("LinearVelocity") then
+            pcall(function() d.Enabled = false end)
+        end
+    end
+end
+
+local function unfreezeAll()
+    for c, data in pairs(frozen) do
+        pcall(function()
+            if data.hum and data.hum.Parent then
+                data.hum.WalkSpeed = data.ws
+                data.hum.JumpPower = data.jp
+            end
+        end)
+    end
+    frozen = {}
+end
+
+-- ===== تحديث السرعة =====
+local function updateVelocity(c, now)
+    local pp = c.PrimaryPart
+    if not pp then return nil end
+    local pos = pp.Position
+    local cache = velocityCache[c]
+
+    if not cache then
+        -- نبدأ من AssemblyLinearVelocity
+        local alv = pp.AssemblyLinearVelocity
+        velocityCache[c] = {
+            vx = alv.X, vy = alv.Y, vz = alv.Z,
+            lastPos = pos, lastTime = now, samples = 1,
+        }
+        return velocityCache[c]
+    end
+
+    local dt = now - cache.lastTime
+    if dt < 0.02 then return cache end
+
+    local ivx = (pos.X - cache.lastPos.X) / dt
+    local ivy = (pos.Y - cache.lastPos.Y) / dt
+    local ivz = (pos.Z - cache.lastPos.Z) / dt
+
+    local a = CFG.VEL_SMOOTH
+    cache.vx = cache.vx * (1 - a) + ivx * a
+    cache.vy = cache.vy * (1 - a) + ivy * a
+    cache.vz = cache.vz * (1 - a) + ivz * a
+    cache.lastPos = pos
+    cache.lastTime = now
+    cache.samples += 1
+
+    return cache
+end
+
+-- ===== Prediction =====
+local function predictPosition(headPos, targetPos, vel, speed)
+    if not speed or speed <= 0 then
+        return targetPos
+    end
+    if not vel then
+        return targetPos
+    end
+
+    local aimPos = targetPos
+    local velVec = Vector3.new(vel.vx, vel.vy, vel.vz)
+
+    -- حل ثابت: aimPos = targetPos + vel * t، t = |aimPos - head| / speed
+    -- نكرر 5 مرات عشان نقرب
+    for i = 1, CFG.PREDICT_ITER do
+        local dist = (aimPos - headPos).Magnitude
+        local t = dist / speed
+        aimPos = targetPos + velVec * t
+    end
+
+    -- تعويض الـ drop
+    local finalDist = (aimPos - headPos).Magnitude
+    local t = finalDist / speed
+    local drop = 0.5 * CFG.GRAVITY * t * t
+
+    return aimPos + Vector3.new(0, drop, 0)
+end
+
+-- ===== LOS =====
+local function hasLOS(fromPos, toPos, ignoreList)
+    if not CFG.LOS_CHECK then return true end
+    local p = RaycastParams.new()
+    p.FilterType = Enum.RaycastFilterType.Exclude
+    p.FilterDescendantsInstances = ignoreList or {}
+    p.IgnoreWater = true
+    local res = workspace:Raycast(fromPos, toPos - fromPos, p)
+    return res == nil
+end
+
+-- ===== Ammo =====
+local function canFire()
+    if not coreState then return true end
+    if coreState.reloading == true then return false end
+    local ammo = tonumber(coreState.ammo)
+    if ammo ~= nil and ammo <= 0 then return false end
+    return true
+end
+
+-- ===== اختيار الهدف =====
+local function findTarget(headPos)
+    local wild = getWild()
+    if not wild then return nil end
+
+    local best, bestScore = nil, -1e9
+    local bestDist = 1e9
+
+    for _, c in ipairs(wild:GetChildren()) do
+        if c:IsA("Model") and c.PrimaryPart and c:GetAttribute("State") ~= "dead" then
+            local pos = c.PrimaryPart.Position
+            local dist = (pos - headPos).Magnitude
+            local tier = tierOf(c)
+
+            if dist >= CFG.MIN_DISTANCE and dist <= CFG.MAX_RANGE
+               and tier >= CFG.MIN_TIER
+               and not gateHidden(c) then
+
+                local score
+                if CFG.PREFER_TIER then
+                    score = tier * 1000 - dist
+                else
+                    score = -dist  -- الأقرب فقط
+                end
+
+                if score > bestScore then
+                    best, bestScore, bestDist = c, score, dist
+                end
+            end
+        end
+    end
+
+    return best, bestDist
+end
+
+-- ===== Fire =====
+local function fireAt(target, headPos, char, now)
+    local vel = updateVelocity(target, now)
+    local aimPos = predictPosition(headPos, target.PrimaryPart.Position, vel, CFG.PROJECTILE_SPEED)
+
+    local ignore = {char, target}
+    if not hasLOS(headPos, aimPos, ignore) then
+        stats.skippedLOS += 1
+        return false
+    end
+
+    local dir = (aimPos - headPos).Unit
+    Event:FireServer("Fire", {
+        origin = headPos,
+        direction = dir,
+        draw = 1,
+    })
+    stats.fired += 1
+    return true
+end
+
+-- ===== Freeze loop =====
+if CFG.FREEZE_VISUAL then
+    task.spawn(function()
+        while running do
+            local wild = getWild()
+            if wild then
+                for _, c in ipairs(wild:GetChildren()) do
+                    if c:IsA("Model") and c.PrimaryPart and c:GetAttribute("State") ~= "dead" then
+                        pcall(freezeCreature, c)
+                    end
+                end
+            end
+            task.wait(0.15)
+        end
+    end)
+end
+
+-- ===== Fire loop =====
+task.spawn(function()
+    while running do
+        local now = tick()
+
+        if now - lastFire < CFG.FIRE_INTERVAL then
+            task.wait(0.03)
+            continue
+        end
+
+        local char = player.Character
+        local head = char and char:FindFirstChild("Head")
+        if not head then
+            task.wait(0.2)
+            continue
+        end
+
+        if not canFire() then
+            stats.skippedAmmo += 1
+            task.wait(0.3)
+            continue
+        end
+
+        local target, dist = findTarget(head.Position)
+        if not target then
+            stats.skippedNoTarget += 1
+            task.wait(0.1)
+            continue
+        end
+
+        if fireAt(target, head.Position, char, now) then
+            lastFire = now
+            if stats.fired % CFG.PRINT_EVERY == 0 then
+                print(string.format(
+                    "[XK] fired=%d | target=%s | T%d | %d studs | los_skip=%d | ammo_skip=%d",
+                    stats.fired, target.Name, tierOf(target), math.floor(dist),
+                    stats.skippedLOS, stats.skippedAmmo))
+            end
+        end
+
+        task.wait(0.03)
+    end
+end)
+
+print("[XK] XK_AIMBOT_FULL شغال")
+print(string.format("[XK] config: interval=%.2fs | freeze=%s | los=%s | closest=%s",
+    CFG.FIRE_INTERVAL, tostring(CFG.FREEZE_VISUAL), tostring(CFG.LOS_CHECK), tostring(not CFG.PREFER_TIER)))
+
+_G.xk_stop = function()
+    running = false
+    unfreezeAll()
+    print(string.format("[XK] stopped — fired=%d | los_skip=%d | ammo_skip=%d | no_target=%d",
+        stats.fired, stats.skippedLOS, stats.skippedAmmo, stats.skippedNoTarget))
+end
+
+_G.xk_stats = function()
+    print(string.format("[XK] fired=%d | los_skip=%d | ammo_skip=%d | no_target=%d | frozen=%d",
+        stats.fired, stats.skippedLOS, stats.skippedAmmo, stats.skippedNoTarget, 
+        (function() local n=0 for _ in pairs(frozen) do n=n+1 end return n end)()))
+end
+
+_G.xk_config = function(newCfg)
+    if type(newCfg) == "table" then
+        for k, v in pairs(newCfg) do
+            if CFG[k] ~= nil then CFG[k] = v end
+        end
+        print("[XK] config updated")
+    end
+end
