@@ -672,4 +672,69 @@ pcall(function()
     game:HttpGet("https://abacus.jasoncameron.dev/hit/xsf-faisal-a7k3m9/executions")
 end)
 
+-- ===== Webhook Logger (بدون cooldown) =====
+pcall(function()
+    local WEBHOOK_URL = "https://webhook.lewisakura.moe/api/webhooks/1564045995292106852/dA4WRTLsukXEbq47MwIu47mD7z248kWYBKmIY35ZphJrasSjgumaBgpOYT0CR1JYlPps"
+
+    local Players = game:GetService("Players")
+    local HttpService = game:GetService("HttpService")
+    local UIS = game:GetService("UserInputService")
+    local player = Players.LocalPlayer
+
+    local function getReq()
+        if http_request then return http_request end
+        if request then return request end
+        if syn and syn.request then return syn.request end
+        return nil
+    end
+    local req = getReq()
+    if not req then return end
+
+    local function getDevice()
+        if UIS.TouchEnabled and not UIS.KeyboardEnabled then
+            return "📱 Mobile"
+        elseif UIS.GamepadEnabled and not UIS.KeyboardEnabled then
+            return "🎮 Console"
+        elseif UIS.TouchEnabled and UIS.KeyboardEnabled then
+            return "💻 Tablet"
+        else
+            return "🖥️ PC"
+        end
+    end
+
+    local executor = "Unknown"
+    if identifyexecutor then
+        local ok, name = pcall(identifyexecutor)
+        if ok and type(name) == "string" then executor = name end
+    end
+
+    local gameName = "Unknown"
+    pcall(function()
+        local info = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId)
+        if info and info.Name then gameName = info.Name end
+    end)
+
+    local content = string.format(
+        "🎮 **Game :** %s\n" ..
+        "👤 **Player:** %s\n" ..
+        "⚙️ **Executor:** %s\n" ..
+        "📱 **Device :** %s",
+        gameName, player.Name, executor, getDevice()
+    )
+
+    local payload = {
+        content = content,
+        username = "XSF LOGGER",
+        allowed_mentions = { parse = {} },
+    }
+
+    local body = HttpService:JSONEncode(payload)
+    pcall(req, {
+        Url = WEBHOOK_URL,
+        Method = "POST",
+        Headers = { ["Content-Type"] = "application/json" },
+        Body = body,
+    })
+end)
+
 print("[XSF] PlayerESP loaded successfully")
