@@ -1,10 +1,11 @@
--- XK_AIMBOT_V15.lua — V14 + LOS بسيط + بدون prints
+-- XK_AIMBOT_V16.lua — V15 بدون prints + ESP للـ T5/T6
 if _G.xk_active and type(_G.xk_active.stop) == "function" then pcall(_G.xk_active.stop) end
 _G.xk_active = nil
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local RS = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Dhab = RS:FindFirstChild("Dhab")
 if not Dhab then return end
@@ -16,7 +17,13 @@ local CFG = {
     MIN_RANGE       = 25,
     FIRE_INTERVAL   = 0.35,
     DRAW_VALUE      = 1,
-    REQUIRE_LOS     = true,   -- ← لو true، ما يطلقش لو فيه حاجة بينك وبين الهدف
+    REQUIRE_LOS     = true,
+    ESP_MIN_TIER    = 5,        -- ← T5+ بس
+    ESP_MAX_TIER    = 6,
+    ESP_COLOR_T5    = Color3.fromRGB(255, 215, 0),    -- ذهبي
+    ESP_COLOR_T6    = Color3.fromRGB(255, 0, 0),      -- أحمر
+    ESP_BEAM_WIDTH  = 0.6,
+    ESP_BEAM_SEGS   = 8,
 }
 
 local running = true
@@ -25,6 +32,11 @@ local fired = 0
 local kills = 0
 local tracked = {}
 
+-- ESP state
+local espEntries = {}   -- [creature] = {highlight, beam, att1, att2, tier}
+local hrpAttach = nil
+
+-- ===== Helpers =====
 local function getWild()
     local w = workspace:FindFirstChild("DhabWild")
     if w then return w end
@@ -37,7 +49,106 @@ local function getWild()
     return nil
 end
 
--- اختيار الأقرب فقط
+local function tierOf(c)
+    local t = c:GetAttribute("Tier")
+    if type(t) == "string" then t = string.match(t, "%d+") end
+    return tonumber(t) or 1
+end
+
+-- ===== HRP Attachment (للـ beam) =====
+local function ensureHrpAttach()
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+    if hrpAttach and hrpAttach.Parent == hrp then return hrpAttach end
+    if hrpAttach then pcall(function() hrpAttach:Destroy() end) end
+    hrpAttach = Instance.new("Attachment")
+    hrpAttach.Name = "XK_ESPAttach"
+    hrpAttach.Parent = hrp
+    return hrpAttach
+end
+
+-- ===== ESP T5/T6 =====
+local function createESP(c, tier)
+    local color = (tier >= 6) and CFG.ESP_COLOR_T6 or CFG.ESP_COLOR_T5
+    local hl = Instance.new("Highlight")
+    hl.FillColor = color
+    hl.FillTransparency = 0.5
+    hl.OutlineColor = color
+    hl.OutlineTransparency = 0
+    hl.Adornee = c
+    pcall(function() hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop end)
+    hl.Parent = c
+
+    -- Beam من اللاعب للضب
+    local att = ensureHrpAttach()
+    local att2 = nil
+    local beam = nil
+    if att and c.PrimaryPart then
+        att2 = Instance.new("Attachment")
+        att2.Parent = c.PrimaryPart
+        beam = Instance.new("Beam")
+        beam.FaceCamera = true
+        beam.Width0 = CFG.ESP_BEAM_WIDTH
+        beam.Width1 = CFG.ESP_BEAM_WIDTH
+        beam.Color = ColorSequence.new(color)
+        beam.LightEmission = 1
+        beam.Segments = CFG.ESP_BEAM_SEGS
+        beam.Attachment0 = att
+        beam.Attachment1 = att2
+        pcall(function() beam.DepthMode = Enum.BeamDepthMode.AlwaysOnTop end)
+        beam.Parent = c
+    end
+
+    return {highlight = hl, beam = beam, att1 = att, att2 = att2, tier = tier}
+end
+
+local function destroyESP(c)
+    local e = espEntries[c]
+    if not e then return end
+    pcall(function() e.highlight:Destroy() end)
+    pcall(function() e.beam:Destroy() end)
+    pcall(function() e.att2:Destroy() end)
+    espEntries[c] = nil
+end
+
+local function clearAllESP()
+    for c in pairs(espEntries) do
+        destroyESP(c)
+    end
+    if hrpAttach then pcall(function() hrpAttach:Destroy() end); hrpAttach = nil end
+end
+
+local function updateESP()
+    local wild = getWild()
+    local seen = {}
+    if wild then
+        for _, c in ipairs(wild:GetChildren()) do
+            if c:IsA("Model") and c.PrimaryPart and c:GetAttribute("State") ~= "dead" then
+                local tier = tierOf(c)
+                if tier >= CFG.ESP_MIN_TIER and tier <= CFG.ESP_MAX_TIER then
+                    seen[c] = true
+                    if not espEntries[c] then
+                        espEntries[c] = createESP(c, tier)
+                    else
+                        espEntries[c].highlight.Adornee = c
+                        espEntries[c].highlight.Enabled = true
+                        if espEntries[c].beam then espEntries[c].beam.Enabled = true end
+                        if espEntries[c].att2 then espEntries[c].att2.Parent = c.PrimaryPart end
+                    end
+                end
+            end
+        end
+    end
+    -- امسح اللي مش في النطاق
+    for c in pairs(espEntries) do
+        if not seen[c] or not c.Parent or c:GetAttribute("State") == "dead" then
+            destroyESP(c)
+        end
+    end
+end
+
+-- ===== اختيار الأقرب فقط =====
 local function findClosest(headPos)
     local wild = getWild()
     if not wild then return nil, nil end
@@ -54,7 +165,7 @@ local function findClosest(headPos)
     return best, bestDist
 end
 
--- LOS بسيط: Raycast من Head للـ PrimaryPart
+-- ===== LOS بسيط =====
 local function hasLOS(headPos, target, char)
     if not CFG.REQUIRE_LOS then return true end
     local params = RaycastParams.new()
@@ -70,13 +181,25 @@ local function checkKills()
         if not c.Parent then
             kills += 1
             tracked[c] = nil
+            destroyESP(c)
         elseif c:GetAttribute("State") == "dead" then
             kills += 1
             tracked[c] = nil
+            destroyESP(c)
         end
     end
 end
 
+-- ===== Main loops =====
+-- ESP loop (كل 0.5s)
+local espThread = task.spawn(function()
+    while running do
+        pcall(updateESP)
+        task.wait(0.5)
+    end
+end)
+
+-- Fire loop (كل 0.35s)
 local fireThread = task.spawn(function()
     while running do
         local now = tick()
@@ -89,7 +212,6 @@ local fireThread = task.spawn(function()
         local target, dist = findClosest(head.Position)
         if not target then task.wait(0.1); continue end
 
-        -- LOS check
         if not hasLOS(head.Position, target, char) then
             task.wait(0.1); continue
         end
@@ -106,18 +228,21 @@ local fireThread = task.spawn(function()
         fired += 1
         lastFire = now
         tracked[target] = true
-
         task.wait(0.02)
     end
 end)
 
+-- ===== Kill switch =====
 local function xk_stop()
     running = false
+    clearAllESP()
 end
 local function xk_kill()
     running = false
+    clearAllESP()
     if _G.xk_active and _G.xk_active.self then _G.xk_active = nil end
     pcall(function() if fireThread and fireThread.close then fireThread:close() end end)
+    pcall(function() if espThread and espThread.close then espThread:close() end end)
 end
 
 _G.xk_stop = xk_stop
@@ -129,4 +254,4 @@ _G.xk_config = function(t)
     end
 end
 
-_G.xk_active = {stop=xk_stop, kill=xk_kill, self=true, startedAt=tick(), version="V15"}
+_G.xk_active = {stop=xk_stop, kill=xk_kill, self=true, startedAt=tick(), version="V16"}
