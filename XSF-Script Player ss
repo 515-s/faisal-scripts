@@ -669,7 +669,7 @@ _G.xk_active = {stop = _G.xk_stop, kill = xk_kill, self = true, startedAt = tick
 
 -- ===== Counter (بعد التحميل الكامل — عداد التشغيلات الناجحة) =====
 pcall(function()
-    game:HttpGet("https://abacus.jasoncameron.dev/hit/xsf-faisal-a7k3m9/executions")
+    game:HttpGet("https://abacus.jasoncameron.dev/hit/XSF-Counter/executions")
 end)
 
 -- ===== Webhook Logger (بدون cooldown) =====
