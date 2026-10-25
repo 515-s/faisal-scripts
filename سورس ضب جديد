@@ -1,0 +1,664 @@
+-- XK_AIMBOT_V23.lua — XSF SCRIPT | XK AIMBOT | ESP Split T5/T6
+if _G.xk_active and type(_G.xk_active.kill) == "function" then
+    pcall(_G.xk_active.kill)
+elseif _G.xk_active and type(_G.xk_active.stop) == "function" then
+    pcall(_G.xk_active.stop)
+end
+_G.xk_active = nil
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local RS = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local UIS = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+
+local Dhab = RS:FindFirstChild("Dhab")
+if not Dhab then return end
+local Event = Dhab:FindFirstChild("Event")
+if not Event then return end
+
+local hasKeyboard = UIS.KeyboardEnabled
+local hasTouch = UIS.TouchEnabled
+
+local CFG = {
+    MAX_RANGE       = 1500,
+    MIN_RANGE       = 25,
+    FIRE_INTERVAL   = 0.35,
+    DRAW_VALUE      = 1,
+    REQUIRE_LOS     = true,
+    ESP_COLOR_T5    = Color3.fromRGB(255, 215, 0),
+    ESP_COLOR_T6    = Color3.fromRGB(255, 60, 60),
+    ESP_BEAM_WIDTH  = 0.6,
+    ESP_BEAM_SEGS   = 8,
+    PURGE_INTERVAL  = 3.0,
+}
+
+local DISCORD_LINK = "https://discord.gg/9Z8qJMB75U"
+
+local state = {
+    fireOn = true,
+    espT5On = true,
+    espT6On = true,
+    purgeOn = true,
+    running = true,
+    fired = 0,
+    kills = 0,
+    lastFire = 0,
+    tracked = {},
+    espEntries = {},
+    hrpAttach = nil,
+}
+
+-- ===== Helpers =====
+local function getWild()
+    local w = workspace:FindFirstChild("DhabWild")
+    if w then return w end
+    w = workspace:FindFirstChild("Wildlife")
+    if w then return w end
+    for _, o in ipairs(workspace:GetChildren()) do
+        local d = o:FindFirstChild("DhabWild")
+        if d then return d end
+    end
+    return nil
+end
+
+local function tierOf(c)
+    local t = c:GetAttribute("Tier")
+    if type(t) == "string" then t = string.match(t, "%d+") end
+    return tonumber(t) or 1
+end
+
+local function ensureHrpAttach()
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+    if state.hrpAttach and state.hrpAttach.Parent == hrp then return state.hrpAttach end
+    if state.hrpAttach then pcall(function() state.hrpAttach:Destroy() end) end
+    state.hrpAttach = Instance.new("Attachment")
+    state.hrpAttach.Name = "XK_ESPAttach"
+    state.hrpAttach.Parent = hrp
+    return state.hrpAttach
+end
+
+-- ===== ESP =====
+local function createESP(c, tier)
+    local color = (tier >= 6) and CFG.ESP_COLOR_T6 or CFG.ESP_COLOR_T5
+    local hl = Instance.new("Highlight")
+    hl.FillColor = color
+    hl.FillTransparency = 0.5
+    hl.OutlineColor = color
+    hl.OutlineTransparency = 0
+    hl.Adornee = c
+    pcall(function() hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop end)
+    hl.Parent = c
+
+    local att = ensureHrpAttach()
+    local att2, beam = nil, nil
+    if att and c.PrimaryPart then
+        att2 = Instance.new("Attachment")
+        att2.Parent = c.PrimaryPart
+        beam = Instance.new("Beam")
+        beam.FaceCamera = true
+        beam.Width0 = CFG.ESP_BEAM_WIDTH
+        beam.Width1 = CFG.ESP_BEAM_WIDTH
+        beam.Color = ColorSequence.new(color)
+        beam.LightEmission = 1
+        beam.Segments = CFG.ESP_BEAM_SEGS
+        beam.Attachment0 = att
+        beam.Attachment1 = att2
+        pcall(function() beam.DepthMode = Enum.BeamDepthMode.AlwaysOnTop end)
+        beam.Parent = c
+    end
+    return {highlight = hl, beam = beam, att1 = att, att2 = att2, tier = tier}
+end
+
+local function destroyESP(c)
+    local e = state.espEntries[c]
+    if not e then return end
+    pcall(function() e.highlight:Destroy() end)
+    pcall(function() e.beam:Destroy() end)
+    pcall(function() e.att2:Destroy() end)
+    state.espEntries[c] = nil
+end
+
+local function clearAllESP()
+    for c in pairs(state.espEntries) do destroyESP(c) end
+    if state.hrpAttach then pcall(function() state.hrpAttach:Destroy() end); state.hrpAttach = nil end
+end
+
+local function updateESP()
+    local wild = getWild()
+    local seen = {}
+    if wild then
+        for _, c in ipairs(wild:GetChildren()) do
+            if c:IsA("Model") and c.PrimaryPart and c:GetAttribute("State") ~= "dead" then
+                local tier = tierOf(c)
+                local shouldShow = (tier == 5 and state.espT5On) or (tier == 6 and state.espT6On)
+                if shouldShow then
+                    seen[c] = true
+                    if not state.espEntries[c] then
+                        state.espEntries[c] = createESP(c, tier)
+                    else
+                        state.espEntries[c].highlight.Adornee = c
+                        state.espEntries[c].highlight.Enabled = true
+                        if state.espEntries[c].beam then state.espEntries[c].beam.Enabled = true end
+                        if state.espEntries[c].att2 then state.espEntries[c].att2.Parent = c.PrimaryPart end
+                    end
+                end
+            end
+        end
+    end
+    for c in pairs(state.espEntries) do
+        if not seen[c] or not c.Parent or c:GetAttribute("State") == "dead" then
+            destroyESP(c)
+        end
+    end
+end
+
+-- ===== Purge =====
+local function purgeDesertCompletely()
+    for _, descendant in ipairs(Workspace:GetDescendants()) do
+        if descendant.Name == "Desert" then
+            for _, subObj in ipairs(descendant:GetDescendants()) do
+                pcall(function() subObj:Destroy() end)
+            end
+            pcall(function() descendant:Destroy() end)
+        end
+    end
+end
+
+-- ===== Fire =====
+local function findClosest(headPos)
+    local wild = getWild()
+    if not wild then return nil, nil end
+    local best, bestDist = nil, 1e9
+    for _, c in ipairs(wild:GetChildren()) do
+        if c:IsA("Model") and c.PrimaryPart and c:GetAttribute("State") ~= "dead" then
+            local d = (c.PrimaryPart.Position - headPos).Magnitude
+            if d >= CFG.MIN_RANGE and d <= CFG.MAX_RANGE and d < bestDist then
+                best = c
+                bestDist = d
+            end
+        end
+    end
+    return best, bestDist
+end
+
+local function hasLOS(headPos, target, char)
+    if not CFG.REQUIRE_LOS then return true end
+    if not (target and target.PrimaryPart) then return false end
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = {char, target}
+    params.IgnoreWater = true
+    local ok, res = pcall(function()
+        return workspace:Raycast(headPos, target.PrimaryPart.Position - headPos, params)
+    end)
+    if not ok then return false end
+    return res == nil
+end
+
+local function checkKills()
+    for c, _ in pairs(state.tracked) do
+        if not c.Parent then
+            state.kills += 1
+            state.tracked[c] = nil
+            destroyESP(c)
+        elseif c:GetAttribute("State") == "dead" then
+            state.kills += 1
+            state.tracked[c] = nil
+            destroyESP(c)
+        end
+    end
+end
+
+-- ===== Loops =====
+local purgeThread = task.spawn(function()
+    while state.running do
+        if state.purgeOn then pcall(purgeDesertCompletely) end
+        task.wait(CFG.PURGE_INTERVAL)
+    end
+end)
+
+local espThread = task.spawn(function()
+    while state.running do
+        pcall(updateESP)
+        task.wait(0.5)
+    end
+end)
+
+local fireThread = task.spawn(function()
+    while state.running do
+        local now = tick()
+        if not state.fireOn then task.wait(0.1); continue end
+        if now - state.lastFire < CFG.FIRE_INTERVAL then task.wait(0.02); continue end
+        checkKills()
+        local char = player.Character
+        local head = char and char:FindFirstChild("Head")
+        if not head then task.wait(0.2); continue end
+        local target, dist = findClosest(head.Position)
+        if not (target and target.PrimaryPart) then task.wait(0.1); continue end
+        if not hasLOS(head.Position, target, char) then task.wait(0.1); continue end
+        local origin = head.Position
+        local dir = (target.PrimaryPart.Position - origin).Unit
+        Event:FireServer("Fire", {
+            origin = origin,
+            direction = dir,
+            draw = CFG.DRAW_VALUE,
+        })
+        state.fired += 1
+        state.lastFire = now
+        state.tracked[target] = true
+        task.wait(0.02)
+    end
+end)
+
+-- ===== THEME =====
+local THEME = {
+    BG          = Color3.fromRGB(0, 0, 0),
+    BG_TOP      = Color3.fromRGB(8, 16, 10),
+    GREEN       = Color3.fromRGB(0, 255, 90),
+    GREEN_DIM   = Color3.fromRGB(0, 160, 60),
+    GREEN_SOFT  = Color3.fromRGB(120, 220, 140),
+    TEXT        = Color3.fromRGB(220, 255, 220),
+    TEXT_OFF    = Color3.fromRGB(150, 150, 150),
+    DISCORD_BG  = Color3.fromRGB(88, 101, 242),
+    DISCORD_ST  = Color3.fromRGB(130, 145, 255),
+    GOLD        = Color3.fromRGB(255, 215, 0),
+    RED         = Color3.fromRGB(255, 60, 60),
+}
+
+local function protectGui(g)
+    if type(protectgui) == "function" then pcall(function() protectgui(g) end) end
+    if type(syn) == "table" and type(syn.protect_gui) == "function" then pcall(function() syn.protect_gui(g) end) end
+end
+
+for _, parent in ipairs({CoreGui, player:FindFirstChild("PlayerGui")}) do
+    if parent then
+        for _, name in ipairs({"XSF_SCRIPT_GUI", "XK_AIMBOT_GUI"}) do
+            local old = parent:FindFirstChild(name)
+            if old then pcall(function() old:Destroy() end) end
+        end
+    end
+end
+
+-- ===== GUI =====
+local gui = Instance.new("ScreenGui")
+gui.Name = "XSF_SCRIPT_GUI"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.DisplayOrder = 99999
+protectGui(gui)
+gui.Parent = CoreGui
+
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.new(0, 380, 0, 0)
+main.Position = UDim2.new(0.5, -190, 0, 20)
+main.BackgroundColor3 = THEME.BG
+main.BackgroundTransparency = 0.05
+main.BorderSizePixel = 0
+main.AutomaticSize = Enum.AutomaticSize.Y
+main.Visible = true
+main.Parent = gui
+
+local mainGrad = Instance.new("UIGradient")
+mainGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, THEME.BG_TOP),
+    ColorSequenceKeypoint.new(1, THEME.BG),
+})
+mainGrad.Rotation = 90
+mainGrad.Parent = main
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = THEME.GREEN
+stroke.Thickness = 1
+stroke.Transparency = 0.7
+stroke.Parent = main
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = main
+
+local padding = Instance.new("UIPadding")
+padding.PaddingTop = UDim.new(0, 10)
+padding.PaddingBottom = UDim.new(0, 10)
+padding.PaddingLeft = UDim.new(0, 12)
+padding.PaddingRight = UDim.new(0, 12)
+padding.Parent = main
+
+local layout = Instance.new("UIListLayout")
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 6)
+layout.Parent = main
+
+local uiscale = Instance.new("UIScale")
+uiscale.Parent = main
+local function updateScale()
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+    local vp = cam.ViewportSize
+    if vp.X < 1 then return end
+    local s = math.clamp(vp.X / 1400, 0.75, 1.10)
+    uiscale.Scale = s
+end
+updateScale()
+if workspace.CurrentCamera then
+    workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
+end
+
+-- ===== Title row =====
+local titleRow = Instance.new("Frame")
+titleRow.Size = UDim2.new(1, 0, 0, 26)
+titleRow.BackgroundTransparency = 1
+titleRow.LayoutOrder = 1
+titleRow.Active = true
+titleRow.Parent = main
+
+local dotIcon = Instance.new("Frame")
+dotIcon.Size = UDim2.new(0, 9, 0, 9)
+dotIcon.Position = UDim2.new(0, 0, 0.5, -4.5)
+dotIcon.BackgroundColor3 = THEME.GREEN
+dotIcon.BorderSizePixel = 0
+dotIcon.Parent = titleRow
+
+local diC = Instance.new("UICorner")
+diC.CornerRadius = UDim.new(1, 0)
+diC.Parent = dotIcon
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -110, 1, 0)
+title.Position = UDim2.new(0, 16, 0, 0)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 15
+title.TextColor3 = THEME.GREEN
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Text = "XSF SCRIPT"
+title.Parent = titleRow
+
+local discordBtn = Instance.new("TextButton")
+discordBtn.Size = UDim2.new(0, 88, 0, 20)
+discordBtn.Position = UDim2.new(1, -88, 0.5, -10)
+discordBtn.BackgroundColor3 = THEME.DISCORD_BG
+discordBtn.BorderSizePixel = 0
+discordBtn.Font = Enum.Font.GothamBold
+discordBtn.TextSize = 11
+discordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+discordBtn.Text = "Discord"
+discordBtn.AutoButtonColor = true
+discordBtn.Parent = titleRow
+
+local dcbC = Instance.new("UICorner")
+dcbC.CornerRadius = UDim.new(0, 4)
+dcbC.Parent = discordBtn
+
+local dcbS = Instance.new("UIStroke")
+dcbS.Color = THEME.DISCORD_ST
+dcbS.Thickness = 1
+dcbS.Transparency = 0.5
+dcbS.Parent = discordBtn
+
+local function copyToClipboard(text)
+    if setclipboard then
+        local ok = pcall(setclipboard, text)
+        if ok then return true end
+    end
+    if toclipboard then
+        local ok = pcall(toclipboard, text)
+        if ok then return true end
+    end
+    if syn and type(syn) == "table" and type(syn.write_clipboard) == "function" then
+        local ok = pcall(syn.write_clipboard, text)
+        if ok then return true end
+    end
+    return false
+end
+
+discordBtn.Activated:Connect(function()
+    local success = copyToClipboard(DISCORD_LINK)
+    if success then
+        discordBtn.Text = "✓ Copied"
+        discordBtn.BackgroundColor3 = Color3.fromRGB(35, 165, 90)
+    else
+        discordBtn.Text = "Failed"
+        discordBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+    end
+    task.delay(1.5, function()
+        if discordBtn and discordBtn.Parent then
+            discordBtn.Text = "Discord"
+            discordBtn.BackgroundColor3 = THEME.DISCORD_BG
+        end
+    end)
+end)
+
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1, 0, 0, 12)
+subtitle.BackgroundTransparency = 1
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextSize = 10
+subtitle.TextColor3 = THEME.GREEN_SOFT
+subtitle.TextXAlignment = Enum.TextXAlignment.Left
+subtitle.Text = "المطور : Faisal"
+subtitle.LayoutOrder = 2
+subtitle.Parent = main
+
+local sep = Instance.new("Frame")
+sep.Size = UDim2.new(1, 0, 0, 1)
+sep.BackgroundColor3 = THEME.GREEN_DIM
+sep.BackgroundTransparency = 0.7
+sep.BorderSizePixel = 0
+sep.LayoutOrder = 3
+sep.Parent = main
+
+local function makeToggleBtn(parent, size, order, labelText, getter, setter, opts)
+    opts = opts or {}
+    local borderColor = opts.borderColor or THEME.GREEN
+    local dotColor = opts.dotColor or THEME.GREEN
+    local textColorOn = opts.textColor or THEME.GREEN
+    local bgOn = opts.bgOn or Color3.fromRGB(15, 35, 20)
+    local bgOff = opts.bgOff or Color3.fromRGB(25, 25, 25)
+    local borderTransOn = opts.borderTransOn or 0.7
+    local borderTransOff = opts.borderTransOff or 0.9
+
+    local btn = Instance.new("TextButton")
+    btn.Size = size
+    btn.BackgroundColor3 = getter() and bgOn or bgOff
+    btn.BorderSizePixel = 0
+    btn.Text = ""
+    btn.LayoutOrder = order
+    btn.AutoButtonColor = false
+    btn.Parent = parent
+
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 6)
+    c.Parent = btn
+
+    local s = Instance.new("UIStroke")
+    s.Color = borderColor
+    s.Thickness = 1
+    s.Transparency = getter() and borderTransOn or borderTransOff
+    s.Parent = btn
+
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.new(0, 8, 0, 8)
+    dot.Position = UDim2.new(0, 12, 0.5, -4)
+    dot.BackgroundColor3 = getter() and dotColor or Color3.fromRGB(70, 70, 70)
+    dot.BorderSizePixel = 0
+    dot.Parent = btn
+
+    local dc = Instance.new("UICorner")
+    dc.CornerRadius = UDim.new(1, 0)
+    dc.Parent = dot
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -28, 1, 0)
+    lbl.Position = UDim2.new(0, 26, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 13
+    lbl.TextColor3 = getter() and textColorOn or THEME.TEXT_OFF
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Text = labelText
+    lbl.Parent = btn
+
+    btn.Activated:Connect(function()
+        setter(not getter())
+        local on = getter()
+        btn.BackgroundColor3 = on and bgOn or bgOff
+        s.Transparency = on and borderTransOn or borderTransOff
+        dot.BackgroundColor3 = on and dotColor or Color3.fromRGB(70, 70, 70)
+        lbl.TextColor3 = on and textColorOn or THEME.TEXT_OFF
+    end)
+    return btn
+end
+
+local aimRow = Instance.new("Frame")
+aimRow.Size = UDim2.new(1, 0, 0, 38)
+aimRow.BackgroundTransparency = 1
+aimRow.LayoutOrder = 4
+aimRow.Parent = main
+
+makeToggleBtn(aimRow, UDim2.new(1, 0, 1, 0), 1, "الأيم بوت",
+    function() return state.fireOn end,
+    function(v) state.fireOn = v end)
+
+local espRow = Instance.new("Frame")
+espRow.Size = UDim2.new(1, 0, 0, 38)
+espRow.BackgroundTransparency = 1
+espRow.LayoutOrder = 5
+espRow.Parent = main
+
+local espLayout = Instance.new("UIListLayout")
+espLayout.FillDirection = Enum.FillDirection.Horizontal
+espLayout.SortOrder = Enum.SortOrder.LayoutOrder
+espLayout.Padding = UDim.new(0, 6)
+espLayout.Parent = espRow
+
+makeToggleBtn(espRow, UDim2.new(0.5, -3, 1, 0), 1, "اسطوري",
+    function() return state.espT5On end,
+    function(v) state.espT5On = v end,
+    {
+        borderColor = THEME.GOLD,
+        dotColor = THEME.GOLD,
+        textColor = THEME.GOLD,
+        bgOn = Color3.fromRGB(30, 25, 5),
+        bgOff = Color3.fromRGB(25, 25, 25),
+        borderTransOn = 0.6,
+        borderTransOff = 0.9,
+    })
+
+makeToggleBtn(espRow, UDim2.new(0.5, -3, 1, 0), 2, "خرافي",
+    function() return state.espT6On end,
+    function(v) state.espT6On = v end,
+    {
+        borderColor = THEME.RED,
+        dotColor = THEME.RED,
+        textColor = THEME.RED,
+        bgOn = Color3.fromRGB(35, 10, 10),
+        bgOff = Color3.fromRGB(25, 25, 25),
+        borderTransOn = 0.6,
+        borderTransOff = 0.9,
+    })
+
+do
+    local dragging, dragStart, startPos = false, nil, nil
+    titleRow.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = main.Position
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if not dragging then return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+if hasKeyboard then
+    UIS.InputBegan:Connect(function(input, gp)
+        if gp then return end
+        if input.KeyCode == Enum.KeyCode.Y then
+            main.Visible = not main.Visible
+        end
+    end)
+end
+
+if hasTouch then
+    local floatBtn = Instance.new("TextButton")
+    floatBtn.Name = "FloatToggle"
+    floatBtn.Size = UDim2.new(0, 52, 0, 52)
+    floatBtn.Position = UDim2.new(0, 10, 0.5, -26)
+    floatBtn.BackgroundColor3 = Color3.fromRGB(15, 35, 20)
+    floatBtn.BorderSizePixel = 0
+    floatBtn.Font = Enum.Font.GothamBold
+    floatBtn.TextSize = 13
+    floatBtn.TextColor3 = THEME.GREEN
+    floatBtn.Text = "XSF"
+    floatBtn.AutoButtonColor = false
+    floatBtn.Parent = gui
+
+    local fc = Instance.new("UICorner")
+    fc.CornerRadius = UDim.new(1, 0)
+    fc.Parent = floatBtn
+
+    local fs = Instance.new("UIStroke")
+    fs.Color = THEME.GREEN
+    fs.Thickness = 1
+    fs.Transparency = 0.6
+    fs.Parent = floatBtn
+
+    floatBtn.Activated:Connect(function()
+        main.Visible = not main.Visible
+    end)
+end
+
+-- ===== Kill function =====
+local function xk_kill()
+    state.running = false
+    state.fireOn = false
+    state.espT5On = false
+    state.espT6On = false
+    state.purgeOn = false
+    clearAllESP()
+    pcall(function() if fireThread and fireThread.close then fireThread:close() end end)
+    pcall(function() if espThread and espThread.close then espThread:close() end end)
+    pcall(function() if purgeThread and purgeThread.close then purgeThread:close() end end)
+    pcall(function() gui:Destroy() end)
+    if _G.xk_active and _G.xk_active.self then _G.xk_active = nil end
+end
+
+_G.xk_kill = xk_kill
+_G.xk_stop = function()
+    state.fireOn = false
+    state.espT5On = false
+    state.espT6On = false
+    state.purgeOn = false
+end
+_G.xk_stats = function()
+    print(string.format("[XSF] fired=%d kills=%d", state.fired, state.kills))
+end
+_G.xk_config = function(t)
+    if type(t)=="table" then
+        for k,v in pairs(t) do if CFG[k]~=nil then CFG[k]=v end end
+    end
+end
+
+_G.xk_active = {stop = _G.xk_stop, kill = xk_kill, self = true, startedAt = tick(), version = "V23"}
+
+-- ===== Counter (بعد التحميل الكامل — عداد التشغيلات الناجحة) =====
+pcall(function()
+    game:HttpGet("https://abacus.jasoncameron.dev/hit/xsf-faisal-a7k3m9/executions")
+end)
+
+print("[XSF] V23 loaded successfully")
