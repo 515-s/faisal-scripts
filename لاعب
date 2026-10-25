@@ -1,0 +1,668 @@
+-- Player ESP — Universal | XSF SCRIPT | V24 UI
+if _G.xk_active and type(_G.xk_active.kill) == "function" then
+    pcall(_G.xk_active.kill)
+elseif _G.xk_active and type(_G.xk_active.stop) == "function" then
+    pcall(_G.xk_active.stop)
+end
+_G.xk_active = nil
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local UIS = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local LogService = game:GetService("LogService")
+
+local Camera = Workspace.CurrentCamera
+
+local hasKeyboard = UIS.KeyboardEnabled
+local hasTouch = UIS.TouchEnabled
+
+-- ===== CFG =====
+local CFG = {
+    MAX_DISTANCE   = 3000,
+    TEAM_CHECK     = false,
+    VISIBLE_ONLY   = false,
+    SHOW_BOX       = true,
+    SHOW_NAME      = true,
+    SHOW_DIST      = true,
+    SHOW_TRACER    = false,
+    BOX_COLOR      = Color3.fromRGB(255, 60, 60),
+    TEXT_COLOR     = Color3.new(1, 1, 1),
+    TRACER_COLOR   = Color3.fromRGB(255, 60, 60),
+    BOX_THICKNESS  = 2,
+    BOX_SCALE      = 1.15,
+}
+
+local DISCORD_LINK = "https://discord.gg/9Z8qJMB75U"
+
+local state = {
+    espOn = true,
+    running = true,
+    espEntries = {},
+}
+
+-- ===== Anti-detection (silent log + kick) =====
+do
+    if type(hookmetamethod) == "function" and type(getrawmetatable) == "function" and type(getnamecallmethod) == "function" then
+        local ok, mt = pcall(getrawmetatable, game)
+        if ok and mt then
+            local old
+            old = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+                if not checkcaller() then
+                    local m = getnamecallmethod()
+                    if self == LogService and (m == "Log" or m == "MessageOut") then
+                        return nil
+                    end
+                    if self == Players and m == "Kick" then
+                        return nil
+                    end
+                end
+                return old(self, ...)
+            end))
+        end
+    end
+end
+
+-- ===== Helpers =====
+local function getGuiParent()
+    if type(gethui) == "function" then
+        local ok, h = pcall(gethui)
+        if ok and h then return h end
+    end
+    local ok, cg = pcall(function() return game:GetService("CoreGui") end)
+    if ok and cg then return cg end
+    return player:WaitForChild("PlayerGui")
+end
+
+local function protectGui(g)
+    if type(protectgui) == "function" then pcall(function() protectgui(g) end) end
+    if type(syn) == "table" and type(syn.protect_gui) == "function" then pcall(function() syn.protect_gui(g) end) end
+end
+
+local function worldToViewport(p)
+    if not Camera then return Vector2.new(0, 0), false end
+    local pt, vis = Camera:WorldToViewportPoint(p)
+    return Vector2.new(pt.X, pt.Y), vis and pt.Z > 0
+end
+
+local function isVisible(char, target)
+    if not CFG.VISIBLE_ONLY then return true end
+    local myChar = player.Character
+    if not myChar then return false end
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = { myChar, char }
+    params.IgnoreWater = true
+    local origin = Camera.CFrame.Position
+    local ok, res = pcall(function()
+        return Workspace:Raycast(origin, target.Position - origin, params)
+    end)
+    if not ok then return false end
+    return res == nil
+end
+
+local function sameTeam(a, b)
+    if not CFG.TEAM_CHECK then return false end
+    return a.Team ~= nil and a.Team == b.Team
+end
+
+-- ===== Build box =====
+local function buildBox(parent, color, thickness)
+    local box = Instance.new("Frame")
+    box.BackgroundTransparency = 1
+    box.BorderSizePixel = 0
+    box.Visible = false
+    box.Parent = parent
+
+    local t = Instance.new("Frame")
+    t.BackgroundColor3 = color
+    t.BorderSizePixel = 0
+    t.Size = UDim2.new(1, 0, 0, thickness)
+    t.Parent = box
+
+    local b = Instance.new("Frame")
+    b.BackgroundColor3 = color
+    b.BorderSizePixel = 0
+    b.Size = UDim2.new(1, 0, 0, thickness)
+    b.Position = UDim2.new(0, 0, 1, -thickness)
+    b.Parent = box
+
+    local l = Instance.new("Frame")
+    l.BackgroundColor3 = color
+    l.BorderSizePixel = 0
+    l.Size = UDim2.new(0, thickness, 1, 0)
+    l.Parent = box
+
+    local r = Instance.new("Frame")
+    r.BackgroundColor3 = color
+    r.BorderSizePixel = 0
+    r.Size = UDim2.new(0, thickness, 1, 0)
+    r.Position = UDim2.new(1, -thickness, 0, 0)
+    r.Parent = box
+
+    return box, { top = t, bottom = b, left = l, right = r }
+end
+
+-- ===== Create player ESP =====
+local function newEspGui()
+    local g = Instance.new("ScreenGui")
+    g.Name = "XSF_PlayerESP_" .. tostring(math.random(100000, 999999))
+    g.ResetOnSpawn = false
+    g.IgnoreGuiInset = true
+    g.DisplayOrder = 998
+    g.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    protectGui(g)
+    g.Parent = getGuiParent()
+    return g
+end
+
+local function createESP(p)
+    if p == player or state.espEntries[p] then return end
+
+    local g = newEspGui()
+    local box, parts = buildBox(g, CFG.BOX_COLOR, CFG.BOX_THICKNESS)
+
+    local name = Instance.new("TextLabel")
+    name.BackgroundTransparency = 1
+    name.TextColor3 = CFG.TEXT_COLOR
+    name.TextStrokeTransparency = 0
+    name.TextStrokeColor3 = Color3.new(0, 0, 0)
+    name.Font = Enum.Font.GothamBold
+    name.TextSize = 13
+    name.AnchorPoint = Vector2.new(0.5, 1)
+    name.Visible = false
+    name.Parent = g
+
+    local dist = Instance.new("TextLabel")
+    dist.BackgroundTransparency = 1
+    dist.TextColor3 = CFG.TEXT_COLOR
+    dist.TextStrokeTransparency = 0
+    dist.TextStrokeColor3 = Color3.new(0, 0, 0)
+    dist.Font = Enum.Font.Gotham
+    dist.TextSize = 12
+    dist.AnchorPoint = Vector2.new(0.5, 0)
+    dist.Visible = false
+    dist.Parent = g
+
+    local tracer = Instance.new("Frame")
+    tracer.BorderSizePixel = 0
+    tracer.BackgroundColor3 = CFG.TRACER_COLOR
+    tracer.AnchorPoint = Vector2.new(0.5, 1)
+    tracer.Visible = false
+    tracer.Parent = g
+
+    state.espEntries[p] = {
+        Gui = g, Box = box, BoxParts = parts,
+        Name = name, Distance = dist, Tracer = tracer,
+    }
+end
+
+local function hideAll(d)
+    d.Box.Visible = false
+    d.Name.Visible = false
+    d.Distance.Visible = false
+    d.Tracer.Visible = false
+end
+
+local function updatePlayer(p, d)
+    if not state.espOn then return hideAll(d) end
+
+    local char = p.Character
+    if not char then return hideAll(d) end
+
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root or hum.Health <= 0 then return hideAll(d) end
+
+    if sameTeam(p, player) then return hideAll(d) end
+
+    local myChar = player.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return hideAll(d) end
+
+    local dv = (myRoot.Position - root.Position).Magnitude
+    if dv > CFG.MAX_DISTANCE then return hideAll(d) end
+    if CFG.VISIBLE_ONLY and not isVisible(char, root) then return hideAll(d) end
+
+    local cf, size = char:GetBoundingBox()
+    local topW = cf.Position + Vector3.new(0, size.Y * 0.5, 0)
+    local botW = cf.Position - Vector3.new(0, size.Y * 0.5, 0)
+
+    local top, tv = worldToViewport(topW)
+    local bot, bv = worldToViewport(botW)
+    if not tv or not bv then return hideAll(d) end
+
+    local h = math.abs(bot.Y - top.Y)
+    if h < 2 then return hideAll(d) end
+
+    h = h * CFG.BOX_SCALE
+    local w = h * 0.5
+    local left = top.X - w * 0.5
+
+    if CFG.SHOW_BOX then
+        d.Box.Position = UDim2.fromOffset(left, top.Y)
+        d.Box.Size = UDim2.fromOffset(w, h)
+        d.Box.Visible = true
+    else
+        d.Box.Visible = false
+    end
+
+    if CFG.SHOW_NAME then
+        d.Name.Text = p.Name
+        d.Name.Position = UDim2.fromOffset(top.X, top.Y - 4)
+        d.Name.Visible = true
+    else
+        d.Name.Visible = false
+    end
+
+    if CFG.SHOW_DIST then
+        d.Distance.Text = string.format("[%d studs]", math.floor(dv))
+        d.Distance.Position = UDim2.fromOffset(top.X, bot.Y + 3)
+        d.Distance.Visible = true
+    else
+        d.Distance.Visible = false
+    end
+
+    if CFG.SHOW_TRACER and Camera then
+        local vp = Camera.ViewportSize
+        local ox, oy = vp.X * 0.5, vp.Y
+        local tx, ty = top.X + w * 0.5, bot.Y
+        local dx, dy = tx - ox, ty - oy
+        local len = math.sqrt(dx * dx + dy * dy)
+        if len > 1 then
+            d.Tracer.Position = UDim2.fromOffset(ox, oy)
+            d.Tracer.Size = UDim2.fromOffset(1, len)
+            d.Tracer.Rotation = math.deg(math.atan2(dy, dx)) - 90
+            d.Tracer.Visible = true
+        else
+            d.Tracer.Visible = false
+        end
+    else
+        d.Tracer.Visible = false
+    end
+end
+
+local function removePlayer(p)
+    local d = state.espEntries[p]
+    if d and d.Gui then pcall(function() d.Gui:Destroy() end) end
+    state.espEntries[p] = nil
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+    pcall(createESP, p)
+end
+Players.PlayerAdded:Connect(function(p)
+    pcall(createESP, p)
+end)
+Players.PlayerRemoving:Connect(function(p)
+    pcall(removePlayer, p)
+end)
+
+-- ===== Main loop =====
+local mainConn = RunService.RenderStepped:Connect(function()
+    if Workspace.CurrentCamera ~= Camera then
+        Camera = Workspace.CurrentCamera
+    end
+
+    if not state.espOn then
+        for p, d in pairs(state.espEntries) do
+            pcall(hideAll, d)
+        end
+        return
+    end
+
+    local stale = nil
+    for p, d in pairs(state.espEntries) do
+        if p.Parent == nil then
+            stale = stale or {}
+            table.insert(stale, p)
+        else
+            pcall(updatePlayer, p, d)
+        end
+    end
+
+    if stale then
+        for _, p in ipairs(stale) do
+            removePlayer(p)
+        end
+    end
+end)
+
+-- ===== THEME (نفس V24) =====
+local THEME = {
+    BG          = Color3.fromRGB(0, 0, 0),
+    BG_TOP      = Color3.fromRGB(8, 16, 10),
+    GREEN       = Color3.fromRGB(0, 255, 90),
+    GREEN_DIM   = Color3.fromRGB(0, 160, 60),
+    GREEN_SOFT  = Color3.fromRGB(120, 220, 140),
+    TEXT        = Color3.fromRGB(220, 255, 220),
+    TEXT_OFF    = Color3.fromRGB(150, 150, 150),
+    DISCORD_BG  = Color3.fromRGB(88, 101, 242),
+    DISCORD_ST  = Color3.fromRGB(130, 145, 255),
+}
+
+-- ===== Cleanup old GUI =====
+for _, parent in ipairs({CoreGui, player:FindFirstChild("PlayerGui")}) do
+    if parent then
+        for _, name in ipairs({"XSF_SCRIPT_GUI", "XK_AIMBOT_GUI"}) do
+            local old = parent:FindFirstChild(name)
+            if old then pcall(function() old:Destroy() end) end
+        end
+    end
+end
+
+-- ===== GUI (نفس V24) =====
+local gui = Instance.new("ScreenGui")
+gui.Name = "XSF_SCRIPT_GUI"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.DisplayOrder = 99999
+protectGui(gui)
+gui.Parent = CoreGui
+
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.new(0, 380, 0, 0)
+main.Position = UDim2.new(0.5, -190, 0, 20)
+main.BackgroundColor3 = THEME.BG
+main.BackgroundTransparency = 0.05
+main.BorderSizePixel = 0
+main.AutomaticSize = Enum.AutomaticSize.Y
+main.Visible = true
+main.Parent = gui
+
+local mainGrad = Instance.new("UIGradient")
+mainGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, THEME.BG_TOP),
+    ColorSequenceKeypoint.new(1, THEME.BG),
+})
+mainGrad.Rotation = 90
+mainGrad.Parent = main
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = THEME.GREEN
+stroke.Thickness = 1
+stroke.Transparency = 0.7
+stroke.Parent = main
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = main
+
+local padding = Instance.new("UIPadding")
+padding.PaddingTop = UDim.new(0, 10)
+padding.PaddingBottom = UDim.new(0, 10)
+padding.PaddingLeft = UDim.new(0, 12)
+padding.PaddingRight = UDim.new(0, 12)
+padding.Parent = main
+
+local layout = Instance.new("UIListLayout")
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 6)
+layout.Parent = main
+
+local uiscale = Instance.new("UIScale")
+uiscale.Parent = main
+local function updateScale()
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+    local vp = cam.ViewportSize
+    if vp.X < 1 then return end
+    local s = math.clamp(vp.X / 1400, 0.75, 1.10)
+    uiscale.Scale = s
+end
+updateScale()
+if workspace.CurrentCamera then
+    workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
+end
+
+-- Title
+local titleRow = Instance.new("Frame")
+titleRow.Size = UDim2.new(1, 0, 0, 26)
+titleRow.BackgroundTransparency = 1
+titleRow.LayoutOrder = 1
+titleRow.Active = true
+titleRow.Parent = main
+
+local dotIcon = Instance.new("Frame")
+dotIcon.Size = UDim2.new(0, 9, 0, 9)
+dotIcon.Position = UDim2.new(0, 0, 0.5, -4.5)
+dotIcon.BackgroundColor3 = THEME.GREEN
+dotIcon.BorderSizePixel = 0
+dotIcon.Parent = titleRow
+
+local diC = Instance.new("UICorner")
+diC.CornerRadius = UDim.new(1, 0)
+diC.Parent = dotIcon
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -110, 1, 0)
+title.Position = UDim2.new(0, 16, 0, 0)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 15
+title.TextColor3 = THEME.GREEN
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Text = "XSF SCRIPT"
+title.Parent = titleRow
+
+-- Discord
+local discordBtn = Instance.new("TextButton")
+discordBtn.Size = UDim2.new(0, 88, 0, 20)
+discordBtn.Position = UDim2.new(1, -88, 0.5, -10)
+discordBtn.BackgroundColor3 = THEME.DISCORD_BG
+discordBtn.BorderSizePixel = 0
+discordBtn.Font = Enum.Font.GothamBold
+discordBtn.TextSize = 11
+discordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+discordBtn.Text = "Discord"
+discordBtn.AutoButtonColor = true
+discordBtn.Parent = titleRow
+
+local dcbC = Instance.new("UICorner")
+dcbC.CornerRadius = UDim.new(0, 4)
+dcbC.Parent = discordBtn
+
+local dcbS = Instance.new("UIStroke")
+dcbS.Color = THEME.DISCORD_ST
+dcbS.Thickness = 1
+dcbS.Transparency = 0.5
+dcbS.Parent = discordBtn
+
+local function copyToClipboard(text)
+    if setclipboard then
+        local ok = pcall(setclipboard, text)
+        if ok then return true end
+    end
+    if toclipboard then
+        local ok = pcall(toclipboard, text)
+        if ok then return true end
+    end
+    if syn and type(syn) == "table" and type(syn.write_clipboard) == "function" then
+        local ok = pcall(syn.write_clipboard, text)
+        if ok then return true end
+    end
+    return false
+end
+
+discordBtn.Activated:Connect(function()
+    local success = copyToClipboard(DISCORD_LINK)
+    if success then
+        discordBtn.Text = "✓ Copied"
+        discordBtn.BackgroundColor3 = Color3.fromRGB(35, 165, 90)
+    else
+        discordBtn.Text = "Failed"
+        discordBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+    end
+    task.delay(1.5, function()
+        if discordBtn and discordBtn.Parent then
+            discordBtn.Text = "Discord"
+            discordBtn.BackgroundColor3 = THEME.DISCORD_BG
+        end
+    end)
+end)
+
+-- Subtitle
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1, 0, 0, 12)
+subtitle.BackgroundTransparency = 1
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextSize = 10
+subtitle.TextColor3 = THEME.GREEN_SOFT
+subtitle.TextXAlignment = Enum.TextXAlignment.Left
+subtitle.Text = "المطور : Faisal"
+subtitle.LayoutOrder = 2
+subtitle.Parent = main
+
+-- Separator
+local sep = Instance.new("Frame")
+sep.Size = UDim2.new(1, 0, 0, 1)
+sep.BackgroundColor3 = THEME.GREEN_DIM
+sep.BackgroundTransparency = 0.7
+sep.BorderSizePixel = 0
+sep.LayoutOrder = 3
+sep.Parent = main
+
+-- Single toggle: ESP
+local espRow = Instance.new("Frame")
+espRow.Size = UDim2.new(1, 0, 0, 38)
+espRow.BackgroundTransparency = 1
+espRow.LayoutOrder = 4
+espRow.Parent = main
+
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(1, 0, 1, 0)
+btn.BackgroundColor3 = state.espOn and Color3.fromRGB(15, 35, 20) or Color3.fromRGB(25, 25, 25)
+btn.BorderSizePixel = 0
+btn.Text = ""
+btn.AutoButtonColor = false
+btn.Parent = espRow
+
+local bc = Instance.new("UICorner")
+bc.CornerRadius = UDim.new(0, 6)
+bc.Parent = btn
+
+local bs = Instance.new("UIStroke")
+bs.Color = THEME.GREEN
+bs.Thickness = 1
+bs.Transparency = state.espOn and 0.7 or 0.9
+bs.Parent = btn
+
+local bdot = Instance.new("Frame")
+bdot.Size = UDim2.new(0, 8, 0, 8)
+bdot.Position = UDim2.new(0, 12, 0.5, -4)
+bdot.BackgroundColor3 = state.espOn and THEME.GREEN or Color3.fromRGB(70, 70, 70)
+bdot.BorderSizePixel = 0
+bdot.Parent = btn
+
+local bdc = Instance.new("UICorner")
+bdc.CornerRadius = UDim.new(1, 0)
+bdc.Parent = bdot
+
+local blbl = Instance.new("TextLabel")
+blbl.Size = UDim2.new(1, -28, 1, 0)
+blbl.Position = UDim2.new(0, 26, 0, 0)
+blbl.BackgroundTransparency = 1
+blbl.Font = Enum.Font.GothamBold
+blbl.TextSize = 13
+blbl.TextColor3 = state.espOn and THEME.GREEN or THEME.TEXT_OFF
+blbl.TextXAlignment = Enum.TextXAlignment.Left
+blbl.Text = "ESP"
+blbl.Parent = btn
+
+btn.Activated:Connect(function()
+    state.espOn = not state.espOn
+    local on = state.espOn
+    btn.BackgroundColor3 = on and Color3.fromRGB(15, 35, 20) or Color3.fromRGB(25, 25, 25)
+    bs.Transparency = on and 0.7 or 0.9
+    bdot.BackgroundColor3 = on and THEME.GREEN or Color3.fromRGB(70, 70, 70)
+    blbl.TextColor3 = on and THEME.GREEN or THEME.TEXT_OFF
+end)
+
+-- Dragging
+do
+    local dragging, dragStart, startPos = false, nil, nil
+    titleRow.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = main.Position
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if not dragging then return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+-- Y key (PC)
+if hasKeyboard then
+    UIS.InputBegan:Connect(function(input, gp)
+        if gp then return end
+        if input.KeyCode == Enum.KeyCode.Y then
+            main.Visible = not main.Visible
+        end
+    end)
+end
+
+-- Float button (touch only)
+if hasTouch then
+    local floatBtn = Instance.new("TextButton")
+    floatBtn.Name = "FloatToggle"
+    floatBtn.Size = UDim2.new(0, 52, 0, 52)
+    floatBtn.Position = UDim2.new(0, 10, 0.5, -26)
+    floatBtn.BackgroundColor3 = Color3.fromRGB(15, 35, 20)
+    floatBtn.BorderSizePixel = 0
+    floatBtn.Font = Enum.Font.GothamBold
+    floatBtn.TextSize = 13
+    floatBtn.TextColor3 = THEME.GREEN
+    floatBtn.Text = "XSF"
+    floatBtn.AutoButtonColor = false
+    floatBtn.Parent = gui
+
+    local fc = Instance.new("UICorner")
+    fc.CornerRadius = UDim.new(1, 0)
+    fc.Parent = floatBtn
+
+    local fs = Instance.new("UIStroke")
+    fs.Color = THEME.GREEN
+    fs.Thickness = 1
+    fs.Transparency = 0.6
+    fs.Parent = floatBtn
+
+    floatBtn.Activated:Connect(function()
+        main.Visible = not main.Visible
+    end)
+end
+
+-- ===== Kill =====
+local function xk_kill()
+    state.running = false
+    state.espOn = false
+    for p in pairs(state.espEntries) do
+        removePlayer(p)
+    end
+    pcall(function() if mainConn then mainConn:Disconnect() end end)
+    pcall(function() gui:Destroy() end)
+    if _G.xk_active and _G.xk_active.self then _G.xk_active = nil end
+end
+
+_G.xk_kill = xk_kill
+_G.xk_stop = function() state.espOn = false end
+_G.xk_config = function(t)
+    if type(t)=="table" then
+        for k,v in pairs(t) do if CFG[k]~=nil then CFG[k]=v end end
+    end
+end
+
+_G.xk_active = {stop = _G.xk_stop, kill = xk_kill, self = true, startedAt = tick(), version = "PlayerESP-V24UI"}
