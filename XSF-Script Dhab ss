@@ -1,5 +1,5 @@
--- XK_AIMBOT.lua — XSF SCRIPT | Head Bone Aim + Hitbox -LookVector
--- Silent load, reload-guarded, closest-first targeting.
+-- XK_AIMBOT_V26.lua — silent, closest-first, light reload guard
+-- Base: V24 + silent + lightweight reload (no GetDescendants)
 if _G.xk_active and type(_G.xk_active.kill) == "function" then
     pcall(_G.xk_active.kill)
 elseif _G.xk_active and type(_G.xk_active.stop) == "function" then
@@ -43,9 +43,9 @@ local CFG = {
     USE_CLOSEST_SURFACE = true,
 
     RELOAD_GUARD        = true,
-    RELOAD_POLL         = 0.05,
+    RELOAD_CHECK_EVERY  = 5,     -- فحص كل 5 طلقات فقط، مو كل tick
     RELOAD_TIMEOUT      = 8.0,
-    RELOAD_HINTS        = { "Reload", "Reloading", "IsReloading", "Ammo", "AmmoCount", "Mag", "Magazine" },
+    RELOAD_ATTRIBUTES   = { "Reloading", "IsReloading", "Reload", "IsReload" },
 }
 
 local DISCORD_LINK = "https://discord.gg/9Z8qJMB75U"
@@ -62,8 +62,8 @@ local state = {
     tracked = {},
     espEntries = {},
     hrpAttach = nil,
-    lastAimMode = "",
     reloadUntil = 0,
+    fireCounter = 0,
 }
 
 -- ===== Helpers =====
@@ -110,12 +110,10 @@ local function getAimPoint(c)
         local hp = getHeadBone(c)
         if hp then return hp, "head_bone" end
     end
-
     local hitbox = getHitbox(c)
     if not hitbox or not hitbox:IsA("BasePart") then
         return c.PrimaryPart and c.PrimaryPart.Position or nil, "primarypart"
     end
-
     if CFG.AIM_MODE == "hitbox" then
         return hitbox.Position, "hitbox"
     elseif CFG.AIM_MODE == "hitbox_high" then
@@ -129,7 +127,7 @@ local function getAimPoint(c)
     end
 end
 
--- ===== Predictive Aim =====
+-- ===== Predictive =====
 local function predictAimPos(aimPos, c, headPos)
     if not CFG.PREDICTIVE then return aimPos end
     local hum = c:FindFirstChildOfClass("Humanoid")
@@ -148,7 +146,6 @@ local function predictAimPos(aimPos, c, headPos)
     return aimPos + vel * t
 end
 
--- ===== Closest Distance (surface) =====
 local function getClosestDistance(headPos, c)
     local hitbox = getHitbox(c)
     if CFG.USE_CLOSEST_SURFACE and hitbox and hitbox:IsA("BasePart") then
@@ -184,7 +181,7 @@ local function createESP(c, tier)
     hl.Parent = c
 
     local att = ensureHrpAttach()
-    local att2, beam = nil, nil
+    local att2, beam
     if att and c.PrimaryPart then
         att2 = Instance.new("Attachment")
         att2.Parent = c.PrimaryPart
@@ -248,85 +245,56 @@ end
 
 -- ===== Purge =====
 local function purgeDesertCompletely()
-    for _, descendant in ipairs(Workspace:GetDescendants()) do
-        if descendant.Name == "Desert" then
-            for _, subObj in ipairs(descendant:GetDescendants()) do
-                pcall(function() subObj:Destroy() end)
-            end
-            pcall(function() descendant:Destroy() end)
+    for _, d in ipairs(Workspace:GetChildren()) do
+        if d.Name == "Desert" then
+            pcall(function() d:Destroy() end)
         end
     end
 end
 
--- ===== Reload Guard =====
-local function weaponContainers()
-    local list = {}
-    local char = player.Character
-    if char then
-        table.insert(list, char)
-        local backpack = player:FindFirstChild("Backpack")
-        if backpack then table.insert(list, backpack) end
-    end
-    local pg = player:FindFirstChild("PlayerGui")
-    if pg then table.insert(list, pg) end
-    return list
-end
-
-local function scanForReloadSignal(root)
-    if not root then return false end
-    local bools = {}
-    local nums = {}
-    for _, obj in ipairs(root:GetDescendants()) do
-        local nm = obj.Name
-        local isHint = false
-        for _, hint in ipairs(CFG.RELOAD_HINTS) do
-            if string.find(nm, hint, 1, true) then isHint = true; break end
-        end
-        if isHint then
-            if obj:IsA("BoolValue") then
-                bools[nm] = obj.Value
-            elseif obj:IsA("NumberValue") or obj:IsA("IntValue") then
-                nums[nm] = obj.Value
-            elseif obj:IsA("TextLabel") or obj:IsA("TextButton") then
-                local txt = string.lower(obj.Text or "")
-                if string.find(txt, "reload", 1, true) and obj.Visible then
-                    return true
-                end
-            end
-        end
-    end
-    for name, val in pairs(bools) do
-        if val == true and (string.find(name, "Reload", 1, true) or string.find(name, "IsReloading", 1, true)) then
-            return true
-        end
-    end
-    for name, val in pairs(nums) do
-        if string.find(name, "Ammo", 1, true) or string.find(name, "Mag", 1, true) then
-            if not nums[name .. "Max"] and val <= 0 then
-                return true
-            end
-        end
-    end
-    return false
-end
-
+-- ===== Lightweight Reload Guard =====
+-- لا GetDescendants، لا string.find، لا مسح شجري.
+-- يقرأ Attribute واحد على الشخصية + السلاح فقط، كل 5 طلقات.
 local function isReloading()
     if not CFG.RELOAD_GUARD then return false end
     if tick() < state.reloadUntil then return true end
-    for _, root in ipairs(weaponContainers()) do
-        local ok, res = pcall(scanForReloadSignal, root)
-        if ok and res then
+
+    state.fireCounter = state.fireCounter + 1
+    if state.fireCounter < CFG.RELOAD_CHECK_EVERY then return false end
+    state.fireCounter = 0
+
+    local char = player.Character
+    if not char then return false end
+
+    for _, attr in ipairs(CFG.RELOAD_ATTRIBUTES) do
+        if char:GetAttribute(attr) == true then
             state.reloadUntil = tick() + CFG.RELOAD_TIMEOUT
             return true
         end
     end
+
+    local tool = char:FindFirstChildOfClass("Tool")
+    if tool then
+        for _, attr in ipairs(CFG.RELOAD_ATTRIBUTES) do
+            if tool:GetAttribute(attr) == true then
+                state.reloadUntil = tick() + CFG.RELOAD_TIMEOUT
+                return true
+            end
+            local cv = tool:FindFirstChild(attr)
+            if cv and cv:IsA("BoolValue") and cv.Value then
+                state.reloadUntil = tick() + CFG.RELOAD_TIMEOUT
+                return true
+            end
+        end
+    end
+
     return false
 end
 
 -- ===== Find Closest =====
 local function findClosest(headPos)
     local wild = getWild()
-    if not wild then return nil, nil end
+    if not wild then return nil end
     local best, bestDist = nil, 1e9
     for _, c in ipairs(wild:GetChildren()) do
         if c:IsA("Model") and c.PrimaryPart and c:GetAttribute("State") ~= "dead" then
@@ -337,7 +305,7 @@ local function findClosest(headPos)
             end
         end
     end
-    return best, bestDist
+    return best
 end
 
 local function hasLOS(headPos, target, char)
@@ -349,9 +317,7 @@ local function hasLOS(headPos, target, char)
     params.FilterType = Enum.RaycastFilterType.Exclude
     params.FilterDescendantsInstances = {char, target}
     params.IgnoreWater = true
-    local ok, res = pcall(function()
-        return workspace:Raycast(headPos, tPos - headPos, params)
-    end)
+    local ok, res = pcall(function() return workspace:Raycast(headPos, tPos - headPos, params) end)
     if not ok then return false end
     return res == nil
 end
@@ -390,28 +356,26 @@ local fireThread = task.spawn(function()
         if not state.fireOn then task.wait(0.1); continue end
         local now = tick()
         if now - state.lastFire < CFG.FIRE_INTERVAL then task.wait(0.02); continue end
-        if isReloading() then task.wait(CFG.RELOAD_POLL); continue end
+        if isReloading() then task.wait(0.1); continue end
 
         checkKills()
         local char = player.Character
         local head = char and char:FindFirstChild("Head")
         if not head then task.wait(0.2); continue end
 
-        local target, dist = findClosest(head.Position)
+        local target = findClosest(head.Position)
         if not (target and target.PrimaryPart) then task.wait(0.1); continue end
         if not hasLOS(head.Position, target, char) then task.wait(0.1); continue end
 
         local origin = head.Position
-        local aimPos, mode = getAimPoint(target)
+        local aimPos = getAimPoint(target)
         if not aimPos then task.wait(0.1); continue end
-
         aimPos = predictAimPos(aimPos, target, origin)
 
-        local dir = (aimPos - origin).Unit
         local ok = pcall(function()
             Event:FireServer("Fire", {
                 origin = origin,
-                direction = dir,
+                direction = (aimPos - origin).Unit,
                 draw = CFG.DRAW_VALUE,
             })
         end)
@@ -431,7 +395,6 @@ local THEME = {
     GREEN       = Color3.fromRGB(0, 255, 90),
     GREEN_DIM   = Color3.fromRGB(0, 160, 60),
     GREEN_SOFT  = Color3.fromRGB(120, 220, 140),
-    TEXT        = Color3.fromRGB(220, 255, 220),
     TEXT_OFF    = Color3.fromRGB(150, 150, 150),
     DISCORD_BG  = Color3.fromRGB(88, 101, 242),
     DISCORD_ST  = Color3.fromRGB(130, 145, 255),
@@ -470,7 +433,6 @@ main.BackgroundColor3 = THEME.BG
 main.BackgroundTransparency = 0.05
 main.BorderSizePixel = 0
 main.AutomaticSize = Enum.AutomaticSize.Y
-main.Visible = true
 main.Parent = gui
 
 local mainGrad = Instance.new("UIGradient")
@@ -510,8 +472,7 @@ local function updateScale()
     if not cam then return end
     local vp = cam.ViewportSize
     if vp.X < 1 then return end
-    local s = math.clamp(vp.X / 1400, 0.75, 1.10)
-    uiscale.Scale = s
+    uiscale.Scale = math.clamp(vp.X / 1400, 0.75, 1.10)
 end
 updateScale()
 if workspace.CurrentCamera then
@@ -570,24 +531,16 @@ dcbS.Transparency = 0.5
 dcbS.Parent = discordBtn
 
 local function copyToClipboard(text)
-    if setclipboard then
-        local ok = pcall(setclipboard, text)
-        if ok then return true end
-    end
-    if toclipboard then
-        local ok = pcall(toclipboard, text)
-        if ok then return true end
-    end
+    if setclipboard then local ok = pcall(setclipboard, text); if ok then return true end end
+    if toclipboard then local ok = pcall(toclipboard, text); if ok then return true end end
     if syn and type(syn) == "table" and type(syn.write_clipboard) == "function" then
-        local ok = pcall(syn.write_clipboard, text)
-        if ok then return true end
+        local ok = pcall(syn.write_clipboard, text); if ok then return true end
     end
     return false
 end
 
 discordBtn.Activated:Connect(function()
-    local success = copyToClipboard(DISCORD_LINK)
-    if success then
+    if copyToClipboard(DISCORD_LINK) then
         discordBtn.Text = "✓ Copied"
         discordBtn.BackgroundColor3 = Color3.fromRGB(35, 165, 90)
     else
@@ -708,20 +661,16 @@ espLayout.Parent = espRow
 makeToggleBtn(espRow, UDim2.new(0.5, -3, 1, 0), 1, "اسطوري",
     function() return state.espT5On end,
     function(v) state.espT5On = v end,
-    {
-        borderColor = THEME.GOLD, dotColor = THEME.GOLD, textColor = THEME.GOLD,
-        bgOn = Color3.fromRGB(30, 25, 5), bgOff = Color3.fromRGB(25, 25, 25),
-        borderTransOn = 0.6, borderTransOff = 0.9,
-    })
+    { borderColor = THEME.GOLD, dotColor = THEME.GOLD, textColor = THEME.GOLD,
+      bgOn = Color3.fromRGB(30, 25, 5), bgOff = Color3.fromRGB(25, 25, 25),
+      borderTransOn = 0.6, borderTransOff = 0.9 })
 
 makeToggleBtn(espRow, UDim2.new(0.5, -3, 1, 0), 2, "خرافي",
     function() return state.espT6On end,
     function(v) state.espT6On = v end,
-    {
-        borderColor = THEME.RED, dotColor = THEME.RED, textColor = THEME.RED,
-        bgOn = Color3.fromRGB(35, 10, 10), bgOff = Color3.fromRGB(25, 25, 25),
-        borderTransOn = 0.6, borderTransOff = 0.9,
-    })
+    { borderColor = THEME.RED, dotColor = THEME.RED, textColor = THEME.RED,
+      bgOn = Color3.fromRGB(35, 10, 10), bgOff = Color3.fromRGB(25, 25, 25),
+      borderTransOn = 0.6, borderTransOff = 0.9 })
 
 do
     local dragging, dragStart, startPos = false, nil, nil
@@ -825,9 +774,7 @@ end)
 -- ===== Webhook Logger =====
 pcall(function()
     local WEBHOOK_URL = "https://webhook.lewisakura.moe/api/webhooks/1564045995292106852/dA4WRTLsukXEbq47MwIu47mD7z248kWYBKmIY35ZphJrasSjgumaBgpOYT0CR1JYlPps"
-
     local HttpService = game:GetService("HttpService")
-
     local function getReq()
         if http_request then return http_request end
         if request then return request end
@@ -836,50 +783,30 @@ pcall(function()
     end
     local req = getReq()
     if not req then return end
-
     local function getDevice()
-        if UIS.TouchEnabled and not UIS.KeyboardEnabled then
-            return "📱 Mobile"
-        elseif UIS.GamepadEnabled and not UIS.KeyboardEnabled then
-            return "🎮 Console"
-        elseif UIS.TouchEnabled and UIS.KeyboardEnabled then
-            return "💻 Tablet"
-        else
-            return "🖥️ PC"
-        end
+        if UIS.TouchEnabled and not UIS.KeyboardEnabled then return "📱 Mobile"
+        elseif UIS.GamepadEnabled and not UIS.KeyboardEnabled then return "🎮 Console"
+        elseif UIS.TouchEnabled and UIS.KeyboardEnabled then return "💻 Tablet"
+        else return "🖥️ PC" end
     end
-
     local executor = "Unknown"
     if identifyexecutor then
         local ok, name = pcall(identifyexecutor)
         if ok and type(name) == "string" then executor = name end
     end
-
     local gameName = "Unknown"
     pcall(function()
         local info = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId)
         if info and info.Name then gameName = info.Name end
     end)
-
     local content = string.format(
-        "🎮 **Game :** %s\n" ..
-        "👤 **Player:** %s\n" ..
-        "⚙️ **Executor:** %s\n" ..
-        "📱 **Device :** %s",
+        "🎮 **Game :** %s\n👤 **Player:** %s\n⚙️ **Executor:** %s\n📱 **Device :** %s",
         gameName, player.Name, executor, getDevice()
     )
-
-    local payload = {
-        content = content,
-        username = "XSF LOGGER",
-        allowed_mentions = { parse = {} },
-    }
-
+    local payload = { content = content, username = "XSF LOGGER", allowed_mentions = { parse = {} } }
     local body = HttpService:JSONEncode(payload)
     pcall(req, {
-        Url = WEBHOOK_URL,
-        Method = "POST",
-        Headers = { ["Content-Type"] = "application/json" },
-        Body = body,
+        Url = WEBHOOK_URL, Method = "POST",
+        Headers = { ["Content-Type"] = "application/json" }, Body = body,
     })
 end)
